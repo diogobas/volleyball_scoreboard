@@ -56,18 +56,6 @@ export default function App() {
       {tab === 0 && <>
         <Box className="rosters">{teamOrder.map(id => <Roster key={id} id={id} team={state.teams[id]}
           onPoint={(team, playerId) => dispatch({ type: 'point', team, playerId })} />)}</Box>
-        <Box component="details" className="log-wrap">
-          <Box component="summary"><Typography component="span" variant="overline" color="text.secondary">Recent points ({state.log.length})</Typography></Box>
-          <Box className="log-list">
-            {state.log.length === 0 ? <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>No points scored yet. Tap a player to start.</Typography>
-              : state.log.slice(-40).reverse().map((entry, i) => <Paper key={state.log.length - i} className="log-item" elevation={0}>
-                <Typography variant="body2">{entry.type === 'set'
-                  ? `Set ${entry.setNumber} · ${entry.teamAName} ${entry.scoreA} × ${entry.scoreB} ${entry.teamBName}`
-                  : `${entry.teamName} · ${entry.playerId === 'err' ? 'Unfforced error' : entry.playerName}`}</Typography>
-                {entry.type === 'point' && <Typography variant="body2" color="text.secondary">+1</Typography>}
-              </Paper>)}
-          </Box>
-        </Box>
       </>}
     </Box>
     <Box role="tabpanel" id="stats-panel" aria-labelledby="stats-tab" hidden={tab !== 1}>
@@ -84,6 +72,18 @@ export default function App() {
       <Button size="small" startIcon={<SwapHorizRounded />} aria-pressed={state.sidesSwapped}
         onClick={() => dispatch({ type: 'switchSides' })}>Switch sides</Button>
     </Box>
+    {tab === 0 && <Box component="details" className="log-wrap">
+      <Box component="summary"><Typography component="span" variant="overline" color="text.secondary">Recent points ({state.log.length})</Typography></Box>
+      <Box className="log-list">
+        {state.log.length === 0 ? <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>No points scored yet. Tap a player to start.</Typography>
+          : state.log.slice(-40).reverse().map((entry, i) => <Paper key={state.log.length - i} className="log-item" elevation={0}>
+            <Typography variant="body2">{entry.type === 'set'
+              ? `Set ${entry.setNumber} · ${entry.teamAName} ${entry.scoreA} × ${entry.scoreB} ${entry.teamBName}`
+              : `${entry.teamName} · ${entry.playerId === 'err' ? 'Unfforced error' : entry.playerName}`}</Typography>
+            {entry.type === 'point' && <Typography variant="body2" color="text.secondary">+1</Typography>}
+          </Paper>)}
+      </Box>
+    </Box>}
     <Box component="footer" className="footer">
       <Button color="inherit" size="small" startIcon={<RestartAltRounded />} onClick={() => setConfirmation('reset')}>Reset match</Button>
       <Typography variant="caption" color="text.secondary">{saved ? 'Saved on this device' : storageWarning ? 'Local saving unavailable' : 'Saving…'}</Typography>
