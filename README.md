@@ -25,15 +25,15 @@ Acesse o IP do computador e a porta mostrada no terminal. Esse servidor é para 
 
 - Dois times com seis jogadores cada, mantendo os elencos originais.
 - Um toque no jogador adiciona um ponto ao time e às estatísticas individuais.
-- “Opponent error” adiciona um ponto ao time da coluna selecionada, sem entrar na disputa de destaque individual.
+- “Unfforced error” adiciona um ponto ao time da coluna selecionada.
 - Placar do set, sets vencidos e pontos acumulados por jogador.
 - “Switch sides” (botão com texto e setas horizontais) troca os times de lado na tela, acompanhando a posição dos jogadores na quadra. Cores, pontos e estatísticas permanecem vinculados ao mesmo time. A posição é salva e mantida ao reiniciar a partida; a troca não entra no histórico de pontos nem interfere no desfazer.
 - Fechamento manual de sets, com confirmação; os totais individuais da partida são mantidos.
 - Desfazer pontos e o fechamento do último set, em ordem inversa.
 - Edição dos nomes com salvar/cancelar, sem perder os pontos. Campos em branco mantêm o nome anterior.
-- Estatísticas, destaque individual (incluindo empates) e histórico de sets.
+- Estatísticas por jogador e histórico de sets.
 - Reiniciar a partida com confirmação, preservando os nomes.
-- Interface em inglês, com layout compacto para celular, desktop e orientação horizontal. O título foi removido da tela de jogo, e os botões dos jogadores mantêm pelo menos 48 px de altura.
+- Interface em inglês, com layout responsivo para celular, desktop e orientação horizontal. A lista de jogadores se expande para aproveitar a altura disponível, respeitando as áreas seguras do aparelho. Os botões dividem esse espaço igualmente e mantêm pelo menos 56 px de altura (48 px em telas baixas na horizontal); quando necessário, a página permite rolagem.
 - Histórico de pontos recolhido por padrão; toque em “Recent points” para expandir. O histórico não aumenta a altura da tela enquanto está recolhido.
 - Salvamento automático no `localStorage`, incluindo o histórico necessário para desfazer após recarregar.
 - Fontes distribuídas no próprio build, sem dependência do Google Fonts em tempo de execução.

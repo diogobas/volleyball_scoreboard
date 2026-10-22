@@ -13,7 +13,7 @@ export function createMatch() {
       name: `Team ${index + 1}`,
       setsWon: 0,
       players: [...rosters[id].map((name, i) => ({ id: `p${i + 1}`, name, isError: false })),
-        { id: 'err', name: 'Opponent error', isError: true }]
+        { id: 'err', name: 'Unfforced error', isError: true }]
         .map(player => ({ ...player, setPoints: 0, matchPoints: 0 })),
     }])),
     log: [],

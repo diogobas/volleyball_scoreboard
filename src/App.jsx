@@ -63,7 +63,7 @@ export default function App() {
       <Tab id="game-tab" aria-controls="game-panel" label="Game" />
       <Tab id="stats-tab" aria-controls="stats-panel" label="Statistics" />
     </Tabs>
-    <Box role="tabpanel" id="game-panel" aria-labelledby="game-tab" hidden={tab !== 0}>
+    <Box className="game-panel" role="tabpanel" id="game-panel" aria-labelledby="game-tab" hidden={tab !== 0}>
       {tab === 0 && <>
         <Box className="rosters">{teamOrder.map(id => <Roster key={id} id={id} team={state.teams[id]}
           onPoint={(team, playerId) => dispatch({ type: 'point', team, playerId })} />)}</Box>
@@ -74,7 +74,7 @@ export default function App() {
               : state.log.slice(-40).reverse().map((entry, i) => <Paper key={state.log.length - i} className="log-item" elevation={0}>
                 <Typography variant="body2">{entry.type === 'set'
                   ? `Set ${entry.setNumber} · ${entry.teamAName} ${entry.scoreA} × ${entry.scoreB} ${entry.teamBName}`
-                  : `${entry.teamName} · ${entry.playerId === 'err' ? 'Opponent error' : entry.playerName}`}</Typography>
+                  : `${entry.teamName} · ${entry.playerId === 'err' ? 'Unfforced error' : entry.playerName}`}</Typography>
                 {entry.type === 'point' && <Typography variant="body2" color="text.secondary">+1</Typography>}
               </Paper>)}
           </Box>

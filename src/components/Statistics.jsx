@@ -1,21 +1,9 @@
 import { Box, LinearProgress, Paper, Stack, Typography } from '@mui/material';
-import EmojiEventsOutlined from '@mui/icons-material/EmojiEventsOutlined';
-import { TEAM_IDS } from '../game/match';
 import { teamColors } from '../theme';
 
 export default function Statistics({ state, teamOrder }) {
-  const scorers = TEAM_IDS.flatMap(id => state.teams[id].players.filter(p => !p.isError)
-    .map(p => ({ ...p, teamName: state.teams[id].name })));
-  const best = Math.max(0, ...scorers.map(p => p.matchPoints));
-  const leaders = scorers.filter(p => p.matchPoints === best);
   const sets = state.log.filter(entry => entry.type === 'set');
   return <Box className="statistics">
-    <Paper variant="outlined" className="mvp-banner">
-      <EmojiEventsOutlined color="primary" />
-      <Typography variant="overline" sx={{ display: 'block' }}>Most points in the match</Typography>
-      <Typography variant="h5">{best ? leaders.map(p => p.name).join(' · ') : 'The match is just starting'}</Typography>
-      <Typography variant="body2" color="text.secondary">{best ? `${best} ${best === 1 ? 'point' : 'points'}${leaders.length === 1 ? ` · ${leaders[0].teamName}` : ' · tied for the lead'}` : 'Score points to track match statistics.'}</Typography>
-    </Paper>
     <Box className="stats-grid">
       {teamOrder.map(id => {
         const team = state.teams[id];
