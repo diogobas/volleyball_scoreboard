@@ -128,10 +128,44 @@ O ícone usa uma bola de vôlei branca com painéis azuis e vermelhos sobre fund
 
 Os recursos Android são vetoriais e não exigem gerar imagens por densidade. A geometria da bola segue o ícone Material Design `SportsVolleyball`, disponível no pacote `@mui/icons-material` já usado no projeto. No Android 12 ou superior, a abertura usa o símbolo centralizado sobre uma cor sólida, conforme o formato nativo do sistema.
 
+## iOS no próprio iPhone (conta gratuita)
+
+O projeto inclui a plataforma iOS do Capacitor 8, com dependências nativas via Swift Package Manager. Requer um Mac com Xcode 26 ou superior e iPhone com iOS 15 ou superior. O app inclui os arquivos web e as fontes para funcionar offline.
+
+```sh
+npm ci
+npm run ios:sync
+npm run ios:open
+```
+
+### Primeira instalação
+
+Se o Xcode informar que não há destinos disponíveis ou que “iOS 26.5 is not installed”, abra **Xcode > Settings > Components** e instale o componente iOS solicitado antes de compilar. O SDK pode aparecer em `xcodebuild -showsdks` mesmo com componentes de suporte ainda pendentes.
+
+1. Conecte o iPhone ao Mac por cabo, desbloqueie e aceite “Confiar neste computador” se solicitado.
+2. No Xcode, abra **Settings > Accounts** (ou **Apple Accounts**) e adicione sua conta Apple.
+3. Na barra lateral, selecione o projeto **App** e depois o target **App**. Em **Signing & Capabilities**, mantenha **Automatically manage signing** ativado e selecione sua **Personal Team**.
+4. Mantenha o identificador `com.diogobastos.volleyballscoreboard`. Se o Xcode indicar que ele está indisponível, escolha um identificador exclusivo e atualize também `appId` em `capacitor.config.json`.
+5. Selecione o iPhone como destino na barra superior e clique em **Run** (⌘R). O Xcode baixa as dependências Swift na primeira compilação.
+6. Se solicitado, ative **Ajustes > Privacidade e Segurança > Modo de Desenvolvedor** no iPhone e siga as instruções para reiniciar e confirmar.
+7. Se o iPhone bloquear a abertura por desenvolvedor não confiável, vá a **Ajustes > Geral > VPN e Gerenciamento de Dispositivo**, selecione sua conta em App de Desenvolvedor e autorize.
+
+A conta gratuita não permite usar TestFlight. O provisionamento para testes pessoais expira após sete dias; conecte o iPhone e execute novamente pelo Xcode para renovar. Para preservar a partida, atualize o app mantendo o identificador em vez de desinstalá-lo. Os dados do Safari e do app Android não são transferidos automaticamente.
+
+Após alterações na interface, execute `npm run ios:sync` antes de usar **Run** no Xcode. Mantenha `ios/` no Git; arquivos web copiados, builds e configurações pessoais do Xcode ficam ignorados. A equipe de assinatura deve ser selecionada localmente no Xcode.
+
+### Ícone e tela de abertura iOS
+
+O catálogo `ios/App/App/Assets.xcassets` contém o ícone de vôlei de 1024 × 1024 px, opaco e sem cantos arredondados, e a bola em três escalas para a abertura. `LaunchScreen.storyboard` centraliza a bola em 192 pt sobre o fundo `#0E1220`, em retrato e paisagem.
+
+Para regenerar os PNGs no Mac a partir dos caminhos vetoriais de `assets/branding/icon.svg`, execute `python3 scripts/generate-ios-branding.py`. O script usa Python padrão e Core Graphics via Swift, sem dependências extras. Depois compile novamente pelo Xcode. A abertura nativa aparece enquanto o app inicia e pode ser breve; voltar a um app já aberto não repete essa tela.
+
+Referências: [Capacitor iOS](https://capacitorjs.com/docs/ios), [conta gratuita Apple](https://developer.apple.com/help/account/basics/about-your-developer-account) e [Modo de Desenvolvedor](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device).
+
 ## Próximas etapas
 
 - Testar o APK em um celular Android físico.
 - Definir identificador definitivo e assinatura de release para distribuição.
-- Adicionar a plataforma iOS quando necessário.
+- Instalar e testar no iPhone físico pelo Xcode.
 
 Referências: [Material UI](https://mui.com/material-ui/getting-started/installation/), [Vite](https://vite.dev/guide/) e [Capacitor Android](https://capacitorjs.com/docs/android).
