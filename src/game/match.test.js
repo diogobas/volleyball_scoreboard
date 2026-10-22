@@ -85,3 +85,33 @@ test('invalid storage cannot introduce malformed history or players', () => {
   invalid.log = [{ type: 'set' }];
   assert.throws(() => restoreMatch(JSON.stringify(invalid)));
 });
+
+test('switching sides preserves team identity, scores and undo across sets and reloads', () => {
+  const before = close(point(point(point(createMatch()), 'B'), 'A', 'p2'));
+  const switched = matchReducer(before, { type: 'switchSides' });
+  assert.equal(switched.sidesSwapped, true);
+  assert.equal(switched.teams, before.teams);
+  assert.equal(switched.log, before.log);
+  assert.equal(switched.currentSet, before.currentSet);
+  const scored = point(switched, 'B', 'p3');
+  assert.equal(scored.teams.B.players[2].setPoints, 1);
+  assert.equal(teamScore(scored.teams.A), 0);
+  assert.deepEqual(restoreMatch(JSON.stringify(scored)), scored);
+  assert.deepEqual(undo(scored), switched);
+  const reopened = undo(undo(scored));
+  assert.equal(reopened.sidesSwapped, true);
+  assert.equal(teamScore(reopened.teams.A), 2);
+  assert.equal(teamScore(reopened.teams.B), 1);
+  assert.equal(reopened.teams.A.setsWon, 0);
+  assert.deepEqual(matchReducer(switched, { type: 'switchSides' }), before);
+  assert.equal(matchReducer(switched, { type: 'reset' }).sidesSwapped, true);
+});
+
+test('matches saved before switch sides was added keep the original layout', () => {
+  const previous = point(createMatch());
+  delete previous.sidesSwapped;
+  const restored = restoreMatch(JSON.stringify(previous));
+  assert.equal(restored.sidesSwapped, false);
+  assert.deepEqual(restored.teams, previous.teams);
+  assert.deepEqual(restored.log, previous.log);
+});

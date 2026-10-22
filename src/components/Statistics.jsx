@@ -3,7 +3,7 @@ import EmojiEventsOutlined from '@mui/icons-material/EmojiEventsOutlined';
 import { TEAM_IDS } from '../game/match';
 import { teamColors } from '../theme';
 
-export default function Statistics({ state }) {
+export default function Statistics({ state, teamOrder }) {
   const scorers = TEAM_IDS.flatMap(id => state.teams[id].players.filter(p => !p.isError)
     .map(p => ({ ...p, teamName: state.teams[id].name })));
   const best = Math.max(0, ...scorers.map(p => p.matchPoints));
@@ -17,7 +17,7 @@ export default function Statistics({ state }) {
       <Typography variant="body2" color="text.secondary">{best ? `${best} ${best === 1 ? 'point' : 'points'}${leaders.length === 1 ? ` · ${leaders[0].teamName}` : ' · tied for the lead'}` : 'Score points to track match statistics.'}</Typography>
     </Paper>
     <Box className="stats-grid">
-      {TEAM_IDS.map(id => {
+      {teamOrder.map(id => {
         const team = state.teams[id];
         const max = Math.max(1, ...team.players.map(p => p.matchPoints));
         return <Box key={id}>
