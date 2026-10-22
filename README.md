@@ -65,8 +65,7 @@ src/
 
 ## Próximas etapas
 
-1. Criar ou conectar o repositório GitHub e enviar o projeto.
-2. Integrar uma camada Android, por exemplo Capacitor, e configurar identificação, ícones e build do APK.
+1. Integrar uma camada Android, por exemplo Capacitor, e configurar identificação, ícones e build do APK.
 
 Estas integrações ainda não foram realizadas. A base relativa do Vite permite servir o build em subpastas e facilita seu uso futuro em um contêiner Android.
 
