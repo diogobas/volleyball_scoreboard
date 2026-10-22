@@ -3,20 +3,22 @@
 body { margin: 0; min-width: 320px; }
 button, input { touch-action: manipulation; }
 .app { max-width: 900px; min-height: 100dvh; margin: auto; padding: var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) var(--safe-area-inset-right, env(safe-area-inset-right, 0px)) var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) var(--safe-area-inset-left, env(safe-area-inset-left, 0px)); }
-.app-header { padding: 20px 20px 12px; gap: 12px; }
-.app-header .MuiTypography-caption { text-align: right; }
-.set-bar { padding: 8px 0 14px; }
+.set-bar { padding: 4px 0; }
+.set-bar .MuiChip-root { height: 24px; }
 .score-panels, .rosters, .stats-grid, .edit-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .score-panels { position: relative; border-radius: 16px 16px 0 0; overflow: hidden; margin: 0 16px; }
 .score-panels::after { content: ''; position: absolute; top: 12px; bottom: 12px; left: 50%; border-left: 2px dashed #ffffff55; }
-.score-panel { padding: 16px 12px 20px; text-align: center; min-width: 0; }
-.score-panel .team-heading { font: 700 clamp(20px, 4vw, 28px) 'Barlow Condensed', sans-serif; overflow-wrap: anywhere; }
-.score-panel .score { font: 900 clamp(72px, 16vw, 112px)/1.05 'Barlow Condensed', sans-serif; font-variant-numeric: tabular-nums; }
-.actions { padding: 16px 12px; }
-.tabs { margin: 0 16px 16px; background: #ffffff08; border-radius: 12px; }
+.score-panel { padding: 8px 12px; text-align: center; min-width: 0; }
+.score-panel .team-heading { font: 700 clamp(20px, 4vw, 26px) 'Barlow Condensed', sans-serif; overflow-wrap: anywhere; }
+.score-panel .score { font: 900 clamp(60px, 15vw, 88px)/1 'Barlow Condensed', sans-serif; font-variant-numeric: tabular-nums; }
+.actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 4px 12px; }
+.actions .MuiButton-root { min-height: 44px; min-width: 0; padding: 4px 8px; }
+.tabs { margin: 0 16px 8px; background: #ffffff08; border-radius: 12px; }
+.tabs, .tabs .MuiTab-root { min-height: 36px; }
+.tabs .MuiTab-root { padding: 6px 12px; }
 .rosters { margin: 0 16px; border-radius: 12px; overflow: hidden; }
-.roster { min-width: 0; padding: 12px; }
-.player-button.MuiButtonBase-root { display: flex; justify-content: space-between; gap: 8px; width: 100%; min-height: 56px; padding: 8px 10px; margin-bottom: 8px; border: 1px solid #ffffff4d; border-radius: 10px; background: #ffffff1f; text-align: left; color: white; }
+.roster { min-width: 0; padding: 6px 8px; }
+.player-button.MuiButtonBase-root { display: flex; justify-content: space-between; gap: 8px; width: 100%; min-height: 48px; padding: 6px 10px; margin-bottom: 4px; border: 1px solid #ffffff4d; border-radius: 10px; background: #ffffff1f; text-align: left; color: white; }
 .player-button.MuiButtonBase-root:last-child { margin-bottom: 0; }
 .player-button.MuiButtonBase-root:hover { background: #ffffff30; }
 .player-button.Mui-focusVisible { outline: 3px solid white; outline-offset: -3px; }
@@ -24,32 +26,36 @@ button, input { touch-action: manipulation; }
 .player-name { font-size: 14px; overflow-wrap: anywhere; }
 .error-button .player-name { font-size: 12px; font-style: italic; opacity: .85; }
 .player-points.MuiChip-root { min-width: 36px; height: 34px; border-radius: 8px; background: #ffffff24; color: white; font: 700 22px 'Barlow Condensed', sans-serif; flex-shrink: 0; }
-.log-wrap { padding: 14px 16px; }
-.log-list { display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; }
+.log-wrap { padding: 4px 16px 0; }
+.log-wrap summary { cursor: pointer; min-height: 40px; align-content: center; }
+.log-wrap summary:focus-visible { outline: 2px solid #82b9f1; outline-offset: 2px; border-radius: 4px; }
+.log-list { display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto; }
 .log-item.MuiPaper-root { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 12px; background: #ffffff08; background-image: none; overflow-wrap: anywhere; }
 .statistics { padding: 0 20px 20px; }
 .mvp-banner.MuiPaper-root { text-align: center; padding: 20px 16px; margin-bottom: 24px; overflow-wrap: anywhere; }
 .stats-grid, .edit-grid { gap: 24px; }
-.footer { text-align: center; padding: 8px 16px 24px; color: #ffffff99; }
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 16px 4px; color: #ffffff99; }
+.footer .MuiButton-root { min-height: 44px; }
+.footer .MuiTypography-caption { font-size: 10px; text-align: right; }
 @media (max-width: 450px) {
-  .app-header { padding: 16px 12px 8px; }
-  .app-header .MuiTypography-h5 { font-size: 22px; }
-  .app-header .MuiTypography-caption { font-size: 10px; max-width: 90px; }
+  .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; }
+  .set-bar { padding: 2px 0; }
+  .score-panel { padding: 4px 12px; }
+  .score-panel .score { font-size: 52px; }
+  .tabs { margin-bottom: 4px; }
   .score-panels, .rosters { margin-left: 8px; margin-right: 8px; }
-  .roster { padding: 8px; }
-  .player-button.MuiButtonBase-root { padding: 8px; }
+  .roster { padding: 6px; }
+  .player-button.MuiButtonBase-root { padding: 6px 8px; }
   .player-name { font-size: 13px; }
   .stats-grid { gap: 16px; }
   .edit-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (orientation: landscape) and (max-height: 600px) {
-  .app-header { padding-top: 8px; padding-bottom: 4px; }
-  .set-bar { padding: 4px 0 8px; }
+  .set-bar { padding: 4px 0; }
   .score-panel { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 16px; padding: 8px 12px; }
   .score-panel .score { font-size: 48px; }
   .score-panel .team-heading { font-size: 22px; }
-  .score-panel .MuiTypography-caption { width: 100%; }
-  .actions { padding: 8px; }
+  .actions { padding: 4px 8px; }
   .tabs { margin-bottom: 8px; }
   .player-button.MuiButtonBase-root { min-height: 48px; }
 }

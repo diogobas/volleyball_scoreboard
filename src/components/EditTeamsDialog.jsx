@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material';
 import { TEAM_IDS } from '../game/match';
 
-export default function EditTeamsDialog({ teams, onClose, onSave }) {
+export default function EditTeamsDialog({ teams, teamOrder, onClose, onSave }) {
   const [draft, setDraft] = useState(() => structuredClone(teams));
   const update = (id, name, index) => setDraft(previous => ({ ...previous, [id]: {
     ...previous[id], ...(index === undefined ? { name } : {
@@ -13,8 +13,8 @@ export default function EditTeamsDialog({ teams, onClose, onSave }) {
     <DialogTitle id="edit-title">Edit teams and players</DialogTitle>
     <DialogContent dividers>
       <Box className="edit-grid">
-        {TEAM_IDS.map((id, index) => <Stack key={id} spacing={2}>
-          <Typography variant="overline">Team {index + 1}</Typography>
+        {teamOrder.map(id => <Stack key={id} spacing={2}>
+          <Typography variant="overline">Team {TEAM_IDS.indexOf(id) + 1}</Typography>
           <TextField label="Team name" value={draft[id].name} onChange={e => update(id, e.target.value)}
             slotProps={{ htmlInput: { maxLength: 16 } }} fullWidth />
           {draft[id].players.filter(p => !p.isError).map((player, i) =>

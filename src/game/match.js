@@ -8,6 +8,7 @@ const rosters = {
 export function createMatch() {
   return {
     currentSet: 1,
+    sidesSwapped: false,
     teams: Object.fromEntries(TEAM_IDS.map((id, index) => [id, {
       name: `Team ${index + 1}`,
       setsWon: 0,
@@ -25,6 +26,8 @@ export function teamScore(team) {
 
 export function matchReducer(state, action) {
   switch (action.type) {
+    case 'switchSides':
+      return { ...state, sidesSwapped: !state.sidesSwapped };
     case 'point': {
       const team = state.teams[action.team];
       const player = team?.players.find(p => p.id === action.playerId);
@@ -83,7 +86,7 @@ export function matchReducer(state, action) {
           name: action.teams[id].players[i].name.trim().slice(0, 20) || p.name }),
       }])) };
     case 'reset':
-      return { ...createMatch(), teams: Object.fromEntries(TEAM_IDS.map(id => [id, {
+      return { ...createMatch(), sidesSwapped: state.sidesSwapped, teams: Object.fromEntries(TEAM_IDS.map(id => [id, {
         ...state.teams[id], setsWon: 0,
         players: state.teams[id].players.map(p => ({ ...p, setPoints: 0, matchPoints: 0 })),
       }])) };
@@ -97,6 +100,7 @@ export function restoreMatch(raw) {
   if (!raw) return createMatch();
   const saved = JSON.parse(raw);
   const initial = createMatch();
+  initial.sidesSwapped = saved.sidesSwapped === true;
   for (const id of TEAM_IDS) {
     const team = saved.teams[id];
     if (typeof team.name !== 'string' || !team.name.trim() || team.name.length > 16 ||

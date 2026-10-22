@@ -27,12 +27,14 @@ Acesse o IP do computador e a porta mostrada no terminal. Esse servidor é para 
 - Um toque no jogador adiciona um ponto ao time e às estatísticas individuais.
 - “Opponent error” adiciona um ponto ao time da coluna selecionada, sem entrar na disputa de destaque individual.
 - Placar do set, sets vencidos e pontos acumulados por jogador.
+- “Switch sides” (botão com texto e setas horizontais) troca os times de lado na tela, acompanhando a posição dos jogadores na quadra. Cores, pontos e estatísticas permanecem vinculados ao mesmo time. A posição é salva e mantida ao reiniciar a partida; a troca não entra no histórico de pontos nem interfere no desfazer.
 - Fechamento manual de sets, com confirmação; os totais individuais da partida são mantidos.
 - Desfazer pontos e o fechamento do último set, em ordem inversa.
 - Edição dos nomes com salvar/cancelar, sem perder os pontos. Campos em branco mantêm o nome anterior.
 - Estatísticas, destaque individual (incluindo empates) e histórico de sets.
 - Reiniciar a partida com confirmação, preservando os nomes.
-- Interface em inglês, com layout para celular, desktop e orientação horizontal.
+- Interface em inglês, com layout compacto para celular, desktop e orientação horizontal. O título foi removido da tela de jogo, e os botões dos jogadores mantêm pelo menos 48 px de altura.
+- Histórico de pontos recolhido por padrão; toque em “Recent points” para expandir. O histórico não aumenta a altura da tela enquanto está recolhido.
 - Salvamento automático no `localStorage`, incluindo o histórico necessário para desfazer após recarregar.
 - Fontes distribuídas no próprio build, sem dependência do Google Fonts em tempo de execução.
 
@@ -113,10 +115,23 @@ Após qualquer alteração na interface, execute `npm run android:sync` antes de
 
 Mantenha `android/` no Git, incluindo o Gradle Wrapper e seus arquivos nativos. Builds, `local.properties`, arquivos web copiados e chaves de assinatura ficam ignorados.
 
+### Ícone e splash screen
+
+O ícone usa uma bola de vôlei branca com painéis azuis e vermelhos sobre fundo azul-escuro (`#0E1220`). O favicon segue a mesma identidade.
+
+- `assets/branding/icon.svg` e `assets/branding/splash.svg`: referências visuais editáveis; a prévia de splash ilustra o símbolo centralizado, não uma captura de dispositivo.
+- `android/app/src/main/res/drawable/volleyball_mark.xml`: primeiro plano do ícone adaptativo, com margem para recortes do launcher.
+- `volleyball_monochrome.xml`: versão para ícones temáticos no Android 13 ou superior.
+- `volleyball_launcher.xml`: versão para launchers anteriores ao Android 8.
+- `volleyball_splash_icon.xml` e `splash.xml`: símbolo de abertura e fundo para versões anteriores ao Android 12.
+- `android/app/src/main/res/values/styles.xml`: configura o splash do sistema no Android 12 ou superior e a transição para o fundo escuro do aplicativo.
+
+Os recursos Android são vetoriais e não exigem gerar imagens por densidade. A geometria da bola segue o ícone Material Design `SportsVolleyball`, disponível no pacote `@mui/icons-material` já usado no projeto. No Android 12 ou superior, a abertura usa o símbolo centralizado sobre uma cor sólida, conforme o formato nativo do sistema.
+
 ## Próximas etapas
 
 - Testar o APK em um celular Android físico.
-- Definir ícone, identificador definitivo e assinatura de release para distribuição.
+- Definir identificador definitivo e assinatura de release para distribuição.
 - Adicionar a plataforma iOS quando necessário.
 
 Referências: [Material UI](https://mui.com/material-ui/getting-started/installation/), [Vite](https://vite.dev/guide/) e [Capacitor Android](https://capacitorjs.com/docs/android).
