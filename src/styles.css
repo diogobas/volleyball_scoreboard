@@ -2,7 +2,9 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 body { margin: 0; min-width: 320px; }
 button, input { touch-action: manipulation; }
-.app { max-width: 900px; min-height: 100dvh; margin: auto; padding: var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) var(--safe-area-inset-right, env(safe-area-inset-right, 0px)) var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) var(--safe-area-inset-left, env(safe-area-inset-left, 0px)); }
+.app { display: flex; flex-direction: column; max-width: 900px; min-height: 100vh; min-height: 100dvh; margin: auto; padding: var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) var(--safe-area-inset-right, env(safe-area-inset-right, 0px)) var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) var(--safe-area-inset-left, env(safe-area-inset-left, 0px)); }
+.app > * { flex-shrink: 0; }
+.game-panel:not([hidden]) { display: flex; flex-direction: column; flex: 1; }
 .set-bar { padding: 4px 0; }
 .set-bar .MuiChip-root { height: 24px; }
 .score-panels, .rosters, .stats-grid, .edit-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
@@ -12,14 +14,16 @@ button, input { touch-action: manipulation; }
 .score-panel .team-heading { font: 700 clamp(20px, 4vw, 26px) 'Barlow Condensed', sans-serif; overflow-wrap: anywhere; }
 .score-panel .score { font: 900 clamp(60px, 15vw, 88px)/1 'Barlow Condensed', sans-serif; font-variant-numeric: tabular-nums; }
 .actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 4px 12px; }
-.actions .MuiButton-root { min-height: 44px; min-width: 0; padding: 4px 8px; }
+.actions .MuiButton-root { min-height: 44px; min-width: 0; padding: 4px 8px; color: #f3f4f6; border: 1px solid #6b7280; background: #2b303d; }
+.actions .MuiButton-root:hover { border-color: #9ca3af; background: #383e4c; }
+.actions .MuiButton-root.Mui-disabled { color: #ffffff66; border-color: #ffffff33; background: #ffffff0a; }
+.actions .MuiButton-root.Mui-focusVisible { outline: 2px solid #f3f4f6; outline-offset: 2px; }
 .tabs { margin: 0 16px 8px; background: #ffffff08; border-radius: 12px; }
 .tabs, .tabs .MuiTab-root { min-height: 36px; }
 .tabs .MuiTab-root { padding: 6px 12px; }
-.rosters { margin: 0 16px; border-radius: 12px; overflow: hidden; }
-.roster { min-width: 0; padding: 6px 8px; }
-.player-button.MuiButtonBase-root { display: flex; justify-content: space-between; gap: 8px; width: 100%; min-height: 48px; padding: 6px 10px; margin-bottom: 4px; border: 1px solid #ffffff4d; border-radius: 10px; background: #ffffff1f; text-align: left; color: white; }
-.player-button.MuiButtonBase-root:last-child { margin-bottom: 0; }
+.rosters { flex: 1; margin: 0 16px; border-radius: 12px; overflow: hidden; }
+.roster { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 6px 8px; }
+.player-button.MuiButtonBase-root { display: flex; flex: 1; justify-content: space-between; gap: 8px; width: 100%; min-height: 56px; padding: 8px 10px; border: 1px solid #ffffff4d; border-radius: 10px; background: #ffffff1f; text-align: left; color: white; }
 .player-button.MuiButtonBase-root:hover { background: #ffffff30; }
 .player-button.Mui-focusVisible { outline: 3px solid white; outline-offset: -3px; }
 .player-button.error-button { border-style: dashed; background: #ffffff0a; }
@@ -32,7 +36,6 @@ button, input { touch-action: manipulation; }
 .log-list { display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto; }
 .log-item.MuiPaper-root { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 12px; background: #ffffff08; background-image: none; overflow-wrap: anywhere; }
 .statistics { padding: 0 20px 20px; }
-.mvp-banner.MuiPaper-root { text-align: center; padding: 20px 16px; margin-bottom: 24px; overflow-wrap: anywhere; }
 .stats-grid, .edit-grid { gap: 24px; }
 .footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 16px 4px; color: #ffffff99; }
 .footer .MuiButton-root { min-height: 44px; }
@@ -46,7 +49,7 @@ button, input { touch-action: manipulation; }
   .score-panels, .rosters { margin-left: 8px; margin-right: 8px; }
   .roster { padding: 6px; }
   .player-button.MuiButtonBase-root { padding: 6px 8px; }
-  .player-name { font-size: 13px; }
+  .player-name { font-size: 14px; }
   .stats-grid { gap: 16px; }
   .edit-grid { grid-template-columns: minmax(0, 1fr); }
 }

@@ -48,42 +48,42 @@ export default function App() {
       <Typography variant="body2" aria-label={`Sets won by ${rightTeam.name}`}>{rightTeam.setsWon}</Typography>
     </Stack>
     <Box className="score-panels">{teamOrder.map(id => <ScorePanel key={id} id={id} team={state.teams[id]} />)}</Box>
-    <Box className="actions">
-      <Button variant="outlined" size="small" startIcon={<UndoRounded />} disabled={!last}
-        aria-label={last?.type === 'set' ? 'Undo last set' : 'Undo last point'} onClick={() => dispatch({ type: 'undo' })}>
-        Undo
-      </Button>
-      <Button variant="contained" size="small" startIcon={<CheckRounded />} disabled={scoreA + scoreB === 0}
-        onClick={() => setConfirmation('closeSet')}>Close set</Button>
-      <Button size="small" startIcon={<EditOutlined />} onClick={() => setEditing(true)}>Edit names</Button>
-      <Button size="small" startIcon={<SwapHorizRounded />} aria-pressed={state.sidesSwapped}
-        onClick={() => dispatch({ type: 'switchSides' })}>Switch sides</Button>
-    </Box>
     <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="fullWidth" className="tabs" aria-label="Match view">
       <Tab id="game-tab" aria-controls="game-panel" label="Game" />
       <Tab id="stats-tab" aria-controls="stats-panel" label="Statistics" />
     </Tabs>
-    <Box role="tabpanel" id="game-panel" aria-labelledby="game-tab" hidden={tab !== 0}>
+    <Box className="game-panel" role="tabpanel" id="game-panel" aria-labelledby="game-tab" hidden={tab !== 0}>
       {tab === 0 && <>
         <Box className="rosters">{teamOrder.map(id => <Roster key={id} id={id} team={state.teams[id]}
           onPoint={(team, playerId) => dispatch({ type: 'point', team, playerId })} />)}</Box>
-        <Box component="details" className="log-wrap">
-          <Box component="summary"><Typography component="span" variant="overline" color="text.secondary">Recent points ({state.log.length})</Typography></Box>
-          <Box className="log-list">
-            {state.log.length === 0 ? <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>No points scored yet. Tap a player to start.</Typography>
-              : state.log.slice(-40).reverse().map((entry, i) => <Paper key={state.log.length - i} className="log-item" elevation={0}>
-                <Typography variant="body2">{entry.type === 'set'
-                  ? `Set ${entry.setNumber} · ${entry.teamAName} ${entry.scoreA} × ${entry.scoreB} ${entry.teamBName}`
-                  : `${entry.teamName} · ${entry.playerId === 'err' ? 'Opponent error' : entry.playerName}`}</Typography>
-                {entry.type === 'point' && <Typography variant="body2" color="text.secondary">+1</Typography>}
-              </Paper>)}
-          </Box>
-        </Box>
       </>}
     </Box>
     <Box role="tabpanel" id="stats-panel" aria-labelledby="stats-tab" hidden={tab !== 1}>
       {tab === 1 && <Statistics state={state} teamOrder={teamOrder} />}
     </Box>
+    <Box className="actions">
+      <Button variant="outlined" color="inherit" size="small" startIcon={<UndoRounded />} disabled={!last}
+        aria-label={last?.type === 'set' ? 'Undo last set' : 'Undo last point'} onClick={() => dispatch({ type: 'undo' })}>
+        Undo
+      </Button>
+      <Button variant="outlined" color="inherit" size="small" startIcon={<CheckRounded />} disabled={scoreA + scoreB === 0}
+        onClick={() => setConfirmation('closeSet')}>Close set</Button>
+      <Button variant="outlined" color="inherit" size="small" startIcon={<EditOutlined />} onClick={() => setEditing(true)}>Edit names</Button>
+      <Button variant="outlined" color="inherit" size="small" startIcon={<SwapHorizRounded />} aria-pressed={state.sidesSwapped}
+        onClick={() => dispatch({ type: 'switchSides' })}>Switch sides</Button>
+    </Box>
+    {tab === 0 && <Box component="details" className="log-wrap">
+      <Box component="summary"><Typography component="span" variant="overline" color="text.secondary">Recent points ({state.log.length})</Typography></Box>
+      <Box className="log-list">
+        {state.log.length === 0 ? <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>No points scored yet. Tap a player to start.</Typography>
+          : state.log.slice(-40).reverse().map((entry, i) => <Paper key={state.log.length - i} className="log-item" elevation={0}>
+            <Typography variant="body2">{entry.type === 'set'
+              ? `Set ${entry.setNumber} · ${entry.teamAName} ${entry.scoreA} × ${entry.scoreB} ${entry.teamBName}`
+              : `${entry.teamName} · ${entry.playerId === 'err' ? 'Unfforced error' : entry.playerName}`}</Typography>
+            {entry.type === 'point' && <Typography variant="body2" color="text.secondary">+1</Typography>}
+          </Paper>)}
+      </Box>
+    </Box>}
     <Box component="footer" className="footer">
       <Button color="inherit" size="small" startIcon={<RestartAltRounded />} onClick={() => setConfirmation('reset')}>Reset match</Button>
       <Typography variant="caption" color="text.secondary">{saved ? 'Saved on this device' : storageWarning ? 'Local saving unavailable' : 'Saving…'}</Typography>
