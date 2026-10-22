@@ -5,6 +5,9 @@
   "android": {
     "backgroundColor": "#0e1220"
   },
+  "ios": {
+    "backgroundColor": "#0e1220"
+  },
   "plugins": {
     "SystemBars": {
       "style": "DARK",
