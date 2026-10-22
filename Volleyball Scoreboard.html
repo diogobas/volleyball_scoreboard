@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Volleyball Scoreboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0E1220;
+    --team-a: #1B5FA6;
+    --team-a-dark: #134A85;
+    --team-b: #C0392B;
+    --team-b-dark: #9C2E22;
+    --overlay: rgba(255,255,255,0.14);
+    --overlay-strong: rgba(255,255,255,0.24);
+    --overlay-line: rgba(255,255,255,0.30);
+    --white: #FFFFFF;
+    --white-muted: rgba(255,255,255,0.72);
+    --err-overlay: rgba(255,255,255,0.08);
+    font-family: 'Inter', system-ui, sans-serif;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--white);
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+  .display { font-family: 'Barlow Condensed', sans-serif; }
+
+  .app { min-height: 100dvh; display: flex; flex-direction: column; }
+  .match { flex: 1; display: flex; flex-direction: column; }
+
+  /* ---------------- Set bar ---------------- */
+  .set-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 8px 0 2px;
+    background: var(--bg);
+  }
+  .sets-count {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--white-muted);
+    min-width: 16px;
+    text-align: center;
+  }
+  .set-label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--white-muted);
+  }
+
+  /* ---------------- Two colored panels ---------------- */
+  .panels { display: grid; grid-template-columns: 1fr 1fr; position: relative; }
+  .panel { padding: 14px 12px 14px; min-width: 0; }
+  .panel.a { background: var(--team-a); }
+  .panel.b { background: var(--team-b); }
+  .panels::after {
+    content: "";
+    position: absolute;
+    top: 0; bottom: 0; left: 50%;
+    width: 0;
+    border-left: 2px dashed rgba(255,255,255,0.35);
+  }
+
+  .team-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 19px;
+    letter-spacing: 0.02em;
+    background: none;
+    border: none;
+    color: var(--white);
+    text-align: center;
+    width: 100%;
+    padding: 3px 2px;
+    border-radius: 6px;
+    outline: none;
+  }
+  .team-name::placeholder { color: var(--white-muted); }
+  .team-name:focus { background: rgba(255,255,255,0.15); }
+
+  .score {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 76px;
+    line-height: 0.88;
+    text-align: center;
+    color: var(--white);
+  }
+
+  .action-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 14px 14px;
+    background: var(--bg);
+  }
+  .pill-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--white-muted);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 20px;
+    padding: 7px 16px;
+    cursor: pointer;
+  }
+  .pill-btn:disabled { opacity: 0.4; }
+  .pill-btn:not(:disabled):active { background: rgba(255,255,255,0.14); }
+  .pill-btn.primary { color: var(--white); background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.4); }
+
+  /* ---------------- Tabs ---------------- */
+  .tabs {
+    display: flex;
+    gap: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 4px;
+    margin: 0 14px 14px;
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 9px 0;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--white-muted);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: 'Inter', sans-serif;
+  }
+  .tab.active { background: rgba(255,255,255,0.16); color: var(--white); }
+
+  /* ---------------- Rosters ---------------- */
+  .rosters { display: grid; grid-template-columns: 1fr 1fr; }
+  .roster-col { padding: 0 12px 16px; min-width: 0; }
+  .roster-col.a { background: var(--team-a); }
+  .roster-col.b { background: var(--team-b); }
+
+  .player-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 13px 12px;
+    min-height: 48px;
+    margin-bottom: 7px;
+    border-radius: 10px;
+    border: 1px solid var(--overlay-line);
+    background: var(--overlay);
+    color: var(--white);
+    cursor: pointer;
+    text-align: left;
+  }
+  .player-btn:active { background: var(--overlay-strong); }
+  .player-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--white);
+    padding: 2px 0;
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+  }
+  .player-pts {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--white);
+    min-width: 32px;
+    text-align: right;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    padding: 4px 10px;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .player-pts:active { background: rgba(255,255,255,0.32); }
+
+  .err-btn { border-style: dashed; background: var(--err-overlay); }
+  .err-btn .player-name { color: var(--white-muted); font-style: italic; font-size: 13px; }
+  .err-btn .player-pts { color: var(--white-muted); }
+
+  /* ---------------- Log ---------------- */
+  .log-wrap { background: var(--bg); padding: 4px 14px 20px; }
+  .log-title {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 14px 0 8px 2px;
+  }
+  .log {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 6px;
+    max-height: 160px;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+  .log-empty { color: rgba(255,255,255,0.45); font-size: 13px; padding: 4px 2px; }
+  .log-item {
+    font-size: 13px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .log-item .who { color: var(--white); }
+  .log-item .pt { color: rgba(255,255,255,0.55); font-family: 'Barlow Condensed', sans-serif; font-weight: 700; }
+  .log-item.set-item {
+    background: rgba(255,255,255,0.12);
+    justify-content: center;
+    text-align: center;
+    font-weight: 600;
+  }
+  .log-item.set-item .who { color: var(--white); }
+
+  /* ---------------- Stats view ---------------- */
+  #viewStats { padding: 0 14px 30px; background: var(--bg); }
+  .stats-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .stats-team-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    margin: 0 0 10px 2px;
+  }
+  .stats-col.a .stats-team-name { color: var(--team-a); }
+  .stats-col.b .stats-team-name { color: var(--team-b); }
+  .bar-row { margin-bottom: 10px; }
+  .bar-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+  .bar-label .n { color: rgba(255,255,255,0.7); }
+  .bar-label .v { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; color: var(--white); }
+  .bar-track { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; }
+  .stats-col.a .bar-fill { background: var(--team-a); }
+  .stats-col.b .bar-fill { background: var(--team-b); }
+  .mvp-banner { text-align: center; padding: 18px 12px 22px; margin-bottom: 6px; }
+  .mvp-label { font-size: 12px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em; }
+  .mvp-name { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 34px; margin-top: 2px; color: var(--white); }
+  .mvp-sub { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+  .set-history { margin-top: 18px; }
+  .set-history-title {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 8px 2px;
+  }
+  .set-history-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    margin-bottom: 6px;
+  }
+
+  .reset-row { text-align: center; padding: 6px 0 26px; background: var(--bg); }
+  .reset-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.55);
+    background: none;
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 20px;
+    padding: 8px 18px;
+    cursor: pointer;
+  }
+
+  /* ---------------- Confirm modal ---------------- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-card {
+    background: #1B2338;
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 14px;
+    padding: 20px;
+    max-width: 340px;
+    width: 100%;
+    text-align: center;
+  }
+  .modal-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; margin-bottom: 8px; }
+  .modal-message { font-size: 13px; color: rgba(255,255,255,0.72); margin-bottom: 18px; line-height: 1.4; }
+
+  .edit-card { max-width: 420px; text-align: left; max-height: 85dvh; display: flex; flex-direction: column; }
+  .edit-card .modal-title { text-align: center; }
+  .edit-body { overflow-y: auto; margin-bottom: 14px; }
+  .edit-section { margin-bottom: 16px; }
+  .edit-label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 4px;
+  }
+  .edit-input {
+    width: 100%;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--white);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    outline: none;
+  }
+  .edit-input:focus { border-color: rgba(255,255,255,0.5); }
+  .edit-players { display: flex; flex-direction: column; gap: 6px; }
+  .edit-player-row { display: flex; align-items: center; gap: 8px; }
+  .edit-player-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    min-width: 16px;
+    text-align: right;
+  }
+  .edit-player-input {
+    flex: 1;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--white);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 8px;
+    padding: 7px 10px;
+    outline: none;
+  }
+  .edit-player-input:focus { border-color: rgba(255,255,255,0.45); }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-btn {
+    flex: 1;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 0;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.06);
+    color: var(--white);
+  }
+  .modal-btn.confirm { background: var(--team-a); border-color: var(--team-a); }
+
+  /* ---------------- Landscape optimization ---------------- */
+  @media (orientation: landscape) {
+    html, body { height: 100%; overflow: hidden; }
+    .app { height: 100dvh; overflow: hidden; }
+    .match { height: 100%; overflow: hidden; }
+
+    .set-bar { padding: 4px 0 2px; flex-shrink: 0; }
+    .sets-count { font-size: 13px; }
+    .set-label { font-size: 10px; }
+
+    .panels { grid-template-columns: 1fr 1fr; flex-shrink: 0; }
+    .panel {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px 6px;
+    }
+    .panel.a { grid-template-columns: auto 1fr; }
+    .panel.b { grid-template-columns: 1fr auto; }
+    .panel.b .score-block { order: 2; }
+    .score-block { min-width: 76px; }
+    .team-name { font-size: 14px; padding: 2px; }
+    .score { font-size: 36px; }
+
+    .action-row { padding: 4px 0; flex-shrink: 0; gap: 6px; }
+    .pill-btn { font-size: 11px; padding: 5px 12px; }
+
+    .tabs { margin: 0 14px 6px; flex-shrink: 0; }
+    .tab { padding: 5px 0; font-size: 12px; }
+
+    #viewJogo { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+    .rosters { grid-template-columns: 1fr 1fr; flex: 1; min-height: 0; }
+    .roster-col { padding: 0 10px 6px; height: 100%; overflow-y: auto; }
+    .player-btn { padding: 8px 10px; min-height: 36px; margin-bottom: 4px; }
+    .player-name { font-size: 12px; }
+    .player-pts { font-size: 15px; }
+
+    .log-wrap { padding: 2px 14px 6px; flex-shrink: 0; }
+    .log-title { margin: 4px 0 4px 2px; font-size: 10px; }
+    .log { max-height: 15dvh; }
+
+    #viewStats { padding: 4px 14px 6px; flex: 1; overflow-y: auto; min-height: 0; }
+    .mvp-banner { padding: 6px 12px 8px; }
+    .mvp-label { font-size: 10px; }
+    .mvp-name { font-size: 22px; }
+    .mvp-sub { font-size: 11px; }
+    .stats-team-name { font-size: 14px; margin-bottom: 6px; }
+    .bar-row { margin-bottom: 6px; }
+
+    .reset-row { padding: 2px 0 6px; flex-shrink: 0; }
+    .reset-btn { font-size: 11px; padding: 6px 14px; }
+  }
+
+  @media (min-width: 720px) and (orientation: landscape) {
+    .app { max-width: 900px; margin: 0 auto; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="match">
+
+    <div class="set-bar">
+      <span class="sets-count" id="setsA">0</span>
+      <span class="set-label" id="setLabel">Set 1</span>
+      <span class="sets-count" id="setsB">0</span>
+    </div>
+
+    <div class="panels">
+      <div class="panel a">
+        <div class="score-block">
+          <input class="team-name" id="nameA" value="Team 1" maxlength="16">
+          <div class="score display" id="scoreA">0</div>
+        </div>
+      </div>
+      <div class="panel b">
+        <div class="score-block">
+          <input class="team-name" id="nameB" value="Team 2" maxlength="16">
+          <div class="score display" id="scoreB">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-row">
+      <button class="pill-btn" id="undoBtn" disabled>Undo last point</button>
+      <button class="pill-btn primary" id="closeSetBtn" disabled>Close set</button>
+      <button class="pill-btn" id="editBtn">Edit names</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="jogo">Game</button>
+      <button class="tab" data-tab="stats">Statistics</button>
+    </div>
+
+    <div id="viewJogo">
+      <div class="rosters">
+        <div class="roster-col a" id="rosterA"></div>
+        <div class="roster-col b" id="rosterB"></div>
+      </div>
+
+      <div class="log-wrap">
+        <div class="log-title">Recent points</div>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+
+    <div id="viewStats" style="display:none;"></div>
+
+    <div class="reset-row">
+      <button class="reset-btn" id="resetBtn">Reset match</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-card">
+    <div class="modal-title" id="modalTitle">Confirm</div>
+    <div class="modal-message" id="modalMessage"></div>
+    <div class="modal-actions">
+      <button class="modal-btn" id="modalCancelBtn">Cancel</button>
+      <button class="modal-btn confirm" id="modalConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editOverlay">
+  <div class="modal-card edit-card">
+    <div class="modal-title">Edit teams &amp; players</div>
+    <div class="edit-body">
+      <div class="edit-section">
+        <label class="edit-label">Team 1 name</label>
+        <input class="edit-input" id="editNameA" maxlength="16">
+        <div class="edit-players" id="editPlayersA"></div>
+      </div>
+      <div class="edit-section">
+        <label class="edit-label">Team 2 name</label>
+        <input class="edit-input" id="editNameB" maxlength="16">
+        <div class="edit-players" id="editPlayersB"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn confirm" id="editDoneBtn">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const PLAYER_COUNT = 6;
+  const ROSTER_A = ['Anderson', 'Carlos', 'Diego', 'Jota', 'Kaue', 'KJ'];
+  const ROSTER_B = ['Chicó', 'Denilson', 'Diogo', 'Dimitri', 'Gaëtan', 'Omer'];
+
+  function makePlayers(names) {
+    const arr = [];
+    for (let i = 1; i <= PLAYER_COUNT; i++) {
+      const name = (names && names[i - 1]) ? names[i - 1] : ('Player ' + i);
+      arr.push({ id: 'p' + i, name: name, setPoints: 0, matchPoints: 0 });
+    }
+    arr.push({ id: 'err', name: 'Unforced error', setPoints: 0, matchPoints: 0, isError: true });
+    return arr;
+  }
+
+  let state = {
+    teamAName: 'Team 1',
+    teamBName: 'Team 2',
+    playersA: makePlayers(ROSTER_A),
+    playersB: makePlayers(ROSTER_B),
+    setsWonA: 0,
+    setsWonB: 0,
+    currentSet: 1,
+    log: []
+  };
+
+  const el = {
+    nameA: document.getElementById('nameA'),
+    nameB: document.getElementById('nameB'),
+    scoreA: document.getElementById('scoreA'),
+    scoreB: document.getElementById('scoreB'),
+    setsA: document.getElementById('setsA'),
+    setsB: document.getElementById('setsB'),
+    setLabel: document.getElementById('setLabel'),
+    rosterA: document.getElementById('rosterA'),
+    rosterB: document.getElementById('rosterB'),
+    log: document.getElementById('log'),
+    undoBtn: document.getElementById('undoBtn'),
+    closeSetBtn: document.getElementById('closeSetBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+    tabs: document.querySelectorAll('.tab'),
+    viewJogo: document.getElementById('viewJogo'),
+    viewStats: document.getElementById('viewStats'),
+    modalOverlay: document.getElementById('modalOverlay'),
+    modalTitle: document.getElementById('modalTitle'),
+    modalMessage: document.getElementById('modalMessage'),
+    modalCancelBtn: document.getElementById('modalCancelBtn'),
+    modalConfirmBtn: document.getElementById('modalConfirmBtn'),
+    editBtn: document.getElementById('editBtn'),
+    editOverlay: document.getElementById('editOverlay'),
+    editNameA: document.getElementById('editNameA'),
+    editNameB: document.getElementById('editNameB'),
+    editPlayersA: document.getElementById('editPlayersA'),
+    editPlayersB: document.getElementById('editPlayersB'),
+    editDoneBtn: document.getElementById('editDoneBtn'),
+  };
+
+  function showConfirm(title, message, confirmLabel, onConfirm) {
+    el.modalTitle.textContent = title;
+    el.modalMessage.textContent = message;
+    el.modalConfirmBtn.textContent = confirmLabel;
+    el.modalOverlay.classList.add('open');
+    const cleanup = () => {
+      el.modalOverlay.classList.remove('open');
+      el.modalConfirmBtn.removeEventListener('click', onConfirmClick);
+      el.modalCancelBtn.removeEventListener('click', onCancelClick);
+    };
+    const onConfirmClick = () => { cleanup(); onConfirm(); };
+    const onCancelClick = () => { cleanup(); };
+    el.modalConfirmBtn.addEventListener('click', onConfirmClick);
+    el.modalCancelBtn.addEventListener('click', onCancelClick);
+  }
+
+  function teamScore(players) {
+    return players.reduce((sum, p) => sum + p.setPoints, 0);
+  }
+
+  function renderRoster(container, players, teamLetter) {
+    container.innerHTML = '';
+    players.forEach(p => {
+      const btn = document.createElement('div');
+      btn.className = 'player-btn' + (p.isError ? ' err-btn' : '');
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'player-name';
+      nameSpan.textContent = p.name;
+
+      const pts = document.createElement('button');
+      pts.type = 'button';
+      pts.className = 'player-pts display';
+      pts.textContent = p.setPoints;
+      pts.setAttribute('aria-label', 'Add point to ' + p.name);
+      pts.addEventListener('click', e => {
+        e.stopPropagation();
+        addPoint(teamLetter, p.id);
+      });
+
+      btn.appendChild(nameSpan);
+      btn.appendChild(pts);
+      btn.addEventListener('click', () => addPoint(teamLetter, p.id));
+      container.appendChild(btn);
+    });
+  }
+
+  function addPoint(teamLetter, playerId) {
+    const players = teamLetter === 'A' ? state.playersA : state.playersB;
+    const player = players.find(p => p.id === playerId);
+    player.setPoints += 1;
+    player.matchPoints += 1;
+    state.log.push({
+      type: 'point',
+      team: teamLetter,
+      playerId: playerId,
+      playerName: player.name,
+      teamName: teamLetter === 'A' ? state.teamAName : state.teamBName
+    });
+    render();
+  }
+
+  function closeSet() {
+    const scoreA = teamScore(state.playersA);
+    const scoreB = teamScore(state.playersB);
+    const snapshotA = state.playersA.map(p => ({ id: p.id, setPoints: p.setPoints }));
+    const snapshotB = state.playersB.map(p => ({ id: p.id, setPoints: p.setPoints }));
+    const entry = {
+      type: 'set',
+      setNumber: state.currentSet,
+      teamAName: state.teamAName,
+      teamBName: state.teamBName,
+      scoreA, scoreB,
+      prevSetsWonA: state.setsWonA,
+      prevSetsWonB: state.setsWonB,
+      snapshotA, snapshotB
+    };
+    if (scoreA > scoreB) state.setsWonA += 1;
+    else if (scoreB > scoreA) state.setsWonB += 1;
+    state.log.push(entry);
+    state.playersA.forEach(p => p.setPoints = 0);
+    state.playersB.forEach(p => p.setPoints = 0);
+    state.currentSet += 1;
+    render();
+  }
+
+  function undoLast() {
+    const last = state.log.pop();
+    if (!last) return;
+    if (last.type === 'point') {
+      const players = last.team === 'A' ? state.playersA : state.playersB;
+      const player = players.find(p => p.id === last.playerId);
+      if (player) {
+        player.setPoints = Math.max(0, player.setPoints - 1);
+        player.matchPoints = Math.max(0, player.matchPoints - 1);
+      }
+    } else if (last.type === 'set') {
+      state.setsWonA = last.prevSetsWonA;
+      state.setsWonB = last.prevSetsWonB;
+      state.currentSet = last.setNumber;
+      last.snapshotA.forEach(s => {
+        const p = state.playersA.find(pl => pl.id === s.id);
+        if (p) p.setPoints = s.setPoints;
+      });
+      last.snapshotB.forEach(s => {
+        const p = state.playersB.find(pl => pl.id === s.id);
+        if (p) p.setPoints = s.setPoints;
+      });
+    }
+    render();
+  }
+
+  function renderLog() {
+    if (state.log.length === 0) {
+      el.log.innerHTML = '<div class="log-empty">No points scored yet.</div>';
+      return;
+    }
+    el.log.innerHTML = '';
+    state.log.slice(-40).forEach(entry => {
+      const row = document.createElement('div');
+      if (entry.type === 'set') {
+        row.className = 'log-item set-item';
+        row.innerHTML = '<span class="who">Set ' + entry.setNumber + ' — ' +
+          entry.teamAName + ' ' + entry.scoreA + ' – ' + entry.scoreB + ' ' + entry.teamBName + '</span>';
+      } else {
+        row.className = 'log-item';
+        const who = document.createElement('span');
+        who.className = 'who';
+        who.textContent = entry.teamName + ' — ' + entry.playerName;
+        const pt = document.createElement('span');
+        pt.className = 'pt display';
+        pt.textContent = '+1';
+        row.appendChild(who);
+        row.appendChild(pt);
+      }
+      el.log.appendChild(row);
+    });
+  }
+
+  function renderStats() {
+    const buildCol = (teamName, players, letter) => {
+      const sorted = [...players].sort((a, b) => b.matchPoints - a.matchPoints);
+      const max = Math.max(1, ...players.map(p => p.matchPoints));
+      const col = document.createElement('div');
+      col.className = 'stats-col ' + letter.toLowerCase();
+      const h = document.createElement('div');
+      h.className = 'stats-team-name';
+      h.textContent = teamName;
+      col.appendChild(h);
+      sorted.forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'bar-row';
+        const label = document.createElement('div');
+        label.className = 'bar-label';
+        const n = document.createElement('span');
+        n.className = 'n';
+        n.textContent = p.name;
+        const v = document.createElement('span');
+        v.className = 'v display';
+        v.textContent = p.matchPoints;
+        label.appendChild(n);
+        label.appendChild(v);
+        const track = document.createElement('div');
+        track.className = 'bar-track';
+        const fill = document.createElement('div');
+        fill.className = 'bar-fill';
+        fill.style.width = (p.matchPoints / max * 100) + '%';
+        track.appendChild(fill);
+        row.appendChild(label);
+        row.appendChild(track);
+        col.appendChild(row);
+      });
+      return col;
+    };
+
+    el.viewStats.innerHTML = '';
+
+    const allScorers = [
+      ...state.playersA.filter(p => !p.isError).map(p => ({ ...p, teamName: state.teamAName })),
+      ...state.playersB.filter(p => !p.isError).map(p => ({ ...p, teamName: state.teamBName })),
+    ].sort((a, b) => b.matchPoints - a.matchPoints);
+
+    if (allScorers.length && allScorers[0].matchPoints > 0) {
+      const banner = document.createElement('div');
+      banner.className = 'mvp-banner';
+      banner.innerHTML =
+        '<div class="mvp-label">Most points in the match</div>' +
+        '<div class="mvp-name display">' + allScorers[0].name + '</div>' +
+        '<div class="mvp-sub">' + allScorers[0].teamName + ' · ' + allScorers[0].matchPoints + ' points</div>';
+      el.viewStats.appendChild(banner);
+    }
+
+    const cols = document.createElement('div');
+    cols.className = 'stats-cols';
+    cols.appendChild(buildCol(state.teamAName, state.playersA, 'A'));
+    cols.appendChild(buildCol(state.teamBName, state.playersB, 'B'));
+    el.viewStats.appendChild(cols);
+
+    const setEntries = state.log.filter(e => e.type === 'set');
+    if (setEntries.length) {
+      const hist = document.createElement('div');
+      hist.className = 'set-history';
+      const histTitle = document.createElement('div');
+      histTitle.className = 'set-history-title';
+      histTitle.textContent = 'Sets';
+      hist.appendChild(histTitle);
+      setEntries.forEach(e => {
+        const row = document.createElement('div');
+        row.className = 'set-history-row';
+        row.innerHTML = '<span>Set ' + e.setNumber + '</span><span>' +
+          e.teamAName + ' ' + e.scoreA + ' – ' + e.scoreB + ' ' + e.teamBName + '</span>';
+        hist.appendChild(row);
+      });
+      el.viewStats.appendChild(hist);
+    }
+  }
+
+  function render() {
+    el.scoreA.textContent = teamScore(state.playersA);
+    el.scoreB.textContent = teamScore(state.playersB);
+    el.setsA.textContent = state.setsWonA;
+    el.setsB.textContent = state.setsWonB;
+    el.setLabel.textContent = 'Set ' + state.currentSet;
+    renderRoster(el.rosterA, state.playersA, 'A');
+    renderRoster(el.rosterB, state.playersB, 'B');
+    renderLog();
+    renderStats();
+    el.undoBtn.disabled = state.log.length === 0;
+    el.closeSetBtn.disabled = (teamScore(state.playersA) + teamScore(state.playersB)) === 0;
+  }
+
+  el.nameA.addEventListener('change', () => {
+    state.teamAName = el.nameA.value.trim() || 'Team A';
+    render();
+  });
+  el.nameB.addEventListener('change', () => {
+    state.teamBName = el.nameB.value.trim() || 'Team B';
+    render();
+  });
+
+  function buildEditPlayers(container, players) {
+    container.innerHTML = '';
+    players.forEach((p, i) => {
+      const row = document.createElement('div');
+      row.className = 'edit-player-row';
+      const num = document.createElement('span');
+      num.className = 'edit-player-num';
+      num.textContent = p.isError ? '•' : (i + 1) + '.';
+      const input = document.createElement('input');
+      input.className = 'edit-player-input';
+      input.value = p.name;
+      input.maxLength = 20;
+      input.disabled = !!p.isError;
+      input.addEventListener('input', () => {
+        p.name = input.value;
+      });
+      row.appendChild(num);
+      row.appendChild(input);
+      container.appendChild(row);
+    });
+  }
+
+  function openEditModal() {
+    el.editNameA.value = state.teamAName;
+    el.editNameB.value = state.teamBName;
+    buildEditPlayers(el.editPlayersA, state.playersA);
+    buildEditPlayers(el.editPlayersB, state.playersB);
+    el.editOverlay.classList.add('open');
+  }
+
+  el.editBtn.addEventListener('click', openEditModal);
+
+  el.editNameA.addEventListener('input', () => {
+    state.teamAName = el.editNameA.value;
+  });
+  el.editNameB.addEventListener('input', () => {
+    state.teamBName = el.editNameB.value;
+  });
+
+  el.editDoneBtn.addEventListener('click', () => {
+    state.teamAName = el.editNameA.value.trim() || 'Team A';
+    state.teamBName = el.editNameB.value.trim() || 'Team B';
+    state.playersA.forEach(p => { if (!p.isError) p.name = p.name.trim() || p.name; });
+    state.playersB.forEach(p => { if (!p.isError) p.name = p.name.trim() || p.name; });
+    el.nameA.value = state.teamAName;
+    el.nameB.value = state.teamBName;
+    el.editOverlay.classList.remove('open');
+    render();
+  });
+
+  el.undoBtn.addEventListener('click', undoLast);
+
+  el.closeSetBtn.addEventListener('click', () => {
+    const scoreA = teamScore(state.playersA);
+    const scoreB = teamScore(state.playersB);
+    showConfirm(
+      'Close Set ' + state.currentSet + '?',
+      'Final score: ' + state.teamAName + ' ' + scoreA + ' – ' + scoreB + ' ' + state.teamBName +
+        '. Team scores reset for the next set; player stats stay in the match totals.',
+      'Close set',
+      closeSet
+    );
+  });
+
+  el.resetBtn.addEventListener('click', () => {
+    showConfirm(
+      'Reset match?',
+      'This clears all points, sets, and stats for every player. This cannot be undone.',
+      'Reset',
+      () => {
+        const keepNameA = state.teamAName, keepNameB = state.teamBName;
+        const keepPlayersA = state.playersA.map(p => p.name);
+        const keepPlayersB = state.playersB.map(p => p.name);
+        state = {
+          teamAName: keepNameA,
+          teamBName: keepNameB,
+          playersA: makePlayers().map((p, i) => ({ ...p, name: keepPlayersA[i] })),
+          playersB: makePlayers().map((p, i) => ({ ...p, name: keepPlayersB[i] })),
+          setsWonA: 0,
+          setsWonB: 0,
+          currentSet: 1,
+          log: []
+        };
+        el.nameA.value = keepNameA;
+        el.nameB.value = keepNameB;
+        render();
+      }
+    );
+  });
+
+  el.tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      el.tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      if (tab.dataset.tab === 'jogo') {
+        el.viewJogo.style.display = '';
+        el.viewStats.style.display = 'none';
+      } else {
+        el.viewJogo.style.display = 'none';
+        el.viewStats.style.display = '';
+      }
+    });
+  });
+
+  render();
+</script>
+</body>
+</html>
