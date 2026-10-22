@@ -63,10 +63,60 @@ src/
   theme.js          # Tema Material UI
 ```
 
+## Android e APK
+
+O projeto usa Capacitor 8 para incluir a aplicação React em um app Android. A interface continua em inglês. Os arquivos e as fontes ficam dentro do APK, sem precisar do servidor Vite ou de internet para usar o placar.
+
+- Nome: `Volleyball Scoreboard`
+- Identificador: `com.diogobastos.volleyballscoreboard`
+- Versão inicial: `1.0` (`versionCode` 1)
+- Android mínimo: 7.0 (API 24), com Android System WebView atualizado.
+- SDK de compilação e destino: API 36.
+
+### Preparar o ambiente
+
+Instale o Android Studio, o JDK 21 e o SDK Android 36. No SDK Manager, instale também Android SDK Build-Tools 36 e Platform-Tools. Configure o caminho do SDK pelo Android Studio ou crie `android/local.properties` com `sdk.dir=/caminho/do/seu/Android/sdk`. Esse arquivo é local e não deve ser enviado ao Git.
+
+### Gerar um APK instalável de teste
+
+```sh
+npm ci
+npm run android:apk
+```
+
+Esse comando gera o build web, sincroniza o Capacitor e executa `assembleDebug`. Na primeira execução, o Gradle precisa de internet para baixar as ferramentas e dependências.
+
+O APK fica em:
+
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+O APK de debug é assinado automaticamente para testes. Para instalar, envie o arquivo ao celular, abra-o e autorize a instalação por essa origem quando o Android solicitar. Para atualizar uma instalação existente, use um APK com o mesmo identificador e a mesma chave de assinatura. A assinatura de debug é local à máquina; não é a chave de publicação.
+
+Com um dispositivo conectado por USB e depuração USB autorizada, também é possível instalar pelo terminal:
+
+```sh
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Os dados da versão web não são transferidos automaticamente para o app Android. Os dados do app são locais; desinstalá-lo ou limpar seus dados pode apagar a partida.
+
+### Abrir no Android Studio
+
+```sh
+npm run android:sync
+npm run android:open
+```
+
+Após qualquer alteração na interface, execute `npm run android:sync` antes de compilar pelo Android Studio. O comando `npm run android:apk` já faz isso automaticamente.
+
+Mantenha `android/` no Git, incluindo o Gradle Wrapper e seus arquivos nativos. Builds, `local.properties`, arquivos web copiados e chaves de assinatura ficam ignorados.
+
 ## Próximas etapas
 
-1. Integrar uma camada Android, por exemplo Capacitor, e configurar identificação, ícones e build do APK.
+- Testar o APK em um celular Android físico.
+- Definir ícone, identificador definitivo e assinatura de release para distribuição.
+- Adicionar a plataforma iOS quando necessário.
 
-Estas integrações ainda não foram realizadas. A base relativa do Vite permite servir o build em subpastas e facilita seu uso futuro em um contêiner Android.
-
-Referências: [Material UI](https://mui.com/material-ui/getting-started/installation/) e [Vite](https://vite.dev/guide/).
+Referências: [Material UI](https://mui.com/material-ui/getting-started/installation/), [Vite](https://vite.dev/guide/) e [Capacitor Android](https://capacitorjs.com/docs/android).

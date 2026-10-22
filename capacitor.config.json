@@ -1,0 +1,14 @@
+{
+  "appId": "com.diogobastos.volleyballscoreboard",
+  "appName": "Volleyball Scoreboard",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#0e1220"
+  },
+  "plugins": {
+    "SystemBars": {
+      "style": "DARK",
+      "initialViewportFitValueHint": "cover"
+    }
+  }
+}

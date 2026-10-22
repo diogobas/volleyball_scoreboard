@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Volleyball Scoreboard</string>
+    <string name="title_activity_main">Volleyball Scoreboard</string>
+    <string name="package_name">com.diogobastos.volleyballscoreboard</string>
+    <string name="custom_url_scheme">com.diogobastos.volleyballscoreboard</string>
+</resources>
