@@ -48,17 +48,6 @@ export default function App() {
       <Typography variant="body2" aria-label={`Sets won by ${rightTeam.name}`}>{rightTeam.setsWon}</Typography>
     </Stack>
     <Box className="score-panels">{teamOrder.map(id => <ScorePanel key={id} id={id} team={state.teams[id]} />)}</Box>
-    <Box className="actions">
-      <Button variant="outlined" size="small" startIcon={<UndoRounded />} disabled={!last}
-        aria-label={last?.type === 'set' ? 'Undo last set' : 'Undo last point'} onClick={() => dispatch({ type: 'undo' })}>
-        Undo
-      </Button>
-      <Button variant="contained" size="small" startIcon={<CheckRounded />} disabled={scoreA + scoreB === 0}
-        onClick={() => setConfirmation('closeSet')}>Close set</Button>
-      <Button size="small" startIcon={<EditOutlined />} onClick={() => setEditing(true)}>Edit names</Button>
-      <Button size="small" startIcon={<SwapHorizRounded />} aria-pressed={state.sidesSwapped}
-        onClick={() => dispatch({ type: 'switchSides' })}>Switch sides</Button>
-    </Box>
     <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="fullWidth" className="tabs" aria-label="Match view">
       <Tab id="game-tab" aria-controls="game-panel" label="Game" />
       <Tab id="stats-tab" aria-controls="stats-panel" label="Statistics" />
@@ -83,6 +72,17 @@ export default function App() {
     </Box>
     <Box role="tabpanel" id="stats-panel" aria-labelledby="stats-tab" hidden={tab !== 1}>
       {tab === 1 && <Statistics state={state} teamOrder={teamOrder} />}
+    </Box>
+    <Box className="actions">
+      <Button variant="outlined" size="small" startIcon={<UndoRounded />} disabled={!last}
+        aria-label={last?.type === 'set' ? 'Undo last set' : 'Undo last point'} onClick={() => dispatch({ type: 'undo' })}>
+        Undo
+      </Button>
+      <Button variant="contained" size="small" startIcon={<CheckRounded />} disabled={scoreA + scoreB === 0}
+        onClick={() => setConfirmation('closeSet')}>Close set</Button>
+      <Button size="small" startIcon={<EditOutlined />} onClick={() => setEditing(true)}>Edit names</Button>
+      <Button size="small" startIcon={<SwapHorizRounded />} aria-pressed={state.sidesSwapped}
+        onClick={() => dispatch({ type: 'switchSides' })}>Switch sides</Button>
     </Box>
     <Box component="footer" className="footer">
       <Button color="inherit" size="small" startIcon={<RestartAltRounded />} onClick={() => setConfirmation('reset')}>Reset match</Button>
