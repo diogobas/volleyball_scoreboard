@@ -113,10 +113,23 @@ Após qualquer alteração na interface, execute `npm run android:sync` antes de
 
 Mantenha `android/` no Git, incluindo o Gradle Wrapper e seus arquivos nativos. Builds, `local.properties`, arquivos web copiados e chaves de assinatura ficam ignorados.
 
+### Ícone e splash screen
+
+O ícone usa uma bola de vôlei branca com painéis azuis e vermelhos sobre fundo azul-escuro (`#0E1220`). O favicon segue a mesma identidade.
+
+- `assets/branding/icon.svg` e `assets/branding/splash.svg`: referências visuais editáveis; a prévia de splash ilustra o símbolo centralizado, não uma captura de dispositivo.
+- `android/app/src/main/res/drawable/volleyball_mark.xml`: primeiro plano do ícone adaptativo, com margem para recortes do launcher.
+- `volleyball_monochrome.xml`: versão para ícones temáticos no Android 13 ou superior.
+- `volleyball_launcher.xml`: versão para launchers anteriores ao Android 8.
+- `volleyball_splash_icon.xml` e `splash.xml`: símbolo de abertura e fundo para versões anteriores ao Android 12.
+- `android/app/src/main/res/values/styles.xml`: configura o splash do sistema no Android 12 ou superior e a transição para o fundo escuro do aplicativo.
+
+Os recursos Android são vetoriais e não exigem gerar imagens por densidade. A geometria da bola segue o ícone Material Design `SportsVolleyball`, disponível no pacote `@mui/icons-material` já usado no projeto. No Android 12 ou superior, a abertura usa o símbolo centralizado sobre uma cor sólida, conforme o formato nativo do sistema.
+
 ## Próximas etapas
 
 - Testar o APK em um celular Android físico.
-- Definir ícone, identificador definitivo e assinatura de release para distribuição.
+- Definir identificador definitivo e assinatura de release para distribuição.
 - Adicionar a plataforma iOS quando necessário.
 
 Referências: [Material UI](https://mui.com/material-ui/getting-started/installation/), [Vite](https://vite.dev/guide/) e [Capacitor Android](https://capacitorjs.com/docs/android).
