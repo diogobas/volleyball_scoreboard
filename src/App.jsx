@@ -62,14 +62,14 @@ export default function App() {
       {tab === 1 && <Statistics state={state} teamOrder={teamOrder} />}
     </Box>
     <Box className="actions">
-      <Button variant="outlined" size="small" startIcon={<UndoRounded />} disabled={!last}
+      <Button variant="outlined" color="inherit" size="small" startIcon={<UndoRounded />} disabled={!last}
         aria-label={last?.type === 'set' ? 'Undo last set' : 'Undo last point'} onClick={() => dispatch({ type: 'undo' })}>
         Undo
       </Button>
-      <Button variant="contained" size="small" startIcon={<CheckRounded />} disabled={scoreA + scoreB === 0}
+      <Button variant="outlined" color="inherit" size="small" startIcon={<CheckRounded />} disabled={scoreA + scoreB === 0}
         onClick={() => setConfirmation('closeSet')}>Close set</Button>
-      <Button size="small" startIcon={<EditOutlined />} onClick={() => setEditing(true)}>Edit names</Button>
-      <Button size="small" startIcon={<SwapHorizRounded />} aria-pressed={state.sidesSwapped}
+      <Button variant="outlined" color="inherit" size="small" startIcon={<EditOutlined />} onClick={() => setEditing(true)}>Edit names</Button>
+      <Button variant="outlined" color="inherit" size="small" startIcon={<SwapHorizRounded />} aria-pressed={state.sidesSwapped}
         onClick={() => dispatch({ type: 'switchSides' })}>Switch sides</Button>
     </Box>
     {tab === 0 && <Box component="details" className="log-wrap">
