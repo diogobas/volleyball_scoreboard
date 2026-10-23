@@ -79,7 +79,7 @@ export default function App() {
           : state.log.slice(-40).reverse().map((entry, i) => <Paper key={state.log.length - i} className="log-item" elevation={0}>
             <Typography variant="body2">{entry.type === 'set'
               ? `Set ${entry.setNumber} · ${entry.teamAName} ${entry.scoreA} × ${entry.scoreB} ${entry.teamBName}`
-              : `${entry.teamName} · ${entry.playerId === 'err' ? 'Unfforced error' : entry.playerName}`}</Typography>
+              : `${entry.teamName} · ${entry.playerId === 'err' ? 'Opponent’s error' : entry.playerName}`}</Typography>
             {entry.type === 'point' && <Typography variant="body2" color="text.secondary">+1</Typography>}
           </Paper>)}
       </Box>
