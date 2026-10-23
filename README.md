@@ -25,7 +25,7 @@ Acesse o IP do computador e a porta mostrada no terminal. Esse servidor é para 
 
 - Dois times com seis jogadores cada, mantendo os elencos originais.
 - Um toque no jogador adiciona um ponto ao time e às estatísticas individuais.
-- “Unfforced error” adiciona um ponto ao time da coluna selecionada.
+- “Opponent’s error” adiciona um ponto ao time da coluna selecionada.
 - Placar do set, sets vencidos e pontos acumulados por jogador.
 - “Switch sides” (botão com texto e setas horizontais) troca os times de lado na tela, acompanhando a posição dos jogadores na quadra. Cores, pontos e estatísticas permanecem vinculados ao mesmo time. A posição é salva e mantida ao reiniciar a partida; a troca não entra no histórico de pontos nem interfere no desfazer.
 - Fechamento manual de sets, com confirmação; os totais individuais da partida são mantidos.
@@ -114,6 +114,27 @@ npm run android:open
 Após qualquer alteração na interface, execute `npm run android:sync` antes de compilar pelo Android Studio. O comando `npm run android:apk` já faz isso automaticamente.
 
 Mantenha `android/` no Git, incluindo o Gradle Wrapper e seus arquivos nativos. Builds, `local.properties`, arquivos web copiados e chaves de assinatura ficam ignorados.
+
+### Distribuir pelo teste interno do Google Play
+
+O teste interno permite distribuir pela Play Store para até 100 testadores, por convite. Requer uma conta no Google Play Console. O arquivo enviado é um Android App Bundle (`.aab`) assinado com uma chave de upload.
+
+1. Execute `npm test`, `npm run android:sync` e `npm run android:open`.
+2. No Android Studio, aguarde a sincronização do Gradle e abra **Build > Generate Signed Bundle / APK**. Selecione **Android App Bundle**, módulo **app**.
+3. No primeiro envio, use **Create new** para criar um keystore, por exemplo `volleyball-upload.jks`, com alias `upload`. Defina as senhas no próprio Android Studio, validade de pelo menos 25 anos e os dados do certificado. Guarde uma cópia do keystore e as senhas em local seguro, fora do Git. Nos próximos envios, selecione essa mesma chave.
+4. Escolha a variante **release** e gere o bundle. Use **Locate** na notificação de conclusão para encontrar o `.aab` assinado; o destino depende da pasta escolhida no assistente. Um bundle gerado apenas por `./gradlew :app:bundleRelease` não fica assinado com a configuração atual do projeto.
+5. No [Play Console](https://play.google.com/console), selecione **Criar app**, informe `Volleyball Scoreboard`, o idioma padrão inglês, tipo **App** e a opção gratuito ou pago conforme sua distribuição. Preencha as declarações exigidas.
+6. Abra **Testar e lançar > Teste > Teste interno** e crie uma versão. Configure o **Play App Signing**, permitindo que o Google gere a chave de assinatura do app, e envie o `.aab` assinado. O identificador enviado será `com.diogobastos.volleyballscoreboard`.
+7. Informe as notas da versão, salve, revise os erros indicados pelo Console e inicie o lançamento para teste interno.
+8. Na aba **Testadores**, crie e selecione uma lista com os e-mails das Contas Google dos participantes e salve. Copie o link de participação e envie aos testadores. Cada pessoa deve abrir o link com a conta cadastrada, aceitar o teste e instalar pela Play Store. O app não aparece na busca pública durante esse teste.
+
+Sugestão de notas em inglês: `Restored the “Opponent’s error” label on scoring buttons and in recent points.`
+
+O primeiro envio pode usar `versionCode 1` e `versionName "1.0"`, definidos em `android/app/build.gradle`. Para cada novo bundle enviado ao Google Play, aumente o `versionCode` para um número ainda não utilizado. O número de build do iOS é independente.
+
+O teste interno pode começar antes de concluir toda a configuração da página pública. O primeiro link pode levar algumas horas para ficar disponível. Siga as pendências mostradas pelo Console para a sua conta.
+
+Referências: [teste interno do Google Play](https://support.google.com/googleplay/android-developer/answer/9845334?hl=pt-BR) e [assinatura de apps no Android Studio](https://developer.android.com/studio/publish/app-signing).
 
 ### Ícone e splash screen
 
