@@ -2,34 +2,48 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 body { margin: 0; min-width: 320px; }
 button, input { touch-action: manipulation; }
-.app { display: flex; flex-direction: column; max-width: 900px; min-height: 100vh; min-height: 100dvh; margin: auto; padding: var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) var(--safe-area-inset-right, env(safe-area-inset-right, 0px)) var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) var(--safe-area-inset-left, env(safe-area-inset-left, 0px)); }
-.app > * { flex-shrink: 0; }
-.game-panel:not([hidden]) { display: flex; flex-direction: column; flex: 1; }
-.set-bar { padding: 4px 0; }
-.set-bar .MuiChip-root { height: 24px; }
+.app {
+  --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
+  --safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --safe-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+  --court-height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+  max-width: 900px; min-height: 100dvh; margin: auto;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+/* Only the court uses the first viewport; secondary controls follow in document flow. */
+.court { display: grid; grid-template-rows: minmax(min-content, calc(var(--court-height) / 3)) minmax(min-content, 1fr); min-height: var(--court-height); padding: 0 8px 4px; }
+.scoreboard { display: grid; grid-template-rows: auto minmax(min-content, 1fr); min-width: 0; }
+.set-bar { padding: 2px 0; min-width: 0; }
+.set-bar .sets-won { font: 700 clamp(24px, 3.5dvh, 32px)/1 'Barlow Condensed', sans-serif; }
+.set-bar .MuiChip-root { height: 26px; }
 .score-panels, .rosters, .stats-grid, .edit-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-.score-panels { position: relative; border-radius: 16px 16px 0 0; overflow: hidden; margin: 0 16px; }
+.score-panels { position: relative; border-radius: 16px 16px 0 0; overflow: hidden; }
 .score-panels::after { content: ''; position: absolute; top: 12px; bottom: 12px; left: 50%; border-left: 2px dashed #ffffff55; }
-.score-panel { padding: 8px 12px; text-align: center; min-width: 0; }
-.score-panel .team-heading { font: 700 clamp(20px, 4vw, 26px) 'Barlow Condensed', sans-serif; overflow-wrap: anywhere; }
-.score-panel .score { font: 900 clamp(60px, 15vw, 88px)/1 'Barlow Condensed', sans-serif; font-variant-numeric: tabular-nums; }
-.actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 4px 12px; }
+.score-panel { display: grid; align-content: center; padding: 4px 8px; text-align: center; min-width: 0; container-type: inline-size; }
+.score-panel .score { margin: 0; font: 900 clamp(96px, calc(var(--court-height) / 3 - 44px), 320px)/1 'Barlow Condensed', sans-serif; font-size: min(clamp(96px, calc(var(--court-height) / 3 - 44px), 320px), var(--score-width-limit)); font-variant-numeric: tabular-nums; }
+.game-panel:not([hidden]) { display: grid; min-width: 0; }
+.rosters { border-radius: 0 0 12px 12px; }
+.roster { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 4px 6px 6px; }
+.player-list { display: grid; grid-template-rows: repeat(7, minmax(min-content, 1fr)); flex: 1; gap: 4px; }
+.player-button.MuiButtonBase-root { display: flex; justify-content: space-between; gap: 6px; width: 100%; min-height: 44px; padding: 4px 8px; border: 1px solid #ffffff4d; border-radius: 10px; background: #ffffff1f; text-align: left; color: white; }
+.player-button.MuiButtonBase-root:hover { background: #ffffff30; }
+.player-button.Mui-focusVisible { outline: 3px solid white; outline-offset: -3px; }
+.player-button.error-button { border-style: dashed; background: #ffffff0a; }
+.player-name { min-width: 0; font-size: .875rem; overflow-wrap: anywhere; }
+.error-button .player-name { font-size: .75rem; font-style: italic; opacity: .9; }
+.player-points.MuiChip-root { min-width: 36px; max-width: 50%; height: 34px; border-radius: 8px; background: #ffffff24; color: white; font: 700 clamp(24px, 3dvh, 28px)/1 'Barlow Condensed', sans-serif; flex-shrink: 0; }
+.player-points .MuiChip-label { padding: 0 8px; }
+.actions { margin-top: var(--safe-bottom); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 8px 12px; }
 .actions .MuiButton-root { min-height: 44px; min-width: 0; padding: 4px 8px; color: #f3f4f6; border: 1px solid #6b7280; background: #2b303d; }
 .actions .MuiButton-root:hover { border-color: #9ca3af; background: #383e4c; }
 .actions .MuiButton-root.Mui-disabled { color: #ffffff66; border-color: #ffffff33; background: #ffffff0a; }
 .actions .MuiButton-root.Mui-focusVisible { outline: 2px solid #f3f4f6; outline-offset: 2px; }
-.tabs { margin: 0 16px 8px; background: #ffffff08; border-radius: 12px; }
-.tabs, .tabs .MuiTab-root { min-height: 36px; }
+.tabs { margin: 0 12px 8px; background: #ffffff08; border-radius: 12px; }
+.tabs, .tabs .MuiTab-root { min-height: 44px; }
 .tabs .MuiTab-root { padding: 6px 12px; }
-.rosters { flex: 1; margin: 0 16px; border-radius: 12px; overflow: hidden; }
-.roster { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 6px 8px; }
-.player-button.MuiButtonBase-root { display: flex; flex: 1; justify-content: space-between; gap: 8px; width: 100%; min-height: 56px; padding: 8px 10px; border: 1px solid #ffffff4d; border-radius: 10px; background: #ffffff1f; text-align: left; color: white; }
-.player-button.MuiButtonBase-root:hover { background: #ffffff30; }
-.player-button.Mui-focusVisible { outline: 3px solid white; outline-offset: -3px; }
-.player-button.error-button { border-style: dashed; background: #ffffff0a; }
-.player-name { font-size: 14px; overflow-wrap: anywhere; }
-.error-button .player-name { font-size: 12px; font-style: italic; opacity: .85; }
-.player-points.MuiChip-root { min-width: 36px; height: 34px; border-radius: 8px; background: #ffffff24; color: white; font: 700 22px 'Barlow Condensed', sans-serif; flex-shrink: 0; }
+.court.court--stats { display: block; min-height: 0; padding-top: 8px; }
+.stats-panel { min-width: 0; }
 .log-wrap { padding: 4px 16px 0; }
 .log-wrap summary { cursor: pointer; min-height: 40px; align-content: center; }
 .log-wrap summary:focus-visible { outline: 2px solid #82b9f1; outline-offset: 2px; border-radius: 4px; }
@@ -37,28 +51,36 @@ button, input { touch-action: manipulation; }
 .log-item.MuiPaper-root { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 12px; background: #ffffff08; background-image: none; overflow-wrap: anywhere; }
 .statistics { padding: 0 20px 20px; }
 .stats-grid, .edit-grid { gap: 24px; }
+.top-three { margin-bottom: 24px; }
+.top-three-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; list-style: none; margin: 12px 0 0; padding: 0; }
+.top-three-card.MuiPaper-root { display: flex; flex-direction: column; align-items: center; min-width: 0; padding: 12px 8px; border: 1px solid #ffffff24; border-top-width: 4px; background: #ffffff08; text-align: center; overflow-wrap: anywhere; }
+.top-three-card .top-three-rank { color: #ffe39a; font-weight: 700; }
+.top-three-card .top-three-name { margin: 8px 0 0; font-size: 1rem; font-weight: 700; }
+.top-three-card .top-three-points { margin: auto 0 0; padding-top: 8px; font: 900 48px/1 'Barlow Condensed', sans-serif; font-variant-numeric: tabular-nums; }
 .footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 16px 4px; color: #ffffff99; }
 .footer .MuiButton-root { min-height: 44px; }
 .footer .MuiTypography-caption { font-size: 10px; text-align: right; }
 @media (max-width: 450px) {
   .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; }
-  .set-bar { padding: 2px 0; }
-  .score-panel { padding: 4px 12px; }
-  .score-panel .score { font-size: 52px; }
-  .tabs { margin-bottom: 4px; }
-  .score-panels, .rosters { margin-left: 8px; margin-right: 8px; }
-  .roster { padding: 6px; }
-  .player-button.MuiButtonBase-root { padding: 6px 8px; }
-  .player-name { font-size: 14px; }
   .stats-grid { gap: 16px; }
   .edit-grid { grid-template-columns: minmax(0, 1fr); }
 }
-@media (orientation: landscape) and (max-height: 600px) {
-  .set-bar { padding: 4px 0; }
-  .score-panel { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 16px; padding: 8px 12px; }
-  .score-panel .score { font-size: 48px; }
-  .score-panel .team-heading { font-size: 22px; }
-  .actions { padding: 4px 8px; }
-  .tabs { margin-bottom: 8px; }
-  .player-button.MuiButtonBase-root { min-height: 48px; }
+@media (orientation: landscape) {
+  .app { max-width: none; }
+  .court { grid-template-columns: minmax(0, 20fr) minmax(0, 60fr) minmax(0, 20fr); grid-template-rows: auto minmax(min-content, 1fr); column-gap: 4px; }
+  .court .set-bar { grid-column: 1 / -1; display: grid; grid-template-columns: 20fr 60fr 20fr; justify-items: center; gap: 4px; }
+  .scoreboard, .score-panels { display: contents; }
+  .score-panels::after { content: none; }
+  .score-panel { grid-row: 2; border-radius: 12px; padding: 4px; }
+  .score-panel:first-child { grid-column: 1; }
+  .score-panel:last-child { grid-column: 3; }
+  .score-panel .score { font-size: clamp(128px, 40dvh, 240px); font-size: min(clamp(128px, 40dvh, 240px), var(--score-width-limit)); }
+  .game-panel:not([hidden]), .stats-panel:not([hidden]) { grid-column: 2; grid-row: 2; }
+  .rosters { border-radius: 12px; }
+  .roster { padding: 2px; gap: 2px; }
+  .player-list { gap: 1px; }
+  .player-button.MuiButtonBase-root { min-height: 48px; padding: 4px 6px; gap: 4px; }
+  .player-points .MuiChip-label { padding: 0 6px; }
+  .statistics { padding: 8px; }
+  .stats-grid { gap: 12px; }
 }
