@@ -1,9 +1,34 @@
 import { Box, LinearProgress, Paper, Stack, Typography } from '@mui/material';
 import { teamColors } from '../theme';
+import { TEAM_IDS } from '../game/match';
 
 export default function Statistics({ state, teamOrder }) {
   const sets = state.log.filter(entry => entry.type === 'set');
+  // Use team identity rather than screen position so tied players stay in order when sides switch.
+  const topPlayers = TEAM_IDS.flatMap(id => state.teams[id].players
+    .filter(player => !player.isError && player.matchPoints > 0)
+    .map(player => ({ ...player, teamId: id, teamName: state.teams[id].name })))
+    .sort((a, b) => b.matchPoints - a.matchPoints)
+    .slice(0, 3);
   return <Box className="statistics">
+    <Box component="section" className="top-three" aria-labelledby="top-three-title">
+      <Typography component="h2" variant="h5" id="top-three-title">Top 3</Typography>
+      <Typography variant="body2" color="text.secondary">Match points</Typography>
+      {topPlayers.length === 0
+        ? <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>No player points yet.</Typography>
+        : <Box component="ol" className="top-three-list" aria-label="Top 3 players">
+          {topPlayers.map(player => <Paper component="li" key={`${player.teamId}-${player.id}`}
+            className="top-three-card" elevation={0} style={{ borderTopColor: teamColors[player.teamId] }}>
+            <Typography component="span" className="top-three-rank" aria-label={`Rank ${topPlayers.findIndex(p => p.matchPoints === player.matchPoints) + 1}`}>
+              #{topPlayers.findIndex(p => p.matchPoints === player.matchPoints) + 1}
+            </Typography>
+            <Typography component="h3" className="top-three-name">{player.name}</Typography>
+            <Typography variant="caption" color="text.secondary">{player.teamName}</Typography>
+            <Typography component="p" className="top-three-points">{player.matchPoints}</Typography>
+            <Typography variant="caption" color="text.secondary">points</Typography>
+          </Paper>)}
+        </Box>}
+    </Box>
     <Box className="stats-grid">
       {teamOrder.map(id => {
         const team = state.teams[id];

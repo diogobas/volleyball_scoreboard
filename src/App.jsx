@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper, Stack, Tab, Tabs, Typography } from '@mui/material';
 import UndoRounded from '@mui/icons-material/UndoRounded';
 import EditOutlined from '@mui/icons-material/EditOutlined';
@@ -16,6 +16,7 @@ function loadMatch() {
 }
 
 export default function App() {
+  const courtRef = useRef(null);
   const [initial] = useState(loadMatch);
   const [state, dispatch] = useReducer(matchReducer, initial.state);
   const [storageWarning, setStorageWarning] = useState(initial.warning);
@@ -38,28 +39,32 @@ export default function App() {
     }
   }, [state]);
 
+  function changeTab(_, value) {
+    setTab(value);
+    // Wait for the selected panel to render before bringing it into view.
+    requestAnimationFrame(() => courtRef.current?.scrollIntoView({ block: 'start' }));
+  }
+
   const last = state.log.at(-1);
   const closing = confirmation === 'closeSet';
   return <Box component="main" className="app" aria-label="Volleyball Scoreboard">
     {storageWarning && <Alert severity="warning" onClose={() => setStorageWarning('')} sx={{ mx: 2, mb: 2 }}>{storageWarning}</Alert>}
-    <Stack className="set-bar" direction="row" sx={{ alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-      <Typography variant="body2" aria-label={`Sets won by ${leftTeam.name}`}>{leftTeam.setsWon}</Typography>
-      <Chip size="small" variant="outlined" label={`Set ${state.currentSet}`} />
-      <Typography variant="body2" aria-label={`Sets won by ${rightTeam.name}`}>{rightTeam.setsWon}</Typography>
-    </Stack>
-    <Box className="score-panels">{teamOrder.map(id => <ScorePanel key={id} id={id} team={state.teams[id]} />)}</Box>
-    <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="fullWidth" className="tabs" aria-label="Match view">
-      <Tab id="game-tab" aria-controls="game-panel" label="Game" />
-      <Tab id="stats-tab" aria-controls="stats-panel" label="Statistics" />
-    </Tabs>
-    <Box className="game-panel" role="tabpanel" id="game-panel" aria-labelledby="game-tab" hidden={tab !== 0}>
-      {tab === 0 && <>
-        <Box className="rosters">{teamOrder.map(id => <Roster key={id} id={id} team={state.teams[id]}
-          onPoint={(team, playerId) => dispatch({ type: 'point', team, playerId })} />)}</Box>
-      </>}
-    </Box>
-    <Box role="tabpanel" id="stats-panel" aria-labelledby="stats-tab" hidden={tab !== 1}>
-      {tab === 1 && <Statistics state={state} teamOrder={teamOrder} />}
+    <Box ref={courtRef} className={`court${tab === 1 ? ' court--stats' : ''}`}>
+      {tab === 0 && <Box className="scoreboard">
+        <Stack className="set-bar" direction="row" sx={{ alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+          <Typography className="sets-won" variant="body2" aria-label={`Sets won by ${leftTeam.name}`}>{leftTeam.setsWon}</Typography>
+          <Chip size="small" variant="outlined" label={`Set ${state.currentSet}`} />
+          <Typography className="sets-won" variant="body2" aria-label={`Sets won by ${rightTeam.name}`}>{rightTeam.setsWon}</Typography>
+        </Stack>
+        <Box className="score-panels">{teamOrder.map(id => <ScorePanel key={id} id={id} team={state.teams[id]} />)}</Box>
+      </Box>}
+      <Box className="game-panel" role="tabpanel" id="game-panel" aria-labelledby="game-tab" hidden={tab !== 0}>
+        {tab === 0 && <Box className="rosters">{teamOrder.map(id => <Roster key={id} id={id} team={state.teams[id]}
+            onPoint={(team, playerId) => dispatch({ type: 'point', team, playerId })} />)}</Box>}
+      </Box>
+      <Box className="stats-panel" role="tabpanel" id="stats-panel" aria-labelledby="stats-tab" hidden={tab !== 1}>
+        {tab === 1 && <Statistics state={state} teamOrder={teamOrder} />}
+      </Box>
     </Box>
     <Box className="actions">
       <Button variant="outlined" color="inherit" size="small" startIcon={<UndoRounded />} disabled={!last}
@@ -72,6 +77,10 @@ export default function App() {
       <Button variant="outlined" color="inherit" size="small" startIcon={<SwapHorizRounded />} aria-pressed={state.sidesSwapped}
         onClick={() => dispatch({ type: 'switchSides' })}>Switch sides</Button>
     </Box>
+    <Tabs value={tab} onChange={changeTab} variant="fullWidth" className="tabs" aria-label="Match view">
+      <Tab id="game-tab" aria-controls="game-panel" label="Game" />
+      <Tab id="stats-tab" aria-controls="stats-panel" label="Statistics" />
+    </Tabs>
     {tab === 0 && <Box component="details" className="log-wrap">
       <Box component="summary"><Typography component="span" variant="overline" color="text.secondary">Recent points ({state.log.length})</Typography></Box>
       <Box className="log-list">

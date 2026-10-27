@@ -31,9 +31,11 @@ Acesse o IP do computador e a porta mostrada no terminal. Esse servidor é para 
 - Fechamento manual de sets, com confirmação; os totais individuais da partida são mantidos.
 - Desfazer pontos e o fechamento do último set, em ordem inversa.
 - Edição dos nomes com salvar/cancelar, sem perder os pontos. Campos em branco mantêm o nome anterior.
-- Estatísticas por jogador e histórico de sets.
+- Estatísticas por jogador e histórico de sets. A aba Statistics usa toda a largura disponível, sem o placar do set. No topo, o Top 3 mostra os três maiores pontuadores da partida entre os dois times, excluindo erro adversário e jogadores ainda sem pontos. Empates mostram a mesma posição; a seleção mantém a ordem original dos times e jogadores, independentemente da troca de lados.
 - Reiniciar a partida com confirmação, preservando os nomes.
-- Interface em inglês, com layout responsivo para celular, desktop e orientação horizontal. A lista de jogadores se expande para aproveitar a altura disponível, respeitando as áreas seguras do aparelho. Os botões dividem esse espaço igualmente e mantêm pelo menos 56 px de altura (48 px em telas baixas na horizontal); quando necessário, a página permite rolagem.
+- Interface em inglês, com layout responsivo para celular, desktop e orientação horizontal. A primeira tela prioriza os pontos do set e as duas listas de jogadores, incluindo erro adversário. Na vertical, o placar ocupa cerca de um terço da altura útil e os jogadores os dois terços restantes; o tamanho dos pontos aproveita essa área e se ajusta ao número de dígitos. Na horizontal, os pontos ficam nas extremidades (128–240 px, ajustados à largura), e a área central dos jogadores ocupa 60% da largura. Os nomes dos times não aparecem na tela de pontuação; a identificação acessível e as cores acompanham a troca de lados.
+- A lista de jogadores se expande para aproveitar a altura útil da tela, respeitando as áreas seguras do aparelho. Os botões dividem esse espaço igualmente e mantêm pelo menos 44 px de altura na vertical e 48 px na horizontal. Em telas muito baixas, com nomes longos ou texto ampliado, a página permite rolagem para preservar os alvos de toque.
+- Undo, Close set, Edit names e Switch sides ficam depois dos jogadores; as abas Game/Statistics vêm depois dessas ações. Ao selecionar uma aba, a visualização volta ao início da área do placar e do conteúdo selecionado.
 - Histórico de pontos recolhido por padrão; toque em “Recent points” para expandir. O histórico não aumenta a altura da tela enquanto está recolhido.
 - Salvamento automático no `localStorage`, incluindo o histórico necessário para desfazer após recarregar.
 - Fontes distribuídas no próprio build, sem dependência do Google Fonts em tempo de execução.
@@ -182,6 +184,20 @@ O catálogo `ios/App/App/Assets.xcassets` contém o ícone de vôlei de 1024 × 
 Para regenerar os PNGs no Mac a partir dos caminhos vetoriais de `assets/branding/icon.svg`, execute `python3 scripts/generate-ios-branding.py`. O script usa Python padrão e Core Graphics via Swift, sem dependências extras. Depois compile novamente pelo Xcode. A abertura nativa aparece enquanto o app inicia e pode ser breve; voltar a um app já aberto não repete essa tela.
 
 Referências: [Capacitor iOS](https://capacitorjs.com/docs/ios), [conta gratuita Apple](https://developer.apple.com/help/account/basics/about-your-developer-account) e [Modo de Desenvolvedor](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device).
+
+## Distribuir no TestFlight
+
+O target iOS está configurado com o identificador `ca.itelligent.volleyballscoreboard` e a equipe selecionada no Xcode. O identificador Android continua `com.diogobastos.volleyballscoreboard`. Para o TestFlight, use o cadastro do App Store Connect correspondente ao identificador iOS.
+
+- Versão iOS preparada: **1.0, build 2**. O build fica em `CURRENT_PROJECT_VERSION`, nas configurações Debug e Release do projeto Xcode. Aumente esse número antes de cada novo envio; a versão Android é independente.
+- O app declara `ITSAppUsesNonExemptEncryption = NO`: o código atual não implementa criptografia própria. Reavalie essa declaração se adicionar recursos de criptografia.
+- Execute `npm test` e `npm run ios:sync`. No Xcode, selecione o scheme **App**, destino **Any iOS Device** e **Product > Archive**.
+- No Organizer, selecione o archive e use **Distribute App > App Store Connect > Upload**, com a equipe de distribuição que possui o cadastro do app.
+- Após o processamento da Apple, abra **App Store Connect > Volleyball Scoreboard > TestFlight** para configurar o grupo de teste e as informações da versão.
+
+Os arquivos gerados localmente ficam em `artifacts/ios/`, ignorados pelo Git. O archive `VolleyballScoreboard-1.0-2.xcarchive` pode ser aberto no Organizer; o IPA exportado fica em `TestFlight-1.0-2/App.ipa`. O TestFlight exige uma assinatura ativa do Apple Developer Program e um cadastro do app no App Store Connect.
+
+Referência: [envio de builds para o App Store Connect](https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds).
 
 ## Próximas etapas
 
