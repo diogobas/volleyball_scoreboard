@@ -54,6 +54,18 @@ npm run preview
 
 Os testes cobrem pontuação, erros adversários, desfazer entre sets, empate, edição, reset e recuperação de dados salvos. O build é gerado em `dist/`. O comando `preview` permite verificar esse build localmente.
 
+## Atualizações e segurança das dependências
+
+O Dependabot verifica npm, Gradle (`android/`) e GitHub Actions mensalmente, às 07:00 no fuso `America/Toronto`, e abre PRs contra a branch padrão. Cada ecossistema tem limite de três PRs de atualização de versão abertos. React, Vite, Capacitor e Material UI/Emotion são agrupados por família em qualquer versão; as demais atualizações minor/patch são agrupadas, e majors ficam separadas para revisão.
+
+O workflow `CI` executa `npm ci`, testes e build web com Node 22 e 24, verifica se o manifesto iOS está sincronizado e compila o APK Android de debug com Java 21. Cada PR deve ser revisado antes do merge, especialmente mudanças de versão major. O CI não compila nem assina o app iOS; valide atualizações nativas também no Xcode e nos dispositivos.
+
+O manifesto `ios/App/CapApp-SPM/Package.swift` é gerado pelo Capacitor e não recebe atualizações Swift independentes. Em PRs de `@capacitor/*`, execute `npm ci`, `npm run ios:sync` e `npm run android:sync`, atualize os arquivos nativos gerados e resolva as dependências no Xcode antes do merge.
+
+Alertas e correções automáticas de segurança devem permanecer ativados em **Settings > Advanced Security > Dependabot**. Correções de segurança não aguardam a agenda mensal. Para dependências Gradle, alertas de segurança exigem envio do grafo de dependências pela Dependency Submission API; a configuração atual cobre suas atualizações de versão.
+
+Referências: [opções do Dependabot](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference) e [ecossistemas suportados](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories).
+
 ## Organização
 
 ```text
