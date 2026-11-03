@@ -21,7 +21,7 @@ button, input { touch-action: manipulation; }
 .score-panels { position: relative; border-radius: 16px 16px 0 0; overflow: hidden; }
 .score-panels::after { content: ''; position: absolute; top: 12px; bottom: 12px; left: 50%; border-left: 2px dashed #ffffff55; }
 .score-panel { display: grid; align-content: center; padding: 4px 8px; text-align: center; min-width: 0; container-type: inline-size; }
-.score-panel .score { margin: 0; font: 900 clamp(96px, calc(var(--court-height) / 3 - 44px), 320px)/1 'Barlow Condensed', sans-serif; font-size: min(clamp(96px, calc(var(--court-height) / 3 - 44px), 320px), var(--score-width-limit)); font-variant-numeric: tabular-nums; }
+.score-panel .score { margin: 0; font: 900 clamp(96px, calc(var(--court-height) / 3 - 44px), 320px)/1 'Barlow Condensed', sans-serif; font-size: min(clamp(96px, calc(var(--court-height) / 3 - 44px), 320px), 95cqw); font-variant-numeric: tabular-nums; }
 .game-panel:not([hidden]) { display: grid; min-width: 0; }
 .rosters { border-radius: 0 0 12px 12px; }
 .roster { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 4px 6px 6px; }
@@ -67,19 +67,24 @@ button, input { touch-action: manipulation; }
 }
 @media (orientation: landscape) {
   .app { max-width: none; }
-  .court { grid-template-columns: minmax(0, 20fr) minmax(0, 60fr) minmax(0, 20fr); grid-template-rows: auto minmax(min-content, 1fr); column-gap: 4px; }
-  .court .set-bar { grid-column: 1 / -1; display: grid; grid-template-columns: 20fr 60fr 20fr; justify-items: center; gap: 4px; }
-  .scoreboard, .score-panels { display: contents; }
+  /* Reserve 16 characters for names, plus the points chip, padding and gutter. */
+  .court { font-size: .875rem; --roster-width: calc(16ch + 66px); --court-columns: var(--roster-width) minmax(0, 1fr) minmax(0, 1fr) var(--roster-width); grid-template-columns: var(--court-columns); grid-template-rows: auto minmax(min-content, 1fr); }
+  .court .set-bar { position: relative; grid-column: 1 / -1; display: grid; grid-template-columns: var(--court-columns); justify-items: center; gap: 0; min-height: 30px; }
+  .set-bar .sets-won:first-child { grid-column: 2; }
+  .set-bar .sets-won:last-child { grid-column: 3; }
+  .set-bar .MuiChip-root { position: absolute; left: 50%; transform: translateX(-50%); }
+  .scoreboard, .score-panels, .game-panel:not([hidden]), .rosters { display: contents; }
   .score-panels::after { content: none; }
-  .score-panel { grid-row: 2; border-radius: 12px; padding: 4px; }
-  .score-panel:first-child { grid-column: 1; }
-  .score-panel:last-child { grid-column: 3; }
-  .score-panel .score { font-size: clamp(128px, 40dvh, 240px); font-size: min(clamp(128px, 40dvh, 240px), var(--score-width-limit)); }
-  .game-panel:not([hidden]), .stats-panel:not([hidden]) { grid-column: 2; grid-row: 2; }
-  .rosters { border-radius: 12px; }
-  .roster { padding: 2px; gap: 2px; }
+  .score-panel { grid-row: 2; padding: 4px; }
+  .score-panel:first-child { grid-column: 2; border-radius: 12px 0 0 12px; }
+  .score-panel:last-child { grid-column: 3; border-radius: 0 12px 12px 0; }
+  .score-panel .score { font-size: clamp(128px, 60dvh, 360px); font-size: min(clamp(128px, 60dvh, 360px), 95cqw); }
+  .roster { grid-row: 2; border-radius: 12px; padding: 2px; gap: 2px; }
+  .roster:first-child { grid-column: 1; margin-right: 8px; }
+  .roster:last-child { grid-column: 4; margin-left: 8px; }
   .player-list { gap: 1px; }
   .player-button.MuiButtonBase-root { min-height: 48px; padding: 4px 6px; gap: 4px; }
+  .error-button .player-name { font-size: .875rem; white-space: nowrap; }
   .player-points .MuiChip-label { padding: 0 6px; }
   .statistics { padding: 8px; }
   .stats-grid { gap: 12px; }

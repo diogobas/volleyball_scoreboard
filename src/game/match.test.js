@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createMatch, matchReducer, restoreMatch, teamScore } from './match.js';
+import { createMatch, matchReducer, restoreMatch, setRanking, teamScore } from './match.js';
 
 const point = (state, team = 'A', playerId = 'p1') => matchReducer(state, { type: 'point', team, playerId });
 const close = state => matchReducer(state, { type: 'closeSet' });
@@ -89,7 +89,7 @@ test('invalid storage cannot introduce malformed history or players', () => {
 test('switching sides preserves team identity, scores and undo across sets and reloads', () => {
   const before = close(point(point(point(createMatch()), 'B'), 'A', 'p2'));
   const switched = matchReducer(before, { type: 'switchSides' });
-  assert.equal(switched.sidesSwapped, true);
+  assert.equal(switched.sidesSwapped, false);
   assert.equal(switched.teams, before.teams);
   assert.equal(switched.log, before.log);
   assert.equal(switched.currentSet, before.currentSet);
@@ -99,12 +99,12 @@ test('switching sides preserves team identity, scores and undo across sets and r
   assert.deepEqual(restoreMatch(JSON.stringify(scored)), scored);
   assert.deepEqual(undo(scored), switched);
   const reopened = undo(undo(scored));
-  assert.equal(reopened.sidesSwapped, true);
+  assert.equal(reopened.sidesSwapped, false);
   assert.equal(teamScore(reopened.teams.A), 2);
   assert.equal(teamScore(reopened.teams.B), 1);
   assert.equal(reopened.teams.A.setsWon, 0);
   assert.deepEqual(matchReducer(switched, { type: 'switchSides' }), before);
-  assert.equal(matchReducer(switched, { type: 'reset' }).sidesSwapped, true);
+  assert.equal(matchReducer(switched, { type: 'reset' }).sidesSwapped, false);
 });
 
 test('matches saved before switch sides was added keep the original layout', () => {
@@ -114,4 +114,120 @@ test('matches saved before switch sides was added keep the original layout', () 
   assert.equal(restored.sidesSwapped, false);
   assert.deepEqual(restored.teams, previous.teams);
   assert.deepEqual(restored.log, previous.log);
+});
+
+function scorePoints(state, count, team = 'A', playerId = 'p1') {
+  for (let i = 0; i < count; i++) state = point(state, team, playerId);
+  return state;
+}
+
+test('25–23 closes automatically, records the final point and keeps match totals and undo', () => {
+  const before = scorePoints(scorePoints(createMatch(), 23, 'B'), 24);
+  const closed = point(before, 'A', 'p2');
+  assert.equal(closed.currentSet, 2);
+  assert.equal(closed.teams.A.setsWon, 1);
+  assert.equal(teamScore(closed.teams.A), 0);
+  assert.equal(teamScore(closed.teams.B), 0);
+  assert.equal(closed.teams.A.players[0].matchPoints, 24);
+  assert.equal(closed.teams.A.players[1].matchPoints, 1);
+  assert.equal(closed.log.at(-1).scoreA, 25);
+  assert.equal(closed.log.at(-1).scoreB, 23);
+  assert.equal(teamScore(undo(closed).teams.A), 25);
+  assert.deepEqual(undo(undo(closed)), before);
+  assert.deepEqual(restoreMatch(JSON.stringify(closed)), closed);
+  assert.deepEqual(restoreMatch(JSON.stringify(undo(closed))), undo(closed));
+  assert.deepEqual(undo(point(closed, 'B')), closed);
+});
+
+test('24–24 and 25–24 continue, then 26–24 closes automatically', () => {
+  let state = scorePoints(scorePoints(createMatch(), 24, 'B'), 24);
+  assert.equal(state.currentSet, 1);
+  state = point(state);
+  assert.equal(state.currentSet, 1);
+  assert.equal(teamScore(state.teams.A), 25);
+  state = point(state);
+  assert.equal(state.currentSet, 2);
+  assert.equal(state.log.at(-1).scoreA, 26);
+  assert.equal(state.log.at(-1).scoreB, 24);
+});
+
+test('deuce has no upper limit and opponent errors can close a set for team B', () => {
+  let state = scorePoints(scorePoints(createMatch(), 24, 'B'), 24);
+  for (let i = 0; i < 80; i++) {
+    state = point(point(state), 'B');
+    assert.equal(state.currentSet, 1);
+  }
+  state = point(state, 'B');
+  assert.equal(state.currentSet, 1);
+  state = point(state, 'B', 'err');
+  assert.equal(state.currentSet, 2);
+  assert.equal(state.teams.B.setsWon, 1);
+  assert.equal(state.log.at(-1).scoreA, 104);
+  assert.equal(state.log.at(-1).scoreB, 106);
+  assert.equal(state.teams.B.players.at(-1).matchPoints, 1);
+  assert.deepEqual(restoreMatch(JSON.stringify(state)), state);
+});
+
+test('old saved matches above 25 keep their original points and set boundaries', () => {
+  // Simulate history from the previous version, where only manual closure existed.
+  const legacy = createMatch();
+  legacy.log = Array.from({ length: 30 }, () => ({ type: 'point', team: 'A',
+    playerId: 'p1', playerName: 'Anderson', teamName: 'Team 1' }));
+  const open = restoreMatch(JSON.stringify(legacy));
+  assert.equal(open.currentSet, 1);
+  assert.equal(teamScore(open.teams.A), 30);
+  const closed = close(open);
+  assert.deepEqual(restoreMatch(JSON.stringify(closed)), closed);
+  assert.equal(point(open).currentSet, 2);
+});
+
+
+test('set rankings isolate each set, exclude errors and preserve historical names and ties', () => {
+  let state = point(point(point(createMatch()), 'B', 'p2'), 'A', 'p2');
+  state = close(point(state, 'B', 'err'));
+  const firstRanking = setRanking(state, 1);
+  assert.deepEqual(firstRanking.map(p => [p.teamId, p.id, p.points]), [
+    ['A', 'p1', 1], ['A', 'p2', 1], ['B', 'p2', 1],
+  ]);
+  const draft = structuredClone(state.teams);
+  draft.A.players[0].name = 'Renamed';
+  state = matchReducer(state, { type: 'edit', teams: draft });
+  state = close(scorePoints(point(state), 2, 'B', 'p3'));
+  assert.deepEqual(setRanking(state, 1), firstRanking);
+  assert.deepEqual(setRanking(state, 2).map(p => [p.name, p.points]), [['Diogo', 2], ['Renamed', 1]]);
+  assert.deepEqual(setRanking(restoreMatch(JSON.stringify(state)), 1), firstRanking);
+  assert.deepEqual(setRanking(matchReducer(state, { type: 'switchSides' }), 2), setRanking(state, 2));
+  assert.deepEqual(setRanking(close(point(createMatch(), 'B', 'err')), 1), []);
+});
+
+
+test('manual and automatic set closures swap sides and undo restores them after reload', () => {
+  const before = point(createMatch());
+  const closed = close(before);
+  assert.equal(closed.sidesSwapped, true);
+  const second = close(point(closed, 'B'));
+  assert.equal(second.sidesSwapped, false);
+  assert.deepEqual(undo(restoreMatch(JSON.stringify(second))), point(closed, 'B'));
+  assert.deepEqual(undo(restoreMatch(JSON.stringify(closed))), before);
+
+  const switched = matchReducer(createMatch(), { type: 'switchSides' });
+  const almost = scorePoints(switched, 24);
+  const automatic = point(almost);
+  assert.equal(automatic.sidesSwapped, false);
+  assert.equal(automatic.currentSet, 2);
+  assert.equal(restoreMatch(JSON.stringify(automatic)).sidesSwapped, false);
+  assert.equal(undo(restoreMatch(JSON.stringify(automatic))).sidesSwapped, true);
+  assert.deepEqual(undo(undo(automatic)), almost);
+  assert.equal(close(point(point(createMatch()), 'B')).sidesSwapped, true);
+});
+
+test('old set history keeps saved sides when restored and undone', () => {
+  for (const sidesSwapped of [true, false]) {
+    const legacy = close(point(createMatch()));
+    legacy.sidesSwapped = sidesSwapped;
+    delete legacy.log.at(-1).sidesSwappedBefore;
+    const restored = restoreMatch(JSON.stringify(legacy));
+    assert.deepEqual(restored, legacy);
+    assert.equal(undo(restored).sidesSwapped, sidesSwapped);
+  }
 });
