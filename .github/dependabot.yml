@@ -1,0 +1,53 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+      time: '07:00'
+      timezone: America/Toronto
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore(deps)
+      prefix-development: chore(deps-dev)
+    groups:
+      react:
+        patterns: ['react', 'react-dom']
+      vite:
+        patterns: ['vite', '@vitejs/*']
+      capacitor:
+        patterns: ['@capacitor/*']
+      material-ui:
+        patterns: ['@mui/*', '@emotion/*']
+      minor-and-patch:
+        patterns: ['*']
+        exclude-patterns: ['react', 'react-dom', 'vite', '@vitejs/*', '@capacitor/*', '@mui/*', '@emotion/*']
+        update-types: ['minor', 'patch']
+
+  - package-ecosystem: gradle
+    directory: /android
+    schedule:
+      interval: monthly
+      time: '07:00'
+      timezone: America/Toronto
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore(android-deps)
+    groups:
+      minor-and-patch:
+        patterns: ['*']
+        update-types: ['minor', 'patch']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      time: '07:00'
+      timezone: America/Toronto
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore(ci)
+    groups:
+      actions:
+        patterns: ['*']
