@@ -5,39 +5,76 @@ import EditOutlined from '@mui/icons-material/EditOutlined';
 import RestartAltRounded from '@mui/icons-material/RestartAltRounded';
 import CheckRounded from '@mui/icons-material/CheckRounded';
 import SwapHorizRounded from '@mui/icons-material/SwapHorizRounded';
-import { createMatch, matchReducer, restoreMatch, STORAGE_KEY, TEAM_IDS, teamScore } from './game/match';
+import { matchReducer, TEAM_IDS, teamScore } from './game/match';
+import { loadStoredMatch, openMatchDatabase, saveStoredMatch } from './game/storage';
 import { Roster, ScorePanel } from './components/TeamPanel';
 import EditTeamsDialog from './components/EditTeamsDialog';
 import Statistics from './components/Statistics';
 
-function loadMatch() {
-  try { return { state: restoreMatch(localStorage.getItem(STORAGE_KEY)), warning: '' }; }
-  catch { return { state: createMatch(), warning: 'The saved match could not be restored. A new match has been started.' }; }
+export default function App() {
+  const [session, setSession] = useState(null);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    let database;
+    async function initialize() {
+      try {
+        database = await openMatchDatabase();
+        const state = await loadStoredMatch(database);
+        if (cancelled) { database.close(); return; }
+        setSession({ database, state });
+        // Best effort: unsupported/denied persistent storage must not prevent play.
+        try { globalThis.navigator?.storage?.persist?.()?.catch(() => {}); } catch { /* optional API */ }
+      } catch {
+        database?.close();
+        if (!cancelled) setError(true);
+      }
+    }
+    initialize();
+    return () => { cancelled = true; database?.close(); };
+  }, [attempt]);
+
+  if (error) return <Box component="main" className="app">
+    <Alert severity="error">The saved match could not be loaded. Existing data has been kept. Close other app tabs and retry. Do not clear app data.</Alert>
+    <Button onClick={() => { setError(false); setAttempt(value => value + 1); }}>Retry</Button>
+  </Box>;
+  if (!session) return <Box component="main" className="app" role="status"><Typography>Loading saved match…</Typography></Box>;
+  return <MatchApp database={session.database} initialState={session.state} />;
 }
 
-export default function App() {
+function MatchApp({ database, initialState }) {
   const courtRef = useRef(null);
-  const [initial] = useState(loadMatch);
-  const [state, dispatch] = useReducer(matchReducer, initial.state);
-  const [storageWarning, setStorageWarning] = useState(initial.warning);
+  const [state, dispatch] = useReducer(matchReducer, initialState);
+  const [storageWarning, setStorageWarning] = useState('');
   const [tab, setTab] = useState(0);
   const [editing, setEditing] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
-  const [saved, setSaved] = useState(false);
+  const [savedState, setSavedState] = useState(initialState);
+  const saved = savedState === state;
   const scoreA = teamScore(state.teams.A);
   const scoreB = teamScore(state.teams.B);
   const teamOrder = state.sidesSwapped ? ['B', 'A'] : TEAM_IDS;
   const [leftTeam, rightTeam] = teamOrder.map(id => state.teams[id]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      setSaved(true);
-    } catch {
-      setSaved(false);
-      setStorageWarning('Local storage is unavailable or full. You can keep playing, but the match may be lost when you leave.');
-    }
-  }, [state]);
+    let cancelled = false;
+    // IndexedDB serializes these read/write transactions in creation order.
+    saveStoredMatch(database, state).then(() => {
+      if (!cancelled) { setSavedState(state); setStorageWarning(''); }
+    }).catch(() => {
+      if (!cancelled) setStorageWarning('Local saving failed. Keep the app open and retry saving before leaving.');
+    });
+    return () => { cancelled = true; };
+  }, [database, state]);
+
+  function retrySave() {
+    saveStoredMatch(database, state).then(() => {
+      setSavedState(state);
+      setStorageWarning('');
+    }).catch(() => setStorageWarning('Local saving failed. Keep the app open and retry saving before leaving.'));
+  }
 
   function changeTab(_, value) {
     setTab(value);
@@ -48,7 +85,7 @@ export default function App() {
   const last = state.log.at(-1);
   const closing = confirmation === 'closeSet';
   return <Box component="main" className="app" aria-label="Volleyball Scoreboard">
-    {storageWarning && <Alert severity="warning" onClose={() => setStorageWarning('')} sx={{ mx: 2, mb: 2 }}>{storageWarning}</Alert>}
+    {storageWarning && <Alert severity="warning" action={<Button color="inherit" size="small" onClick={retrySave}>Retry saving</Button>} sx={{ mx: 2, mb: 2 }}>{storageWarning}</Alert>}
     <Box ref={courtRef} className={`court${tab === 1 ? ' court--stats' : ''}`}>
       {tab === 0 && <Box className="scoreboard">
         <Stack className="set-bar" direction="row" sx={{ alignItems: 'center', justifyContent: 'center', gap: 2 }}>

@@ -37,12 +37,20 @@ Acesse o IP do computador e a porta mostrada no terminal. Esse servidor é para 
 - A lista de jogadores se expande para aproveitar a altura útil da tela, respeitando as áreas seguras do aparelho. Os botões dividem esse espaço igualmente e mantêm pelo menos 44 px de altura na vertical e 48 px na horizontal. Em telas muito baixas, com nomes longos ou texto ampliado, a página permite rolagem para preservar os alvos de toque.
 - Undo, Close set, Edit names e Switch sides ficam depois dos jogadores; as abas Game/Statistics vêm depois dessas ações. Ao selecionar uma aba, a visualização volta ao início da área do placar e do conteúdo selecionado.
 - Histórico de pontos recolhido por padrão; toque em “Recent points” para expandir. O histórico não aumenta a altura da tela enquanto está recolhido.
-- Salvamento automático no `localStorage`, incluindo o histórico necessário para desfazer após recarregar.
+- Salvamento automático transacional em IndexedDB, incluindo o histórico necessário para desfazer após recarregar. Partidas da versão anterior são migradas do `localStorage`; a cópia antiga é preservada para recuperação, mas não é atualizada nem substitui os dados do novo banco.
 - Fontes distribuídas no próprio build, sem dependência do Google Fonts em tempo de execução.
 
 Todos os sets usam a regra solicitada de 25 pontos com diferença mínima de dois: 25 × 23 encerra, 25 × 24 continua e 26 × 24 encerra. Não há regra especial de 15 pontos para set decisivo nem fim da partida por melhor de três/cinco. Um set empatado pode ser fechado manualmente e não acrescenta vitória a nenhum time. O fechamento automático entra no histórico: “Undo” reabre o set com o placar final; outro “Undo” retira o último ponto. Partidas salvas anteriormente preservam os sets e pontos registrados, mesmo fora da nova regra.
 
 Os dados ficam apenas no navegador/dispositivo e na origem usada para acessar o app. Limpar os dados do site apaga a partida; mudar de endereço, porta ou dispositivo não transfere os dados. Não há backend, conta de usuário ou sincronização nesta etapa.
+
+### Banco local — subfase 1.1
+
+O banco `volleyball-scoreboard` usa versão 1, com os armazenamentos `activeMatches` (partida atual) e `closedMatches` (reservado para partidas encerradas nas próximas subfases). O registro atual possui versão de formato própria. O placar só é liberado depois de concluir a leitura/migração. Uma falha de leitura não inicia uma partida vazia sobre os dados existentes; a tela oferece tentar novamente. Falhas de gravação mostram um aviso com **Retry saving**; mantenha o app aberto até salvar com sucesso.
+
+O app solicita armazenamento persistente quando a plataforma oferece essa API, mas a concessão depende do navegador. Desinstalar o app ou limpar seus dados ainda pode apagar a partida. Ao sair, aguarde **Saved on this device**. A cópia antiga no `localStorage` representa somente o estado anterior à migração; voltar para uma versão antiga do aplicativo não recupera os pontos feitos depois dela.
+
+Roteiro de aprovação: [testar a subfase 1.1](docs/testing-local-storage-1.1.md). O fechamento de partidas e a consulta do histórico ainda não fazem parte desta entrega.
 
 ## Verificar e gerar o build
 
