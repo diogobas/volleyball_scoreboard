@@ -1,6 +1,7 @@
-import { Box, LinearProgress, Paper, Stack, Typography } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Box, LinearProgress, Paper, Stack, Typography } from '@mui/material';
+import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
 import { teamColors } from '../theme';
-import { TEAM_IDS } from '../game/match';
+import { setRanking, TEAM_IDS } from '../game/match';
 
 export default function Statistics({ state, teamOrder }) {
   const sets = state.log.filter(entry => entry.type === 'set');
@@ -48,10 +49,32 @@ export default function Statistics({ state, teamOrder }) {
       })}
     </Box>
     {sets.length > 0 && <Box sx={{ mt: 3 }}><Typography variant="overline">Set history</Typography>
-      {sets.map(entry => <Paper key={entry.setNumber} className="log-item" sx={{ mt: 1 }}>
-        <Typography variant="body2">Set {entry.setNumber}</Typography>
-        <Typography variant="body2">{entry.teamAName} {entry.scoreA} × {entry.scoreB} {entry.teamBName}</Typography>
-      </Paper>)}
+      {sets.map(entry => {
+        const ranking = setRanking(state, entry.setNumber);
+        return <Accordion key={entry.setNumber} disableGutters elevation={0} sx={{ mt: 1, bgcolor: '#ffffff08', backgroundImage: 'none' }}>
+          <AccordionSummary expandIcon={<ExpandMoreRounded />} id={`set-${entry.setNumber}-summary`} aria-controls={`set-${entry.setNumber}-ranking`}>
+            <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+              <Typography variant="body2">Set {entry.setNumber}</Typography>
+              <Typography variant="body2" color="text.secondary">{entry.teamAName} {entry.scoreA} × {entry.scoreB} {entry.teamBName}</Typography>
+            </Box>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Typography component="h3" variant="subtitle2" sx={{ mb: 1 }}>Player ranking · Set {entry.setNumber}</Typography>
+            {ranking.length === 0
+              ? <Typography variant="body2" color="text.secondary">No player points in this set.</Typography>
+              : <Box component="ol" aria-label={`Player ranking for set ${entry.setNumber}`} sx={{ listStyle: 'none', p: 0, m: 0 }}>
+                {ranking.map(player => <Box component="li" key={`${player.teamId}-${player.id}`} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
+                  <Typography variant="body2" sx={{ minWidth: '2ch' }}>#{ranking.findIndex(p => p.points === player.points) + 1}</Typography>
+                  <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+                    <Typography variant="body2">{player.name}</Typography>
+                    <Typography variant="caption" color="text.secondary">{player.teamName}</Typography>
+                  </Box>
+                  <Typography variant="body2">{player.points} {player.points === 1 ? 'point' : 'points'}</Typography>
+                </Box>)}
+              </Box>}
+          </AccordionDetails>
+        </Accordion>;
+      })}
     </Box>}
   </Box>;
 }

@@ -24,23 +24,51 @@ export function teamScore(team) {
   return team.players.reduce((sum, player) => sum + player.setPoints, 0);
 }
 
+// Replay stored points without applying new rules to historical sets.
+function addPoint(state, action) {
+  const team = state.teams[action.team];
+  const player = team?.players.find(p => p.id === action.playerId);
+  if (!player) return state;
+  return {
+    ...state,
+    teams: { ...state.teams, [action.team]: { ...team,
+      players: team.players.map(p => p.id === player.id
+        ? { ...p, setPoints: p.setPoints + 1, matchPoints: p.matchPoints + 1 } : p),
+    } },
+    log: [...state.log, { type: 'point', team: action.team, playerId: player.id,
+      playerName: player.name, teamName: team.name }],
+  };
+}
+
+export function setRanking(state, setNumber) {
+  let currentSet = 1;
+  const players = new Map();
+  for (const entry of state.log) {
+    if (entry.type === 'set') {
+      if (entry.setNumber === setNumber) break;
+      currentSet = entry.setNumber + 1;
+    } else if (currentSet === setNumber && entry.playerId !== 'err') {
+      const key = `${entry.team}-${entry.playerId}`;
+      const previous = players.get(key);
+      players.set(key, { teamId: entry.team, id: entry.playerId,
+        name: entry.playerName, teamName: entry.teamName, points: (previous?.points ?? 0) + 1 });
+    }
+  }
+  return [...players.values()].sort((a, b) => b.points - a.points ||
+    TEAM_IDS.indexOf(a.teamId) - TEAM_IDS.indexOf(b.teamId) || a.id.localeCompare(b.id));
+}
+
 export function matchReducer(state, action) {
   switch (action.type) {
     case 'switchSides':
       return { ...state, sidesSwapped: !state.sidesSwapped };
     case 'point': {
-      const team = state.teams[action.team];
-      const player = team?.players.find(p => p.id === action.playerId);
-      if (!player) return state;
-      return {
-        ...state,
-        teams: { ...state.teams, [action.team]: { ...team,
-          players: team.players.map(p => p.id === player.id
-            ? { ...p, setPoints: p.setPoints + 1, matchPoints: p.matchPoints + 1 } : p),
-        } },
-        log: [...state.log, { type: 'point', team: action.team, playerId: player.id,
-          playerName: player.name, teamName: team.name }],
-      };
+      const scored = addPoint(state, action);
+      if (scored === state) return state;
+      const scoreA = teamScore(scored.teams.A);
+      const scoreB = teamScore(scored.teams.B);
+      return Math.max(scoreA, scoreB) >= 25 && Math.abs(scoreA - scoreB) >= 2
+        ? matchReducer(scored, { type: 'closeSet' }) : scored;
     }
     case 'closeSet': {
       const scoreA = teamScore(state.teams.A);
@@ -48,13 +76,14 @@ export function matchReducer(state, action) {
       // Preserve manual set closing, including ties, from the original HTML.
       if (scoreA + scoreB === 0) return state;
       const entry = { type: 'set', setNumber: state.currentSet, scoreA, scoreB,
+        sidesSwappedBefore: state.sidesSwapped,
         teamAName: state.teams.A.name, teamBName: state.teams.B.name,
         snapshots: Object.fromEntries(TEAM_IDS.map(id => [id, {
           setsWon: state.teams[id].setsWon,
           points: state.teams[id].players.map(p => p.setPoints),
         }])),
       };
-      return { ...state, currentSet: state.currentSet + 1, log: [...state.log, entry],
+      return { ...state, currentSet: state.currentSet + 1, sidesSwapped: !state.sidesSwapped, log: [...state.log, entry],
         teams: Object.fromEntries(TEAM_IDS.map(id => [id, {
           ...state.teams[id],
           setsWon: state.teams[id].setsWon + Number(id === 'A' ? scoreA > scoreB : scoreB > scoreA),
@@ -67,6 +96,7 @@ export function matchReducer(state, action) {
       if (!last) return state;
       if (last.type === 'set') {
         return { ...state, currentSet: last.setNumber, log: state.log.slice(0, -1),
+          sidesSwapped: typeof last.sidesSwappedBefore === 'boolean' ? last.sidesSwappedBefore : state.sidesSwapped,
           teams: Object.fromEntries(TEAM_IDS.map(id => [id, { ...state.teams[id],
             setsWon: last.snapshots[id].setsWon,
             players: state.teams[id].players.map((p, i) => ({ ...p, setPoints: last.snapshots[id].points[i] })),
@@ -118,13 +148,21 @@ export function restoreMatch(raw) {
     if (entry.type === 'point') {
       if (!TEAM_IDS.includes(entry.team) || !initial.teams[entry.team].players.some(p => p.id === entry.playerId) ||
           typeof entry.playerName !== 'string' || typeof entry.teamName !== 'string') throw new Error('Invalid point');
-      restored = matchReducer(restored, { type: 'point', team: entry.team, playerId: entry.playerId });
+      restored = addPoint(restored, { team: entry.team, playerId: entry.playerId });
       restored.log[restored.log.length - 1] = { ...restored.log.at(-1), playerName: entry.playerName, teamName: entry.teamName };
     } else if (entry.type === 'set') {
       if (!teamScore(restored.teams.A) && !teamScore(restored.teams.B)) throw new Error('Empty set');
       if (typeof entry.teamAName !== 'string' || typeof entry.teamBName !== 'string') throw new Error('Invalid set');
       restored = matchReducer(restored, { type: 'closeSet' });
       restored.log[restored.log.length - 1] = { ...restored.log.at(-1), teamAName: entry.teamAName, teamBName: entry.teamBName };
+      // The saved side is already the current layout; replay must not swap it again.
+      restored.sidesSwapped = initial.sidesSwapped;
+      if (typeof entry.sidesSwappedBefore === 'boolean') {
+        restored.log.at(-1).sidesSwappedBefore = entry.sidesSwappedBefore;
+      } else {
+        // Older set closures did not swap sides, including when undone.
+        delete restored.log.at(-1).sidesSwappedBefore;
+      }
     } else throw new Error('Invalid event');
   }
   return restored;
