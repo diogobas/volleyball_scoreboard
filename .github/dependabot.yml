@@ -34,6 +34,12 @@ updates:
     open-pull-requests-limit: 3
     commit-message:
       prefix: chore(android-deps)
+    # AGP 8.13.0 uses internal APIs removed in Gradle 9.6 (see PR #11).
+    # Upgrade the wrapper major together with AGP in a tested migration.
+    # Minor and patch updates within Gradle 8 remain enabled.
+    ignore:
+      - dependency-name: gradle-wrapper
+        update-types: ['version-update:semver-major']
     groups:
       minor-and-patch:
         patterns: ['*']
