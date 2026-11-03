@@ -58,6 +58,8 @@ Os testes cobrem pontuação, erros adversários, desfazer entre sets, empate, e
 
 O Dependabot verifica npm, Gradle (`android/`) e GitHub Actions mensalmente, às 07:00 no fuso `America/Toronto`, e abre PRs contra a branch padrão. Cada ecossistema tem limite de três PRs de atualização de versão abertos. React, Vite, Capacitor e Material UI/Emotion são agrupados por família em qualquer versão; as demais atualizações minor/patch são agrupadas, e majors ficam separadas para revisão.
 
+O Gradle Wrapper é uma exceção: atualizações automáticas de major ficam desativadas enquanto o projeto usa Android Gradle Plugin (AGP) 8.13.0. O PR #11 propôs Gradle 9.8.2 isoladamente, mas o AGP atual depende de uma API interna removida no Gradle 9.6. Atualizações minor/patch do Gradle 8 continuam habilitadas; a migração para Gradle 9 deve atualizar também o AGP, validar a compatibilidade com Capacitor e passar no build Android antes de remover essa exceção.
+
 O workflow `CI` executa `npm ci`, testes e build web com Node 22 e 24, verifica se o manifesto iOS está sincronizado e compila o APK Android de debug com Java 21. Cada PR deve ser revisado antes do merge, especialmente mudanças de versão major. O CI não compila nem assina o app iOS; valide atualizações nativas também no Xcode e nos dispositivos.
 
 O manifesto `ios/App/CapApp-SPM/Package.swift` é gerado pelo Capacitor e não recebe atualizações Swift independentes. Em PRs de `@capacitor/*`, execute `npm ci`, `npm run ios:sync` e `npm run android:sync`, atualize os arquivos nativos gerados e resolva as dependências no Xcode antes do merge.
