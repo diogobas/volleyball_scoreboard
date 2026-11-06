@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper, Stack, Tab, Tabs, Typography } from '@mui/material';
 import UndoRounded from '@mui/icons-material/UndoRounded';
 import EditOutlined from '@mui/icons-material/EditOutlined';
@@ -12,6 +12,15 @@ import EditTeamsDialog from './components/EditTeamsDialog';
 import Statistics from './components/Statistics';
 import CloseMatchDialog from './components/CloseMatchDialog';
 import MatchHistory from './components/MatchHistory';
+const AccountDialog = lazy(() => import('./components/AccountDialog').catch(() => ({ default: AccountLoadFailure })));
+
+function AccountLoadFailure({ onClose }) {
+  return <Dialog open onClose={onClose} aria-labelledby="account-load-title">
+    <DialogTitle id="account-load-title">Account &amp; groups</DialogTitle>
+    <DialogContent><Alert severity="warning">Account tools could not be loaded. You can keep playing. Reload the app when connected to try again.</Alert></DialogContent>
+    <DialogActions><Button onClick={onClose}>Done</Button></DialogActions>
+  </Dialog>;
+}
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -56,6 +65,7 @@ function MatchApp({ database, initialState }) {
   const [storageWarning, setStorageWarning] = useState('');
   const [tab, setTab] = useState(0);
   const [editing, setEditing] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
   const [savedState, setSavedState] = useState(initialState);
   const saved = savedState === state;
@@ -159,6 +169,7 @@ function MatchApp({ database, initialState }) {
       <Tab id="stats-tab" aria-controls="stats-panel" label="Statistics" />
       <Tab id="history-tab" aria-controls="history-panel" label="History" />
     </Tabs>
+    <Box sx={{ px: 2, pb: 1 }}><Button color="inherit" size="small" onClick={() => setAccountOpen(true)}>Account &amp; groups</Button></Box>
     {tab === 0 && <Box component="details" className="log-wrap">
       <Box component="summary"><Typography component="span" variant="overline" color="text.secondary">Recent points ({state.log.length})</Typography></Box>
       <Box className="log-list">
@@ -175,6 +186,9 @@ function MatchApp({ database, initialState }) {
       <Button color="inherit" size="small" startIcon={<RestartAltRounded />} onClick={() => setConfirmation('reset')}>Reset match</Button>
       <Typography variant="caption" color="text.secondary">{saved ? 'Saved on this device' : storageWarning ? 'Local saving unavailable' : 'Saving…'}</Typography>
     </Box>}
+    {accountOpen && <Suspense fallback={<Typography role="status" sx={{ px: 2 }}>Loading account…</Typography>}>
+      <AccountDialog onClose={() => setAccountOpen(false)} />
+    </Suspense>}
     {editing && <EditTeamsDialog state={state} database={database} teamOrder={teamOrder} onClose={() => setEditing(false)}
       onSave={updated => { setState(updated); setSavedState(updated); setEditing(false); }} />}
     {confirmation === 'closeMatch' && <CloseMatchDialog state={state} saving={closingMatch} error={closeError}

@@ -61,7 +61,7 @@ export default function EditTeamsDialog({ state, database, teamOrder = TEAM_IDS,
   return <Dialog open fullWidth maxWidth="md" onClose={() => { if (!busy) onClose(); }} aria-labelledby="edit-title">
     <DialogTitle id="edit-title">{archiveId ? 'Associate saved match' : 'Teams and registered players'}</DialogTitle>
     <DialogContent dividers>
-      <Alert severity="info" sx={{ mb: 2 }}>Development group · Local only. Online groups and administrator access will be added later.</Alert>
+      <Alert severity="info" sx={{ mb: 2 }}>Development group · Local only. Manage online groups in Account &amp; groups. This roster is not linked to an online group yet.</Alert>
       {!group && !error && <Typography role="status">Loading registered players…</Typography>}
       {error && <Alert severity="warning" sx={{ mb: 2 }} action={!group ? <Button onClick={() => setAttempt(value => value + 1)}>Retry</Button> : undefined}>{error}</Alert>}
       {group && <>

@@ -46,7 +46,7 @@ Acesse o IP do computador e a porta mostrada no terminal. Esse servidor é para 
 
 Todos os sets usam a regra solicitada de 25 pontos com diferença mínima de dois: 25 × 23 encerra, 25 × 24 continua e 26 × 24 encerra. Não há regra especial de 15 pontos para set decisivo nem fim da partida por melhor de três/cinco. Um set empatado pode ser fechado manualmente e não acrescenta vitória a nenhum time. O fechamento automático entra no histórico: “Undo” reabre o set com o placar final; outro “Undo” retira o último ponto. Partidas salvas anteriormente preservam os sets e pontos registrados, mesmo fora da nova regra.
 
-Os dados ficam apenas no navegador/dispositivo e na origem usada para acessar o app. Limpar os dados do site apaga a partida; mudar de endereço, porta ou dispositivo não transfere os dados. Não há backend, conta de usuário ou sincronização nesta etapa.
+As partidas e o cadastro de jogadores ainda ficam apenas no navegador/dispositivo e na origem usada para acessar o app. Limpar os dados do site apaga os dados locais; mudar de endereço, porta ou dispositivo não os transfere. A subfase 3.1 acrescenta contas e administração de grupos no Supabase quando configurado, mas ainda não sincroniza as partidas nem os jogadores.
 
 ### Banco local — subfase 1.1
 
@@ -119,6 +119,20 @@ Os totais são derivados dos arquivos locais a cada consulta, sem gravar contado
 
 Roteiro de aprovação: [testar a subfase 2.3](docs/testing-season-statistics-2.3.md).
 
+### Supabase e administradores — subfase 3.1
+
+**Account & groups**, abaixo das abas, oferece cadastro, login por e-mail/senha e saída da conta neste aparelho. O responsável cria um grupo e se torna seu primeiro administrador; pode autorizar outras contas confirmadas por e-mail e revogar acessos. O servidor impede remover o último administrador. Cadastrar uma conta não concede acesso a grupos de outras pessoas. A lista **My groups** mostra apenas os grupos administrados pela conta conectada.
+
+Sem configuração online, o placar continua disponível e o diálogo informa que as contas não estão configuradas. O cliente online é carregado quando o diálogo é aberto. Sessão de autenticação e dados de partida têm armazenamentos separados; sair da conta não apaga partidas. O grupo de desenvolvimento e seus cadastros locais permanecem separados dos grupos online até a ligação e sincronização da subfase 3.2.
+
+A migração [20261106000100_groups_and_match_schema.sql](supabase/migrations/20261106000100_groups_and_match_schema.sql) cria as tabelas públicas de grupos, jogadores, partidas, sets, escalações e pontos, com RLS e vínculos por grupo. O schema `private` contém administradores, autoria dos envios e revisões; suas tabelas não têm acesso direto pelos clientes. Funções administrativas validam `auth.uid()` e o vínculo ao grupo no servidor. A criação do grupo e a autorização inicial são atômicas; autorizar outro administrador exige uma conta com e-mail confirmado. Não há chave administrativa no aplicativo.
+
+Use `.env.local` com `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`, conforme [.env.example](.env.example). A configuração também aceita uma chave `anon` legada em `VITE_SUPABASE_ANON_KEY`. O build recusa chaves secretas ou `service_role` nas configurações públicas. A segurança de acesso é aplicada por permissões/RLS e RPCs no banco, não pela validação da chave no frontend. Consulte as [chaves Supabase](https://supabase.com/docs/guides/getting-started/api-keys) e as [políticas RLS](https://supabase.com/docs/guides/database/postgres/row-level-security).
+
+O projeto remoto precisa ser criado e a migração aplicada antes do teste online; ambos ficam sob sua conta Supabase. A gravação transacional de partidas será implementada na 3.3; nesta etapa, o cliente não recebe escrita direta nas tabelas de partidas. A página pública fica para a fase 4.
+
+Configuração e roteiro de aprovação: [testar a subfase 3.1](docs/testing-supabase-admin-3.1.md).
+
 ## Verificar e gerar o build
 
 ```sh
@@ -127,7 +141,7 @@ npm run build
 npm run preview
 ```
 
-Os testes cobrem pontuação, erros adversários, desfazer entre sets, empate, edição, reset e recuperação de dados salvos. O build é gerado em `dist/`. O comando `preview` permite verificar esse build localmente.
+Os testes cobrem regras de jogo, persistência, elencos, temporadas, configuração online e o contrato das RPCs. Também executam a migração e as permissões SQL em PostgreSQL embarcado, sem depender de credenciais ou Docker. E-mail/Auth/Data API hospedados ainda precisam ser validados no Supabase real. O build é gerado em `dist/`; `preview` permite verificá-lo localmente.
 
 ## Atualizações e segurança das dependências
 
