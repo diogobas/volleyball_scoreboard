@@ -128,4 +128,41 @@ test('Supabase schema and access controls run against PostgreSQL', async t => {
     assert.equal(functions.rows.length, 6);
     assert.ok(functions.rows.every(fn => fn.proconfig?.some(config => config.startsWith('search_path='))));
   });
+
+  await database.exec(await readFile(new URL('./migrations/20261106000200_player_registry_sync.sql', import.meta.url), 'utf8'));
+  const syncPlayer = (actor, id, name, target = groupA.id) => asUser(actor, () => query('select public.sync_group_player($1,$2,$3) as result', [target, id, name]));
+  const registeredId = randomUUID();
+
+  await t.test('registry RPC preserves caller UUID, accepts retries and never merges another ID by name', async () => {
+    const first = (await syncPlayer(a, registeredId, ' Ana  Costa ')).rows[0].result;
+    assert.equal(first.status, 'saved');
+    assert.equal(first.player.id, registeredId);
+    assert.equal(first.player.name, 'Ana Costa');
+    assert.equal((await syncPlayer(a, registeredId, 'ÁNA COSTA')).rows[0].result.status, 'saved');
+    const anotherId = randomUUID();
+    const conflict = (await syncPlayer(a, anotherId, 'ana costa')).rows[0].result;
+    assert.equal(conflict.status, 'name_conflict');
+    assert.equal(conflict.player.id, registeredId);
+    assert.equal((await query('select count(*)::int as n from public.players where id=$1', [anotherId])).rows[0].n, 0);
+    assert.equal((await syncPlayer(a, anotherId, 'Ana')).rows[0].result.status, 'name_conflict');
+    assert.equal((await syncPlayer(a, anotherId, 'Ana Silva')).rows[0].result.status, 'saved');
+    assert.equal((await syncPlayer(a, registeredId, 'Another person')).rows[0].result.status, 'identity_conflict');
+    assert.equal((await query('select name from public.players where id=$1', [registeredId])).rows[0].name, 'Ana Costa');
+  });
+
+  await t.test('registry snapshots are restricted to current administrators and contain only one group', async () => {
+    const snapshot = (await asUser(a, () => query('select public.get_group_registry($1) as result', [groupA.id]))).rows[0].result;
+    assert.equal(snapshot.group.id, groupA.id);
+    assert.ok(snapshot.players.every(player => player.group_id === groupA.id));
+    assert.equal(JSON.stringify(snapshot).includes('@example.test'), false);
+    await assert.rejects(asUser(b, () => query('select public.get_group_registry($1)', [groupA.id])), /Only group administrators/);
+    await assert.rejects(asUser(c, () => query('select public.get_group_registry($1)', [groupA.id])), /Only group administrators/);
+    await assert.rejects(asUser(null, () => query('select public.get_group_registry($1)', [groupA.id]), 'anon'), /permission denied/);
+    await assert.rejects(syncPlayer(b, randomUUID(), 'Not authorized'), /Only group administrators/);
+    await assert.rejects(syncPlayer(c, randomUUID(), 'Revoked administrator'), /Only group administrators/);
+    await assert.rejects(syncPlayer(a, playerB, 'Cross-group ID'), /another group/);
+    await assert.rejects(syncPlayer(a, randomUUID(), '   '), /name with/);
+    await assert.rejects(asUser(a, () => query("insert into public.players(group_id,name) values ($1,'Bypass')", [groupA.id])), /permission denied/);
+    await assert.rejects(asUser(null, () => query("select public.sync_group_player($1,$2,'No')", [groupA.id, randomUUID()]), 'anon'), /permission denied/);
+  });
 });

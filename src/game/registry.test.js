@@ -46,7 +46,7 @@ test('database v1 upgrades preserve active and closed matches without assigning 
   legacy.close();
   const database = await openMatchDatabase(factory);
   t.after(() => database.close());
-  assert.equal(database.version, 2);
+  assert.equal(database.version, 3);
   assert.deepEqual(await loadStoredMatch(database), state);
   const read = database.transaction(CLOSED_STORE);
   const readDone = transactionDone(read);

@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material';
 import { getRemoteClient } from '../remote/client';
 import GroupAdministration from './GroupAdministration';
+import { setRegistryIdentity } from '../game/registryCache';
 
-export default function AccountDialog({ onClose }) {
+export default function AccountDialog({ database, onClose }) {
   const [connection] = useState(() => {
     try { return { client: getRemoteClient() }; } catch { return { client: null }; }
   });
@@ -11,7 +12,7 @@ export default function AccountDialog({ onClose }) {
   return <Dialog open fullWidth maxWidth="sm" onClose={() => { if (!busy) onClose(); }} aria-labelledby="account-title">
     <DialogTitle id="account-title">Account &amp; groups</DialogTitle>
     <DialogContent dividers>
-      {connection.client ? <Account client={connection.client} busy={busy} setBusy={setBusy} /> : <Alert severity="info">
+      {connection.client ? <Account client={connection.client} database={database} busy={busy} setBusy={setBusy} /> : <Alert severity="info">
         Online accounts are not configured for this build. Local matches and saved data remain available.
       </Alert>}
     </DialogContent>
@@ -19,7 +20,7 @@ export default function AccountDialog({ onClose }) {
   </Dialog>;
 }
 
-function Account({ client, busy, setBusy }) {
+function Account({ client, database, busy, setBusy }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [signingUp, setSigningUp] = useState(false);
@@ -51,6 +52,7 @@ function Account({ client, busy, setBusy }) {
       const { data, error: failure } = signingUp
         ? await client.auth.signUp(credentials) : await client.auth.signInWithPassword(credentials);
       if (failure) throw failure;
+      if (data.session) await setRegistryIdentity(database, data.session.user.id);
       setPassword('');
       setSession(data.session);
       if (!data.session) setMessage('Check your email to confirm your account, then return here and sign in.');
@@ -64,6 +66,7 @@ function Account({ client, busy, setBusy }) {
     try {
       const { error: failure } = await client.auth.signOut({ scope: 'local' });
       if (failure) throw failure;
+      await setRegistryIdentity(database, null);
       setSession(null);
     } catch (failure) { setError(failure.message || 'Sign-out failed. Please try again.'); }
     finally { setBusy(false); }

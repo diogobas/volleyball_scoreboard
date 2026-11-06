@@ -12,6 +12,9 @@ import EditTeamsDialog from './components/EditTeamsDialog';
 import Statistics from './components/Statistics';
 import CloseMatchDialog from './components/CloseMatchDialog';
 import MatchHistory from './components/MatchHistory';
+import PlayerRegistryDialog from './components/PlayerRegistryDialog';
+import { registryCache } from './game/registryCache';
+import { synchronizePlayers } from './remote/playerRegistry';
 const AccountDialog = lazy(() => import('./components/AccountDialog').catch(() => ({ default: AccountLoadFailure })));
 
 function AccountLoadFailure({ onClose }) {
@@ -66,6 +69,9 @@ function MatchApp({ database, initialState }) {
   const [tab, setTab] = useState(0);
   const [editing, setEditing] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [registryOpen, setRegistryOpen] = useState(false);
+  const [registryVersion, setRegistryVersion] = useState(0);
+  const [registryNotice, setRegistryNotice] = useState('');
   const [confirmation, setConfirmation] = useState(null);
   const [savedState, setSavedState] = useState(initialState);
   const saved = savedState === state;
@@ -77,6 +83,22 @@ function MatchApp({ database, initialState }) {
   function dispatch(action) {
     const timedAction = action.type === 'point' ? { ...action, startedAt: new Date().toISOString() } : action;
     if (!closingRef.current) setState(previous => matchReducer(previous, timedAction));
+  }
+
+  async function registryChanged() {
+    const current = await loadStoredMatch(database);
+    setState(current); setSavedState(current); setRegistryVersion(value => value + 1);
+  }
+
+  async function refreshAfterMatch(groupId) {
+    try {
+      const cache = await registryCache(database);
+      if (cache.groups.find(group => group.id === groupId)?.localOnly !== false) return;
+      const result = await synchronizePlayers(database, groupId);
+      setRegistryNotice(result.error || (result.conflicts ? 'Player registry needs identity confirmation. Open Players & sync.' : 'Player registry updated. Match remains saved on this device.'));
+    } catch {
+      setRegistryNotice('Player registry could not be updated. Your match is saved. Use Players & sync to retry.');
+    }
   }
 
   async function finishMatch() {
@@ -92,6 +114,9 @@ function MatchApp({ database, initialState }) {
       setConfirmation(null);
       setTab(0);
       setCloseSuccess(true);
+      if (nextState.groupId && globalThis.navigator?.onLine !== false) {
+        void refreshAfterMatch(nextState.groupId);
+      }
     } catch (error) {
       setCloseError(`The match could not be closed. Your current match has been kept. ${error.message} You can retry.`);
     } finally {
@@ -103,8 +128,11 @@ function MatchApp({ database, initialState }) {
   useEffect(() => {
     let cancelled = false;
     // IndexedDB serializes these read/write transactions in creation order.
-    saveStoredMatch(database, state).then(() => {
-      if (!cancelled) { setSavedState(state); setStorageWarning(''); }
+    saveStoredMatch(database, state).then(current => {
+      if (!cancelled) {
+        if (JSON.stringify(current) !== JSON.stringify(state)) setState(previous => previous === state ? current : previous);
+        setSavedState(current); setStorageWarning('');
+      }
     }).catch(() => {
       if (!cancelled) setStorageWarning('Local saving failed. Keep the app open and retry saving before leaving.');
     });
@@ -113,8 +141,9 @@ function MatchApp({ database, initialState }) {
 
   function retrySave() {
     if (closingRef.current) return;
-    saveStoredMatch(database, state).then(() => {
-      setSavedState(state);
+    saveStoredMatch(database, state).then(current => {
+      if (JSON.stringify(current) !== JSON.stringify(state)) setState(previous => previous === state ? current : previous);
+      setSavedState(current);
       setStorageWarning('');
     }).catch(() => setStorageWarning('Local saving failed. Keep the app open and retry saving before leaving.'));
   }
@@ -129,6 +158,7 @@ function MatchApp({ database, initialState }) {
   const closing = confirmation === 'closeSet';
   return <Box component="main" className="app" aria-label="Volleyball Scoreboard">
     {closeSuccess && <Alert severity="success" onClose={() => setCloseSuccess(false)} sx={{ mx: 2, mb: 2 }}>Match saved on this device, awaiting upload. A new match has started.</Alert>}
+    {registryNotice && <Alert severity="info" onClose={() => setRegistryNotice('')} sx={{ mx: 2, mb: 2 }}>{registryNotice}</Alert>}
     {storageWarning && <Alert severity="warning" action={<Button color="inherit" size="small" onClick={retrySave}>Retry saving</Button>} sx={{ mx: 2, mb: 2 }}>{storageWarning}</Alert>}
     <Box ref={courtRef} className={`court${tab !== 0 ? ' court--stats' : ''}`}>
       {tab === 0 && <Box className="scoreboard">
@@ -147,7 +177,7 @@ function MatchApp({ database, initialState }) {
         {tab === 1 && <Statistics state={state} teamOrder={teamOrder} />}
       </Box>
       <Box role="tabpanel" id="history-panel" aria-labelledby="history-tab" hidden={tab !== 2}>
-        {tab === 2 && <MatchHistory database={database} />}
+        {tab === 2 && <MatchHistory key={registryVersion} database={database} />}
       </Box>
     </Box>
     {tab !== 2 && <><Box className="actions">
@@ -169,7 +199,10 @@ function MatchApp({ database, initialState }) {
       <Tab id="stats-tab" aria-controls="stats-panel" label="Statistics" />
       <Tab id="history-tab" aria-controls="history-panel" label="History" />
     </Tabs>
-    <Box sx={{ px: 2, pb: 1 }}><Button color="inherit" size="small" onClick={() => setAccountOpen(true)}>Account &amp; groups</Button></Box>
+    <Box sx={{ px: 2, pb: 1 }}>
+      <Button color="inherit" size="small" onClick={() => setAccountOpen(true)}>Account &amp; groups</Button>
+      <Button color="inherit" size="small" onClick={() => setRegistryOpen(true)}>Players &amp; sync</Button>
+    </Box>
     {tab === 0 && <Box component="details" className="log-wrap">
       <Box component="summary"><Typography component="span" variant="overline" color="text.secondary">Recent points ({state.log.length})</Typography></Box>
       <Box className="log-list">
@@ -187,8 +220,10 @@ function MatchApp({ database, initialState }) {
       <Typography variant="caption" color="text.secondary">{saved ? 'Saved on this device' : storageWarning ? 'Local saving unavailable' : 'Saving…'}</Typography>
     </Box>}
     {accountOpen && <Suspense fallback={<Typography role="status" sx={{ px: 2 }}>Loading account…</Typography>}>
-      <AccountDialog onClose={() => setAccountOpen(false)} />
+      <AccountDialog database={database} onClose={() => setAccountOpen(false)} />
     </Suspense>}
+    {registryOpen && <PlayerRegistryDialog database={database} preferredGroupId={state.groupId}
+      onChanged={registryChanged} onClose={() => setRegistryOpen(false)} />}
     {editing && <EditTeamsDialog state={state} database={database} teamOrder={teamOrder} onClose={() => setEditing(false)}
       onSave={updated => { setState(updated); setSavedState(updated); setEditing(false); }} />}
     {confirmation === 'closeMatch' && <CloseMatchDialog state={state} saving={closingMatch} error={closeError}

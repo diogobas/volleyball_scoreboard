@@ -48,7 +48,7 @@ export default function GroupAdministration({ client, userId, busy, setBusy }) {
   }
 
   return <Stack spacing={2}>
-    <Alert severity="info">Online groups are managed here. Local matches still use the Development group; player syncing is not available yet.</Alert>
+    <Alert severity="info">Manage online access here. Open Players &amp; sync to download registries, link development data and resolve player conflicts.</Alert>
     {error && <Alert severity="error">{error}</Alert>}
     {message && <Alert severity="success">{message}</Alert>}
     <Button disabled={busy} onClick={() => setAttempt(value => value + 1)}>Refresh groups</Button>

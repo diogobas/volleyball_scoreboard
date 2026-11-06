@@ -1,5 +1,5 @@
 import { canChangeRoster, matchReducer, matchRoster, restoreMatch, TEAM_IDS } from './match.js';
-import { ACTIVE_STORE, CLOSED_STORE, GROUP_STORE, PLAYER_STORE, createLocalId, transactionDone } from './storage.js';
+import { ACTIVE_STORE, CLOSED_STORE, GROUP_STORE, PLAYER_STORE, SETTINGS_STORE, createLocalId, transactionDone } from './storage.js';
 
 export const DEVELOPMENT_GROUP_ID = '00000000-0000-4000-8000-000000000001';
 export const normalizeName = name => name.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('en').trim().replace(/\s+/g, ' ');
@@ -24,7 +24,25 @@ export async function listPlayers(database, groupId) {
   const done = transactionDone(transaction);
   const request = transaction.objectStore(PLAYER_STORE).index('groupId').getAll(groupId);
   await done;
-  return request.result.sort((a, b) => a.name.localeCompare(b.name, 'pt', { sensitivity: 'base' }));
+  return request.result.filter(player => !player.canonicalId).sort((a, b) => a.name.localeCompare(b.name, 'pt', { sensitivity: 'base' }));
+}
+
+export async function loadSelectedGroup(database, requestedId) {
+  const development = await loadDevelopmentGroup(database);
+  const transaction = database.transaction([GROUP_STORE, SETTINGS_STORE], 'readonly');
+  const done = transactionDone(transaction);
+  const groups = transaction.objectStore(GROUP_STORE).getAll();
+  const selected = transaction.objectStore(SETTINGS_STORE).get('selectedGroup');
+  await done;
+  let group = groups.result.find(item => item.id === (requestedId ?? selected.result)) ?? development;
+  const seen = new Set();
+  while (group.linkedTo) {
+    if (seen.has(group.id)) throw new Error('Invalid group link');
+    seen.add(group.id);
+    group = groups.result.find(item => item.id === group.linkedTo);
+    if (!group) throw new Error('Linked group is unavailable');
+  }
+  return group;
 }
 
 export async function registerPlayer(database, groupId, rawName) {
@@ -41,8 +59,8 @@ export async function registerPlayer(database, groupId, rawName) {
     const store = transaction.objectStore(PLAYER_STORE);
     const request = store.index('groupId').getAll(groupId);
     request.onsuccess = () => {
-      const existing = request.result.find(p => p.normalizedName === normalizedName ||
-        (!normalizedName.includes(' ') && p.normalizedName.split(' ')[0] === normalizedName));
+      const existing = request.result.find(p => !p.canonicalId && (p.normalizedName === normalizedName ||
+        (!normalizedName.includes(' ') && p.normalizedName.split(' ')[0] === normalizedName)));
       if (existing) {
         failure = new Error('A player with this name already exists. Select the existing player, or enter a surname for a different person.');
         failure.existingPlayer = existing;
@@ -56,7 +74,7 @@ export async function registerPlayer(database, groupId, rawName) {
 
 // Slot IDs remain compatible with old scoring/Undo. personId is the permanent identity.
 export function assignMatchPlayers(state, groupId, teams, players, { preserveNames = false } = {}) {
-  if (state.groupId && state.groupId !== groupId) throw new Error('This match belongs to a different group.');
+  if (state.groupId && state.groupId !== groupId && state.log.length) throw new Error('This match belongs to a different group.');
   let result = structuredClone(state);
   result.groupId = groupId;
   const used = new Set();

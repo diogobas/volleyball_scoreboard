@@ -46,11 +46,11 @@ Acesse o IP do computador e a porta mostrada no terminal. Esse servidor é para 
 
 Todos os sets usam a regra solicitada de 25 pontos com diferença mínima de dois: 25 × 23 encerra, 25 × 24 continua e 26 × 24 encerra. Não há regra especial de 15 pontos para set decisivo nem fim da partida por melhor de três/cinco. Um set empatado pode ser fechado manualmente e não acrescenta vitória a nenhum time. O fechamento automático entra no histórico: “Undo” reabre o set com o placar final; outro “Undo” retira o último ponto. Partidas salvas anteriormente preservam os sets e pontos registrados, mesmo fora da nova regra.
 
-As partidas e o cadastro de jogadores ainda ficam apenas no navegador/dispositivo e na origem usada para acessar o app. Limpar os dados do site apaga os dados locais; mudar de endereço, porta ou dispositivo não os transfere. A subfase 3.1 acrescenta contas e administração de grupos no Supabase quando configurado, mas ainda não sincroniza as partidas nem os jogadores.
+As partidas ainda ficam apenas no navegador/dispositivo e na origem usada para acessar o app. O cadastro de jogadores pode ser sincronizado com o Supabase e fica disponível localmente para uso offline. Limpar os dados do site apaga os dados locais; mudar de endereço, porta ou dispositivo não transfere partidas. Contas e administração de grupos estão disponíveis desde a subfase 3.1; a 3.2 acrescenta sincronização do cadastro, sem enviar partidas.
 
 ### Banco local — subfase 1.1
 
-O banco `volleyball-scoreboard` usa versão 2, com os armazenamentos `activeMatches` (partida atual), `closedMatches` (partidas encerradas), `groups` e `players`. A atualização da versão 1 adiciona os cadastros sem alterar nem associar partidas automaticamente. Os registros de partida mantêm `formatVersion: 1`, com campos opcionais para grupo e identidades permanentes. O placar só é liberado depois de concluir a leitura/migração. Uma falha de leitura não inicia uma partida vazia sobre os dados existentes; a tela oferece tentar novamente. Falhas de gravação mostram um aviso com **Retry saving**; mantenha o app aberto até salvar com sucesso.
+O banco `volleyball-scoreboard` usa versão 3, com os armazenamentos `activeMatches` (partida atual), `closedMatches` (partidas encerradas), `groups`, `players` e `settings` (grupo selecionado e identidade da sessão usada no cache). A versão 2 adicionou os cadastros; a versão 3 preserva esses dados e permite que identidades locais e remotas com nomes iguais coexistam até a confirmação do usuário. O cadastro local continua recusando nomes repetidos. Nenhuma atualização associa partidas automaticamente. Os registros de partida mantêm `formatVersion: 1`, com campos opcionais para grupo e identidades permanentes. O placar só é liberado depois de concluir a leitura/migração. Uma falha de leitura não inicia uma partida vazia sobre os dados existentes; a tela oferece tentar novamente. Falhas de gravação mostram um aviso com **Retry saving**; mantenha o app aberto até salvar com sucesso.
 
 O app solicita armazenamento persistente quando a plataforma oferece essa API, mas a concessão depende do navegador. Desinstalar o app ou limpar seus dados ainda pode apagar a partida. Ao sair, aguarde **Saved on this device**. A cópia antiga no `localStorage` representa somente o estado anterior à migração; voltar para uma versão antiga do aplicativo não recupera os pontos feitos depois dela.
 
@@ -96,7 +96,7 @@ Cada set de partida associada contém seus seis jogadores por time. O resumo de 
 
 Pontos individuais são somados por UUID. O Top 3 tem uma entrada por pessoa, incluindo quem atuou pelos dois times ou saiu; cada lista por time mostra somente os pontos feitos por aquela pessoa naquele time. Ao fechar a partida, o arquivo mantém todo esse histórico e a nova partida começa com a escalação mais recente e contadores zerados. Partidas anteriores continuam legíveis; se já estavam associadas, a escalação fixa de cada set é reconstruída ao ler seu histórico. Não há inferência de identidade em partidas ainda não associadas.
 
-O banco permanece na versão 2. O estado acrescenta `initialRoster` quando necessário, eventos `roster` e escalações nos eventos de fechamento de set; o replay valida e restaura as alterações e pontos em sequência.
+Na subfase 2.2, o banco permaneceu na versão 2; a 3.2 o atualiza para a versão 3. O estado acrescenta `initialRoster` quando necessário, eventos `roster` e escalações nos eventos de fechamento de set; o replay valida e restaura as alterações e pontos em sequência.
 
 Roteiro de aprovação: [testar a subfase 2.2](docs/testing-lineup-changes-2.2.md).
 
@@ -123,7 +123,7 @@ Roteiro de aprovação: [testar a subfase 2.3](docs/testing-season-statistics-2.
 
 **Account & groups**, abaixo das abas, oferece cadastro, login por e-mail/senha e saída da conta neste aparelho. O responsável cria um grupo e se torna seu primeiro administrador; pode autorizar outras contas confirmadas por e-mail e revogar acessos. O servidor impede remover o último administrador. Cadastrar uma conta não concede acesso a grupos de outras pessoas. A lista **My groups** mostra apenas os grupos administrados pela conta conectada.
 
-Sem configuração online, o placar continua disponível e o diálogo informa que as contas não estão configuradas. O cliente online é carregado quando o diálogo é aberto. Sessão de autenticação e dados de partida têm armazenamentos separados; sair da conta não apaga partidas. O grupo de desenvolvimento e seus cadastros locais permanecem separados dos grupos online até a ligação e sincronização da subfase 3.2.
+Sem configuração online, o placar continua disponível e o diálogo informa que as contas não estão configuradas. O cliente online é carregado quando o diálogo é aberto. Sessão de autenticação e dados de partida têm armazenamentos separados; sair da conta não apaga partidas. O grupo de desenvolvimento e seus cadastros locais só se vinculam a um grupo online mediante confirmação explícita em **Players & sync**, disponível na subfase 3.2.
 
 A migração [20261106000100_groups_and_match_schema.sql](supabase/migrations/20261106000100_groups_and_match_schema.sql) cria as tabelas públicas de grupos, jogadores, partidas, sets, escalações e pontos, com RLS e vínculos por grupo. O schema `private` contém administradores, autoria dos envios e revisões; suas tabelas não têm acesso direto pelos clientes. Funções administrativas validam `auth.uid()` e o vínculo ao grupo no servidor. A criação do grupo e a autorização inicial são atômicas; autorizar outro administrador exige uma conta com e-mail confirmado. Não há chave administrativa no aplicativo.
 
@@ -133,6 +133,22 @@ O projeto remoto precisa ser criado e a migração aplicada antes do teste onlin
 
 Configuração e roteiro de aprovação: [testar a subfase 3.1](docs/testing-supabase-admin-3.1.md).
 
+### Cadastro sincronizado e conciliação — subfase 3.2
+
+**Players & sync** baixa os grupos administrados e o cadastro do grupo escolhido. **Teams & players** permite selecionar um grupo e cadastrar pessoas localmente; após a primeira configuração online, o cadastro e a última autorização confirmada ficam disponíveis offline. O grupo de uma partida com eventos não pode ser trocado. Selecionar outro grupo numa partida nova exige escolher novamente as 12 pessoas.
+
+Aplique a nova migração [20261106000200_player_registry_sync.sql](supabase/migrations/20261106000200_player_registry_sync.sql) depois da 3.1. As RPCs `get_group_registry` e `sync_group_player` verificam administrador e sessão no servidor. O cadastro usa o mesmo UUID no aparelho e no servidor; repetir uma tentativa não duplica o jogador. Escritas diretas em `players` pelo cliente são revogadas para exigir o tratamento de conflitos da RPC.
+
+**Link development data to this group** pede confirmação antes de mover os cadastros e partidas já associados ao Development group para um grupo real. Preserva IDs, placares, datas e nomes históricos; não atribui automaticamente partidas sem associação. A ligação vale para todos os dados desse grupo local e não pode ser trocada nesta versão. Cadastro e partidas afetadas são atualizados numa transação única. Vínculos persistentes também conciliam identidades em gravações posteriores de estados antigos.
+
+**Sync players** envia cadastros pendentes e mantém a cópia local. Nomes concorrentes geram **Needs identity confirmation**. Para a mesma pessoa, confirme o uso da identidade existente: pontos e escalações atuais e arquivados acompanham esse UUID, preservando os nomes originais. Para pessoas diferentes, informe um nome distinto com sobrenome e tente novamente; o UUID local permanece. A operação inteira é recusada se uma união repetir a pessoa numa escalação. Não há união automática de pessoas.
+
+O cadastro é atualizado ao abrir o grupo online, sincronizar pelo botão e depois de fechar uma partida online. Falhas preservam dados e permitem tentar novamente; sair da conta não apaga o cache nem partidas, mas remove a identidade ativa para editar grupos online. A permissão offline representa a última confirmação, enquanto o servidor revalida cada chamada. **Season statistics** permite escolher o grupo do resumo local temporário.
+
+As partidas continuam **Awaiting upload** no aparelho. Envio e limpeza de partidas só entram na 3.3. A versão web ainda depende de conseguir carregar seus arquivos para abrir; esta entrega não cria cache PWA.
+
+Preparação e roteiro de aprovação: [testar a subfase 3.2](docs/testing-player-sync-3.2.md). A 3.1 foi validada pelo usuário no projeto real; a nova migração e o fluxo de cadastro remoto aguardam sua aplicação e aprovação.
+
 ## Verificar e gerar o build
 
 ```sh
@@ -141,7 +157,7 @@ npm run build
 npm run preview
 ```
 
-Os testes cobrem regras de jogo, persistência, elencos, temporadas, configuração online e o contrato das RPCs. Também executam a migração e as permissões SQL em PostgreSQL embarcado, sem depender de credenciais ou Docker. E-mail/Auth/Data API hospedados ainda precisam ser validados no Supabase real. O build é gerado em `dist/`; `preview` permite verificá-lo localmente.
+Os testes cobrem regras de jogo, persistência, elencos, temporadas, configuração online e o contrato das RPCs. Também executam as migrações e as permissões SQL em PostgreSQL embarcado, sem depender de credenciais ou Docker. E-mail/Auth/Data API hospedados ainda precisam ser validados no Supabase real. O build é gerado em `dist/`; `preview` permite verificá-lo localmente.
 
 ## Atualizações e segurança das dependências
 

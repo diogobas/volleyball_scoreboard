@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
-import { listPlayers, loadDevelopmentGroup } from '../game/registry';
+import { listPlayers, loadSelectedGroup } from '../game/registry';
+import { registryCache } from '../game/registryCache';
 import { availableSeasons, groupDate, seasonStatistics } from '../game/seasons';
 
 export default function SeasonStatistics({ database, matches }) {
@@ -8,23 +9,25 @@ export default function SeasonStatistics({ database, matches }) {
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [season, setSeason] = useState(null);
+  const [groupId, setGroupId] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     setError(false);
     async function load() {
       try {
-        const group = await loadDevelopmentGroup(database);
+        const group = await loadSelectedGroup(database, groupId);
+        const cache = await registryCache(database);
         const players = await listPlayers(database, group.id);
         if (!cancelled) {
-          setRegistry({ group, players });
+          setRegistry({ group, players, groups: cache.groups.filter(item => !item.linkedTo) });
           setSeason(previous => previous ?? groupDate(new Date().toISOString(), group.timeZone).slice(0, 4));
         }
       } catch { if (!cancelled) setError(true); }
     }
     load();
     return () => { cancelled = true; };
-  }, [database, matches, attempt]);
+  }, [database, matches, attempt, groupId]);
 
   if (error) return <Alert severity="error" sx={{ my: 2 }} action={<Button onClick={() => setAttempt(value => value + 1)}>Retry</Button>}>
     Season statistics could not be loaded. Saved matches have been kept.
@@ -36,6 +39,10 @@ export default function SeasonStatistics({ database, matches }) {
   return <Box component="section" aria-labelledby="season-title" sx={{ mb: 3 }}>
     <Typography component="h2" variant="h5" id="season-title">Season statistics</Typography>
     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{group.name} · {group.timeZone} · Closed matches on this device</Typography>
+    <TextField select label="Statistics group" value={group.id} onChange={event => { setSeason(null); setGroupId(event.target.value); }} size="small"
+      slotProps={{ select: { native: true }, inputLabel: { shrink: true } }} fullWidth sx={{ mb: 2 }}>
+      {registry.groups.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+    </TextField>
     <TextField select label="Season" value={season} onChange={event => setSeason(event.target.value)} size="small"
       slotProps={{ select: { native: true }, inputLabel: { shrink: true } }} sx={{ minWidth: 120, mb: 2 }}>
       {years.map(year => <option key={year} value={year}>{year}</option>)}
