@@ -101,7 +101,7 @@ function MatchApp({ database, initialState }) {
         setRegistryNotice('Match confirmed online. Its local copy has been removed; players remain available offline.');
       }
     } catch (error) {
-      setRegistryNotice(`Match upload was not confirmed. Your match is kept on this device. ${error.message || 'Try again later.'}`);
+      setRegistryNotice(`Match upload was not confirmed. Your match is kept on this device. ${error.message || ''} Use History → Sync pending matches to retry.`);
     } finally {
       setRegistryVersion(value => value + 1);
     }
@@ -184,7 +184,7 @@ function MatchApp({ database, initialState }) {
         {tab === 1 && <Statistics state={state} teamOrder={teamOrder} />}
       </Box>
       <Box role="tabpanel" id="history-panel" aria-labelledby="history-tab" hidden={tab !== 2}>
-        {tab === 2 && <MatchHistory key={registryVersion} database={database} />}
+        {tab === 2 && <MatchHistory refreshVersion={registryVersion} database={database} />}
       </Box>
     </Box>
     {tab !== 2 && <><Box className="actions">

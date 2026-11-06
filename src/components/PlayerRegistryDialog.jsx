@@ -56,7 +56,7 @@ export default function PlayerRegistryDialog({ database, preferredGroupId, onCha
       <DialogTitle id="registry-title">Players &amp; sync</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
-          <Typography variant="body2">Players stay on this device for offline use. Newly closed matches in online groups upload automatically when connected. This panel synchronizes player registrations.</Typography>
+          <Typography variant="body2">Players stay on this device for offline use. Newly closed matches in online groups upload automatically when connected. This panel synchronizes player registrations; use History → Sync pending matches for saved games.</Typography>
           {error && <Alert severity="warning">{error}</Alert>}
           {message && <Alert severity={error ? 'info' : 'success'}>{message}</Alert>}
           {!cache && !error && <Typography role="status">Loading registry…</Typography>}

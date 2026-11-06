@@ -46,7 +46,7 @@ Acesse o IP do computador e a porta mostrada no terminal. Esse servidor é para 
 
 Todos os sets usam a regra solicitada de 25 pontos com diferença mínima de dois: 25 × 23 encerra, 25 × 24 continua e 26 × 24 encerra. Não há regra especial de 15 pontos para set decisivo nem fim da partida por melhor de três/cinco. Um set empatado pode ser fechado manualmente e não acrescenta vitória a nenhum time. O fechamento automático entra no histórico: “Undo” reabre o set com o placar final; outro “Undo” retira o último ponto. Partidas salvas anteriormente preservam os sets e pontos registrados, mesmo fora da nova regra.
 
-Partidas recém-fechadas de grupos online são enviadas ao Supabase quando há conexão; até confirmar o envio, ficam no navegador/dispositivo e na origem usada para acessar o app. O cadastro de jogadores pode ser sincronizado com o Supabase e fica disponível localmente para uso offline. Limpar os dados do site apaga os dados locais; mudar de endereço, porta ou dispositivo não transfere partidas. Contas e administração de grupos estão disponíveis desde a subfase 3.1; a 3.2 acrescenta sincronização do cadastro e a 3.3 envia a partida recém-fechada, sem enviar automaticamente pendências anteriores.
+Partidas recém-fechadas de grupos online são enviadas ao Supabase quando há conexão; até confirmar o envio, ficam no navegador/dispositivo e na origem usada para acessar o app. O cadastro de jogadores pode ser sincronizado com o Supabase e fica disponível localmente para uso offline. Limpar os dados do site apaga os dados locais; mudar de endereço, porta ou dispositivo não transfere partidas. Contas e administração de grupos estão disponíveis desde a subfase 3.1; a 3.2 acrescenta sincronização do cadastro, a 3.3 envia a partida recém-fechada e a 3.4 permite enviar pendências anteriores pelo botão em History. Recuperar conexão não envia a fila automaticamente.
 
 ### Banco local — subfase 1.1
 
@@ -159,9 +159,23 @@ UUIDs repetidos com o mesmo conteúdo recebem confirmação sem duplicar dados. 
 
 O app confere UUID, grupo, versão e conteúdo original da confirmação, e só então remove o arquivo fechado, se ele ainda corresponde à cópia enviada. Resposta perdida, sessão alterada, conflito, erro remoto ou falha de remoção preservam os dados locais; uma nova tentativa pode confirmar o mesmo UUID. A partida em andamento, os cadastros e outros arquivos nunca são removidos por esse envio. O banco local permanece na versão 3.
 
-A interface informa o envio, a confirmação ou a preservação local em caso de erro. **History** lista os arquivos ainda no aparelho. Partidas confirmadas saem da lista e do resumo local de temporada; os totais remotos serão consultados na página pública da fase 4. A fila manual de pendências e sua interface de tentativas ficam para a 3.4.
+A interface informa o envio, a confirmação ou a preservação local em caso de erro. **History** lista os arquivos ainda no aparelho. Partidas confirmadas saem da lista e do resumo local de temporada; os totais remotos serão consultados na página pública da fase 4. A fila manual de pendências e sua interface de tentativas estão disponíveis na 3.4, descrita abaixo.
 
 Roteiro de aprovação: [testar a subfase 3.3](docs/testing-match-upload-3.3.md). A nova migração aguarda aplicação no projeto real e validação em dispositivos.
+
+### Fila manual e recuperação de falhas — subfase 3.4
+
+**History → Sync pending matches** envia somente após ação do usuário as partidas que estavam pendentes ao iniciar a execução. O processamento segue das mais antigas para as mais recentes e continua após erros individuais. Cada confirmação remove somente seu arquivo; falhas permanecem com mensagem e data da tentativa. O resumo informa confirmadas, falhas e arquivos já em envio ou removidos por outra tentativa. **Refresh saved matches** atualiza a consulta sem enviar nada.
+
+O botão fica bloqueado durante o envio, e cada partida mostra **Uploading**, **Upload failed** ou **Upload interrupted**. O erro persiste após reiniciar. É possível voltar ao jogo durante a execução; não há serviço de envio em segundo plano do sistema. Abrir o app, restaurar conexão, consultar History ou atualizar jogadores não inicia a fila. Partidas novas fechadas durante um lote seguem sua própria tentativa automática online ou aguardam o próximo clique.
+
+Tentativas automáticas e manuais da mesma partida compartilham a execução. Web Locks, quando disponíveis, e bloqueios transacionais em IndexedDB protegem conexões/abas independentes. Os bloqueios são renovados durante o envio e expiram após interrupção; uma tentativa ativa tem limite aproximado de 60 segundos, e um bloqueio deixado por fechamento pode levar até cerca de 90 segundos para liberar. Timeout e perda de controle impedem respostas antigas de apagar arquivos. A proteção por UUID no servidor permanece válida.
+
+Estados e bloqueios ficam em `settings`, separados dos arquivos. Falhas não regravam placares ou históricos. A remoção confirmada do arquivo e do estado da tentativa é atômica, verifica a titularidade do envio e mantém a partida atual e os cadastros. Sessão expirada, falta de permissão, conflito, falha remota ou arquivo ilegível não removem dados nem impedem outras partidas elegíveis.
+
+Não há nova migração SQL nesta subfase; as três anteriores precisam estar aplicadas. O banco local permanece na versão 3. A página pública e correções administrativas entram na fase 4.
+
+Roteiro de aprovação: [testar a subfase 3.4](docs/testing-pending-sync-3.4.md).
 
 ## Verificar e gerar o build
 
