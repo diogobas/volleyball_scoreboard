@@ -136,7 +136,7 @@ test('incomplete, duplicate, cross-group and in-progress identity changes cannot
   const scored = point(bound);
   const swapped = structuredClone(teams);
   [swapped.A.players[0].personId, swapped.B.players[0].personId] = [swapped.B.players[0].personId, swapped.A.players[0].personId];
-  assert.throws(() => assignMatchPlayers(scored, group.id, swapped, players), /fixed/);
+  assert.throws(() => assignMatchPlayers(scored, group.id, swapped, players), /between sets/);
   const unchanged = assignMatchPlayers(scored, group.id, teams, players);
   assert.deepEqual(unchanged, scored);
 });

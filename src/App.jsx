@@ -141,7 +141,7 @@ function MatchApp({ database, initialState }) {
     </Box>
     {tab !== 2 && <><Box className="actions">
       <Button variant="outlined" color="inherit" size="small" startIcon={<UndoRounded />} disabled={!last}
-        aria-label={last?.type === 'set' ? 'Undo last set' : 'Undo last point'} onClick={() => dispatch({ type: 'undo' })}>
+        aria-label={last?.type === 'set' ? 'Undo last set' : last?.type === 'roster' ? 'Undo last roster change' : 'Undo last point'} onClick={() => dispatch({ type: 'undo' })}>
         Undo
       </Button>
       <Button variant="outlined" color="inherit" size="small" startIcon={<CheckRounded />} disabled={scoreA + scoreB === 0}
@@ -163,7 +163,7 @@ function MatchApp({ database, initialState }) {
       <Box className="log-list">
         {state.log.length === 0 ? <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>No points scored yet. Tap a player to start.</Typography>
           : state.log.slice(-40).reverse().map((entry, i) => <Paper key={state.log.length - i} className="log-item" elevation={0}>
-            <Typography variant="body2">{entry.type === 'set'
+            <Typography variant="body2">{entry.type === 'roster' ? `Lineup changed · Set ${entry.setNumber}` : entry.type === 'set'
               ? `Set ${entry.setNumber} · ${entry.teamAName} ${entry.scoreA} × ${entry.scoreB} ${entry.teamBName}`
               : `${entry.teamName} · ${entry.playerId === 'err' ? 'Opponent’s error' : entry.playerName}`}</Typography>
             {entry.type === 'point' && <Typography variant="body2" color="text.secondary">+1</Typography>}

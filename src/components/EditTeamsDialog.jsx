@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material';
-import { TEAM_IDS } from '../game/match';
+import { canChangeRoster, TEAM_IDS } from '../game/match';
 import { listPlayers, loadDevelopmentGroup, registerPlayer, saveMatchPlayers } from '../game/registry';
 
 export default function EditTeamsDialog({ state, database, teamOrder = TEAM_IDS, archiveId = null, onClose, onSave }) {
@@ -13,7 +13,7 @@ export default function EditTeamsDialog({ state, database, teamOrder = TEAM_IDS,
   const [busy, setBusy] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [target, setTarget] = useState({ team: 'A', index: 0 });
-  const locked = Boolean(state.groupId && state.log.length);
+  const locked = Boolean(state.groupId && !canChangeRoster(state));
 
   useEffect(() => {
     let cancelled = false;
@@ -67,7 +67,9 @@ export default function EditTeamsDialog({ state, database, teamOrder = TEAM_IDS,
       {group && <>
       {!state.groupId && <Typography sx={{ mb: 2 }}>Select who occupied each position. All recorded points in a position will be linked to the person you select. Review all 12 positions before saving. Existing points and historical names will be kept.</Typography>}
       {archiveId !== null && <Typography sx={{ mb: 2 }}>This association cannot be changed in this version. Scores and original names will remain unchanged.</Typography>}
-      {locked && <Typography sx={{ mb: 2 }}>Players are fixed until this match is closed. You can still edit team names.</Typography>}
+      {locked && <Typography sx={{ mb: 2 }}>Close the current set before changing players. You can still edit team names.</Typography>}
+      {!locked && state.groupId && <Typography sx={{ mb: 2 }}>You can swap players between teams or select a substitute before the next point. Keep six different players on each team.</Typography>}
+      {players.length === 0 && <Typography sx={{ mb: 2 }}>No registered players yet. Register each participant above to make them available in the selectors.</Typography>}
       <Typography component="h3" variant="subtitle1">Registered players ({players.length})</Typography>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ my: 2 }}>
         <TextField label="New player name" value={name} onChange={event => { setName(event.target.value); setExisting(null); }}

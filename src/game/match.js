@@ -30,6 +30,71 @@ export function canCloseMatch(state) {
     TEAM_IDS.every(id => teamScore(state.teams[id]) === 0);
 }
 
+export const canChangeRoster = state => TEAM_IDS.every(id => teamScore(state.teams[id]) === 0);
+export const matchRoster = state => Object.fromEntries(TEAM_IDS.map(id => [id,
+  state.teams[id].players.filter(player => !player.isError).map(({ id, personId, name }) => ({ id, personId, name })),
+]));
+
+function validateRoster(rosters) {
+  const people = new Set();
+  for (const team of TEAM_IDS) {
+    if (!Array.isArray(rosters?.[team]) || rosters[team].length !== 6) throw new Error('Invalid roster');
+    rosters[team].forEach((player, i) => {
+      if (player.id !== `p${i + 1}` || !uuidPattern.test(player.personId) || people.has(player.personId) ||
+          typeof player.name !== 'string' || !player.name.trim() || player.name.length > 60) throw new Error('Invalid roster player');
+      people.add(player.personId);
+    });
+  }
+}
+
+function applyRoster(state, rosters) {
+  validateRoster(rosters);
+  return { ...state, teams: Object.fromEntries(TEAM_IDS.map(id => [id, { ...state.teams[id],
+    players: state.teams[id].players.map((player, index) => player.isError ? player : {
+      ...player, ...rosters[id][index], setPoints: 0,
+      matchPoints: state.log.filter(entry => entry.type === 'point' && entry.personId === rosters[id][index].personId).length,
+    }),
+  }])) };
+}
+
+// Include everyone who played a set with points, even if they later left the court.
+export function matchPlayerStats(state) {
+  if (!state.groupId) return TEAM_IDS.flatMap(id => state.teams[id].players.filter(p => !p.isError).map(player => ({
+    ...player, teamId: id, teamIds: [id], teamPoints: { [id]: player.matchPoints }, teamName: state.teams[id].name,
+  })));
+  let roster = state.initialRoster ?? matchRoster(state);
+  const people = new Map();
+  const include = () => {
+    for (const id of TEAM_IDS) for (const player of roster[id]) {
+      const previous = people.get(player.personId) ?? { ...player, matchPoints: 0, teamIds: [], teamPoints: {} };
+      if (!previous.teamIds.includes(id)) previous.teamIds.push(id);
+      previous.teamPoints[id] ??= 0;
+      people.set(player.personId, previous);
+    }
+  };
+  for (const entry of state.log) {
+    if (entry.type === 'roster') roster = entry.rosters;
+    if (entry.type !== 'point') continue;
+    include();
+    if (entry.playerId !== 'err') {
+      const player = people.get(entry.personId);
+      player.matchPoints++;
+      player.teamPoints[entry.team]++;
+    }
+  }
+  if (!people.size) include();
+  return [...people.values()].map(player => ({ ...player, teamId: player.teamIds[0],
+    teamName: player.teamIds.map(id => state.teams[id].name).join(' / '),
+  }));
+}
+
+export function teamMatchPlayers(state, teamId) {
+  if (!state.groupId) return state.teams[teamId].players;
+  return [...matchPlayerStats(state).filter(player => player.teamIds.includes(teamId)).map(player => ({
+    ...player, id: player.personId, matchPoints: player.teamPoints[teamId],
+  })), state.teams[teamId].players.find(player => player.isError)];
+}
+
 // Replay stored points without applying new rules to historical sets.
 function addPoint(state, action) {
   const team = state.teams[action.team];
@@ -54,8 +119,8 @@ export function setRanking(state, setNumber) {
     if (entry.type === 'set') {
       if (entry.setNumber === setNumber) break;
       currentSet = entry.setNumber + 1;
-    } else if (currentSet === setNumber && entry.playerId !== 'err') {
-      const key = `${entry.team}-${entry.playerId}`;
+    } else if (entry.type === 'point' && currentSet === setNumber && entry.playerId !== 'err') {
+      const key = entry.personId ?? `${entry.team}-${entry.playerId}`;
       const previous = players.get(key);
       players.set(key, { teamId: entry.team, id: entry.playerId,
         name: entry.playerName, teamName: entry.teamName, points: (previous?.points ?? 0) + 1 });
@@ -67,6 +132,15 @@ export function setRanking(state, setNumber) {
 
 export function matchReducer(state, action) {
   switch (action.type) {
+    case 'roster': {
+      if (!state.groupId || !canChangeRoster(state)) throw new Error('Players can only change between sets, before the next point.');
+      const previousRosters = matchRoster(state);
+      const rosters = structuredClone(action.rosters);
+      const changed = applyRoster(state, rosters);
+      return { ...changed, initialRoster: state.initialRoster ?? previousRosters,
+        log: [...state.log, { type: 'roster', setNumber: state.currentSet, previousRosters, rosters }],
+      };
+    }
     case 'switchSides':
       return { ...state, sidesSwapped: !state.sidesSwapped };
     case 'point': {
@@ -83,6 +157,7 @@ export function matchReducer(state, action) {
       // Preserve manual set closing, including ties, from the original HTML.
       if (scoreA + scoreB === 0) return state;
       const entry = { type: 'set', setNumber: state.currentSet, scoreA, scoreB,
+        ...(state.groupId ? { rosters: matchRoster(state) } : {}),
         sidesSwappedBefore: state.sidesSwapped,
         teamAName: state.teams.A.name, teamBName: state.teams.B.name,
         snapshots: Object.fromEntries(TEAM_IDS.map(id => [id, {
@@ -101,6 +176,11 @@ export function matchReducer(state, action) {
     case 'undo': {
       const last = state.log.at(-1);
       if (!last) return state;
+      if (last.type === 'roster') {
+        const previous = applyRoster({ ...state, log: state.log.slice(0, -1) }, last.previousRosters);
+        if (!previous.log.some(entry => entry.type === 'roster')) delete previous.initialRoster;
+        return previous;
+      }
       if (last.type === 'set') {
         return { ...state, currentSet: last.setNumber, log: state.log.slice(0, -1),
           sidesSwapped: typeof last.sidesSwappedBefore === 'boolean' ? last.sidesSwappedBefore : state.sidesSwapped,
@@ -160,15 +240,24 @@ export function restoreMatch(raw) {
     });
   }
   if (!Array.isArray(saved.log)) throw new Error('Invalid history');
+  if (saved.initialRoster !== undefined) {
+    if (!saved.groupId || !saved.log.some(entry => entry.type === 'roster')) throw new Error('Invalid initial roster');
+    Object.assign(initial, applyRoster(initial, saved.initialRoster));
+    initial.initialRoster = structuredClone(saved.initialRoster);
+  }
   let restored = initial;
   for (const entry of saved.log) {
     if (entry.type === 'point') {
       if (!TEAM_IDS.includes(entry.team) || !initial.teams[entry.team].players.some(p => p.id === entry.playerId) ||
           typeof entry.playerName !== 'string' || typeof entry.teamName !== 'string') throw new Error('Invalid point');
-      const personId = initial.teams[entry.team].players.find(p => p.id === entry.playerId).personId;
+      const personId = restored.teams[entry.team].players.find(p => p.id === entry.playerId).personId;
       if (entry.personId !== personId) throw new Error('Invalid point identity');
       restored = addPoint(restored, { team: entry.team, playerId: entry.playerId });
       restored.log[restored.log.length - 1] = { ...restored.log.at(-1), playerName: entry.playerName, teamName: entry.teamName };
+    } else if (entry.type === 'roster') {
+      if (!saved.initialRoster || entry.setNumber !== restored.currentSet ||
+          JSON.stringify(entry.previousRosters) !== JSON.stringify(matchRoster(restored))) throw new Error('Invalid roster history');
+      restored = matchReducer(restored, { type: 'roster', rosters: entry.rosters });
     } else if (entry.type === 'set') {
       if (!teamScore(restored.teams.A) && !teamScore(restored.teams.B)) throw new Error('Empty set');
       if (typeof entry.teamAName !== 'string' || typeof entry.teamBName !== 'string') throw new Error('Invalid set');
@@ -183,6 +272,9 @@ export function restoreMatch(raw) {
         delete restored.log.at(-1).sidesSwappedBefore;
       }
     } else throw new Error('Invalid event');
+  }
+  if (saved.initialRoster && JSON.stringify(matchRoster(restored)) !== JSON.stringify(matchRoster({ teams: saved.teams }))) {
+    throw new Error('Roster does not match its history');
   }
   return restored;
 }

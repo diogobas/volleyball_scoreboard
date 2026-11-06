@@ -31,6 +31,7 @@ Acesse o IP do computador e a porta mostrada no terminal. Esse servidor é para 
 - Fechamento automático dos sets a partir de 25 pontos, com vantagem mínima de 2, sem limite máximo. O botão “Close set” permite encerrar manualmente com outro placar, mediante confirmação; os totais individuais da partida são mantidos.
 - Desfazer pontos e o fechamento do último set, em ordem inversa.
 - **Teams & players** permite cadastrar jogadores offline e selecionar as 12 pessoas da partida. Cada jogador tem UUID permanente dentro de um grupo; posições no time continuam compatíveis com as partidas antigas. A mesma pessoa não pode ocupar duas posições. Nomes repetidos geram aviso para escolher a pessoa existente ou cadastrar outra com sobrenome. Na tela do jogo, os jogadores aparecem em ordem alfabética, considerando acentos e maiúsculas equivalentes; “Opponent’s error” permanece por último.
+- Entre sets, **Teams & players** permite trocar pessoas entre os times e selecionar substitutos. Cada set registra sua escalação. Os pontos continuam vinculados à pessoa que marcou; quem saiu permanece nas estatísticas. O Top 3 soma os pontos por pessoa entre os dois times, enquanto as listas por time mostram a contribuição naquele time. Undo desfaz a alteração de escalação antes de reabrir o set anterior.
 - Estatísticas por jogador e histórico de sets. Cada set encerrado pode ser expandido para mostrar o ranking de todos os jogadores que pontuaram naquele set, entre os dois times, excluindo erro adversário; empates compartilham a posição. A aba Statistics usa toda a largura disponível, sem o placar do set. No topo, o Top 3 mostra os três maiores pontuadores da partida entre os dois times, excluindo erro adversário e jogadores ainda sem pontos. Empates mostram a mesma posição; a seleção mantém a ordem original dos times e jogadores, independentemente da troca de lados.
 - Reiniciar a partida com confirmação, preservando os nomes.
 - “Close match” salva a partida encerrada no aparelho e começa outra, preservando nomes, jogadores e lados. Exige ao menos um set encerrado e nenhum set aberto com pontos. A confirmação mostra resultado, sets e pontos por jogador; empates são permitidos. A partida encerrada e a próxima são gravadas em uma única transação: se falhar, a partida atual permanece. “Undo” da nova partida não desfaz esse fechamento. Ainda não há envio remoto.
@@ -68,7 +69,7 @@ Roteiro de aprovação: [testar a subfase 1.2](docs/testing-close-match-1.2.md).
 
 A aba **History** consulta novamente o banco local sempre que é aberta. Mostra o total de partidas salvas, o total aguardando envio e uma lista com data de fechamento no fuso do aparelho e resultado em sets. **View details** abre uma consulta do vencedor/empate, placares de cada set, participantes e pontos individuais, incluindo erros adversários separados. As ações de jogo e reset ficam disponíveis nas abas Game/Statistics; o histórico é apenas para consulta.
 
-Todas as partidas encerradas normalmente nesta fase ficam como **Awaiting upload**; a interface informa que o envio remoto ainda não está disponível. Uma falha ao ler o histórico oferece **Retry** e não altera o jogo atual. Um registro inválido aparece com aviso, preservando seus dados e permitindo consultar os demais. A leitura não altera nem exclui registros. Fechar uma partida atualiza a lista ao abrir History; recarregar ou reiniciar o app mantém os dados na mesma instalação/origem.
+Todas as partidas encerradas normalmente nesta fase ficam como **Awaiting upload**; a interface informa que o envio remoto ainda não está disponível. Uma falha ao ler o histórico oferece **Retry** e não altera o jogo atual. Um registro inválido aparece com aviso, preservando seus dados e permitindo consultar os demais. Fechar uma partida atualiza a lista ao abrir History; recarregar ou reiniciar o app mantém os dados na mesma instalação/origem.
 
 Roteiro de aprovação: [testar a subfase 1.3](docs/testing-match-history-1.3.md).
 
@@ -78,11 +79,25 @@ Abra **Teams & players** para usar o **Development group**, um grupo de teste so
 
 **Register player** salva o nome no aparelho imediatamente, com UUID, grupo, nome normalizado e estado pendente. O nome tem até 60 caracteres. A comparação ignora acentos, maiúsculas e espaços excedentes. Um nome repetido é recusado; um primeiro nome isolado também gera aviso quando já existe alguém com esse primeiro nome. Nomes completos diferentes podem coexistir. O aviso oferece usar a pessoa existente na última posição selecionada ou informar sobrenome para outra pessoa. Cadastros já confirmados permanecem mesmo ao cancelar as alterações da escalação.
 
-Selecione uma pessoa diferente em cada uma das 12 posições e confirme **Save**. Para partidas antigas em andamento, isso associa todos os pontos anteriores de cada posição à pessoa escolhida, preservando seus contadores e os nomes no histórico de pontos. Confira todas as posições antes de salvar. A partir do primeiro ponto de uma partida já associada, os jogadores ficam fixos até fechar/reiniciar a partida; as trocas entre sets serão implementadas na subfase 2.2. Os nomes dos times continuam editáveis. A próxima partida preserva os UUIDs e permite reorganizar o elenco antes de pontuar.
+Selecione uma pessoa diferente em cada uma das 12 posições e confirme **Save**. Para partidas antigas em andamento, isso associa todos os pontos anteriores de cada posição à pessoa escolhida, preservando seus contadores e os nomes no histórico de pontos. Confira todas as posições antes de salvar. Os nomes dos times continuam editáveis. A próxima partida preserva os UUIDs e permite reorganizar o elenco antes de pontuar. A partir da subfase 2.2, também é possível reorganizar os times entre sets.
 
 Em **History**, partidas ainda sem grupo oferecem **Associate players**. A associação é explícita, transacional e preserva UUID da partida, data de fechamento, pendência, nomes originais, sets e pontos; acrescenta somente o grupo e as identidades dos participantes e autores dos pontos. Não altera o jogo atual. Nesta versão, a associação de uma partida arquivada só pode ser feita uma vez; correções administrativas serão implementadas depois. Falhas de gravação não aplicam associação parcial. Partidas antigas ainda não associadas continuam disponíveis para jogar e consultar.
 
 Roteiro de aprovação: [testar a subfase 2.1](docs/testing-player-registry-2.1.md).
+
+### Trocas entre sets — subfase 2.2
+
+Após encerrar um set (automaticamente ou com **Close set**), abra **Teams & players**, selecione os jogadores nas novas posições e confirme **Save**. É possível trocar pessoas entre times ou registrar/selecionar alguém de fora; permanecem seis por time e 12 pessoas diferentes em quadra. Com pontos no set atual, os seletores ficam bloqueados até encerrá-lo ou desfazer seus pontos. Não é necessário fechar a partida para trocar os jogadores.
+
+As alterações de escalação entram no histórico como **Lineup changed**, preservando escalações anterior e seguinte e o set a que se aplicam. **Undo** desfaz a última troca; outro Undo pode reabrir o set anterior com sua escalação e seus pontos. Várias mudanças antes do próximo ponto são desfeitas na ordem inversa. A troca visual de lados permanece independente da escalação.
+
+Cada set de partida associada contém seus seis jogadores por time. O resumo de fechamento, **History → View details** e o histórico de sets em **Statistics** mostram essas escalações. Quem saiu ou não pontuou permanece registrado como participante dos sets em que jogou. Selecionar alguém depois do último set, sem jogar outro ponto, não o inclui nos participantes da partida encerrada; ele fica preparado para o próximo jogo.
+
+Pontos individuais são somados por UUID. O Top 3 tem uma entrada por pessoa, incluindo quem atuou pelos dois times ou saiu; cada lista por time mostra somente os pontos feitos por aquela pessoa naquele time. Ao fechar a partida, o arquivo mantém todo esse histórico e a nova partida começa com a escalação mais recente e contadores zerados. Partidas anteriores continuam legíveis; se já estavam associadas, a escalação fixa de cada set é reconstruída ao ler seu histórico. Não há inferência de identidade em partidas ainda não associadas.
+
+O banco permanece na versão 2. O estado acrescenta `initialRoster` quando necessário, eventos `roster` e escalações nos eventos de fechamento de set; o replay valida e restaura as alterações e pontos em sequência. Estatísticas de presença, vitórias e temporadas serão entregues na subfase 2.3.
+
+Roteiro de aprovação: [testar a subfase 2.2](docs/testing-lineup-changes-2.2.md).
 
 ## Verificar e gerar o build
 

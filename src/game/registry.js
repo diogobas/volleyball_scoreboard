@@ -1,4 +1,4 @@
-import { restoreMatch, TEAM_IDS } from './match.js';
+import { canChangeRoster, matchReducer, matchRoster, restoreMatch, TEAM_IDS } from './match.js';
 import { ACTIVE_STORE, CLOSED_STORE, GROUP_STORE, PLAYER_STORE, createLocalId, transactionDone } from './storage.js';
 
 export const DEVELOPMENT_GROUP_ID = '00000000-0000-4000-8000-000000000001';
@@ -57,7 +57,7 @@ export async function registerPlayer(database, groupId, rawName) {
 // Slot IDs remain compatible with old scoring/Undo. personId is the permanent identity.
 export function assignMatchPlayers(state, groupId, teams, players, { preserveNames = false } = {}) {
   if (state.groupId && state.groupId !== groupId) throw new Error('This match belongs to a different group.');
-  const result = structuredClone(state);
+  let result = structuredClone(state);
   result.groupId = groupId;
   const used = new Set();
   for (const teamId of TEAM_IDS) {
@@ -68,15 +68,21 @@ export function assignMatchPlayers(state, groupId, teams, players, { preserveNam
       if (used.has(selected.id)) throw new Error('A player cannot occupy more than one position.');
       used.add(selected.id);
       const previous = state.teams[teamId].players[i];
-      if (state.groupId && state.log.length && previous.personId !== selected.id) {
-        throw new Error('Players are fixed until this match is closed.');
+      if (state.groupId && !canChangeRoster(state) && previous.personId !== selected.id) {
+        throw new Error('Players can only change between sets, before the next point.');
       }
       result.teams[teamId].players[i] = { ...previous, personId: selected.id, name: preserveNames ? previous.name : selected.name };
     }
   }
-  result.log = result.log.map(entry => entry.type !== 'point' || entry.playerId === 'err' ? entry : {
-    ...entry, personId: result.teams[entry.team].players.find(player => player.id === entry.playerId).personId,
-  });
+  if (!state.groupId) {
+    result.log = result.log.map(entry => entry.type !== 'point' || entry.playerId === 'err' ? entry : {
+      ...entry, personId: result.teams[entry.team].players.find(player => player.id === entry.playerId).personId,
+    });
+  } else if (state.log.length && JSON.stringify(matchRoster(state)) !== JSON.stringify(matchRoster(result))) {
+    const renamed = result.teams;
+    result = matchReducer(state, { type: 'roster', rosters: matchRoster(result) });
+    for (const id of TEAM_IDS) result.teams[id].name = renamed[id].name;
+  }
   return restoreMatch(JSON.stringify(result));
 }
 

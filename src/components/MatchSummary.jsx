@@ -1,5 +1,5 @@
 import { Box, Stack, Typography } from '@mui/material';
-import { TEAM_IDS } from '../game/match';
+import { teamMatchPlayers, TEAM_IDS } from '../game/match';
 
 export default function MatchSummary({ state }) {
   const sets = state.log.filter(entry => entry.type === 'set');
@@ -9,13 +9,17 @@ export default function MatchSummary({ state }) {
     <Typography variant="h6" sx={{ overflowWrap: 'anywhere' }}>{A.name} {A.setsWon} × {B.setsWon} {B.name}</Typography>
     <Typography sx={{ mb: 2 }}>{winner ? `Winner: ${winner.name}` : 'Result: Draw'}</Typography>
     <Typography component="h3" variant="subtitle2">Sets</Typography>
-    {sets.map(set => <Typography key={set.setNumber} variant="body2" sx={{ overflowWrap: 'anywhere' }}>
+    {sets.map(set => <Box key={set.setNumber} sx={{ mb: 1 }}><Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>
       Set {set.setNumber} · {set.teamAName} {set.scoreA} × {set.scoreB} {set.teamBName}
-    </Typography>)}
+    </Typography>
+      {set.rosters && TEAM_IDS.map(id => <Typography key={id} variant="caption" color="text.secondary" sx={{ display: 'block', overflowWrap: 'anywhere' }}>
+        {id === 'A' ? set.teamAName : set.teamBName}: {set.rosters[id].map(player => player.name).join(', ')}
+      </Typography>)}
+    </Box>)}
     <Typography component="h3" variant="subtitle2" sx={{ mt: 2 }}>Players · Match points</Typography>
     {TEAM_IDS.map(id => <Box key={id} sx={{ mt: 1.5 }}>
       <Typography variant="subtitle2">{state.teams[id].name}</Typography>
-      {state.teams[id].players.map(player => <Stack key={player.id} direction="row" sx={{ justifyContent: 'space-between', gap: 2 }}>
+      {teamMatchPlayers(state, id).map(player => <Stack key={player.id} direction="row" sx={{ justifyContent: 'space-between', gap: 2 }}>
         <Typography variant="body2" color={player.isError ? 'text.secondary' : 'text.primary'} sx={{ overflowWrap: 'anywhere' }}>{player.name}</Typography>
         <Typography variant="body2">{player.matchPoints}</Typography>
       </Stack>)}
