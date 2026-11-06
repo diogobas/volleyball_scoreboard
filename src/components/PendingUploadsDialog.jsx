@@ -1,19 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Stack, Typography } from '@mui/material';
 import { listStoredMatches } from '../game/storage';
-import MatchSummary from './MatchSummary';
 import EditTeamsDialog from './EditTeamsDialog';
-import SeasonStatistics from './SeasonStatistics';
+import { registryCache } from '../game/registryCache';
 import { isPendingSyncRunning, syncPendingMatches } from '../remote/matchSync';
 import { readMatchUploadStates } from '../remote/matchUploadState';
 
 const closedDate = value => new Date(value).toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short' });
 
-export default function MatchHistory({ database, refreshVersion = 0 }) {
+export default function PendingUploadsDialog({ database, refreshVersion = 0, onClose }) {
   const [matches, setMatches] = useState(null);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [selected, setSelected] = useState(null);
+  const [groupNames, setGroupNames] = useState({});
   const [associating, setAssociating] = useState(null);
   const [states, setStates] = useState({});
   const [syncing, setSyncing] = useState(false);
@@ -36,10 +35,10 @@ export default function MatchHistory({ database, refreshVersion = 0 }) {
   useEffect(() => {
     let cancelled = false;
     setError(false);
-    Promise.all([listStoredMatches(database), readMatchUploadStates(database)]).then(([result, statuses]) => {
+    Promise.all([listStoredMatches(database), readMatchUploadStates(database), registryCache(database)]).then(([result, statuses, cache]) => {
       if (!cancelled) {
         setMatches(result); setStates(statuses);
-        setSelected(current => current && !result.some(match => match.id === current.id) ? null : current);
+        setGroupNames(Object.fromEntries(cache.groups.map(group => [group.id, group.name])));
       }
     }).catch(() => { if (!cancelled) setError(true); });
     return () => { cancelled = true; };
@@ -70,8 +69,10 @@ export default function MatchHistory({ database, refreshVersion = 0 }) {
       : match.syncStatus === 'pending' ? 'Awaiting upload' : 'Status unavailable';
   }
 
-  return <Box sx={{ p: 2 }}>
-    <Typography component="h2" variant="h5">Saved matches</Typography>
+  return <>
+    <Dialog open fullWidth maxWidth="sm" onClose={onClose} aria-labelledby="pending-title">
+    <DialogTitle id="pending-title">Pending uploads</DialogTitle>
+    <DialogContent dividers><Box>
     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
       Newly closed matches in online groups upload automatically when connected. Use Sync pending matches to send earlier pending games. Each local copy is removed only after server confirmation.
     </Typography>
@@ -79,7 +80,7 @@ export default function MatchHistory({ database, refreshVersion = 0 }) {
       <Button variant="contained" disabled={busy || uploading || !matches?.some(match => match.syncStatus === 'pending')} onClick={sync}>
         {busy ? 'Syncing pending matches…' : 'Sync pending matches'}
       </Button>
-      <Button onClick={() => setAttempt(value => value + 1)}>Refresh saved matches</Button>
+      <Button onClick={() => setAttempt(value => value + 1)}>Refresh pending matches</Button>
     </Stack>
     {(busy || uploading) && <Typography role="status" sx={{ mb: 2 }}>{progress || 'An upload is in progress. You can keep playing; local copies stay until confirmed.'}</Typography>}
     {summary && <Alert severity={summary.failed || summary.busy ? 'warning' : 'success'} sx={{ mb: 2 }}>
@@ -88,41 +89,31 @@ export default function MatchHistory({ database, refreshVersion = 0 }) {
     </Alert>}
     {syncError && <Alert severity="warning" sx={{ mb: 2 }}>{syncError}</Alert>}
     {error ? <Alert severity="error" action={<Button color="inherit" onClick={() => setAttempt(value => value + 1)}>Retry</Button>}>
-      Saved matches could not be loaded. Your data has been kept on this device.
-    </Alert> : matches === null ? <Typography role="status">Loading saved matches…</Typography> : <>
-      <SeasonStatistics database={database} matches={matches} />
+      Pending matches could not be loaded. Your data has been kept on this device.
+    </Alert> : matches === null ? <Typography role="status">Loading pending matches…</Typography> : <>
       <Typography role="status" sx={{ mb: 2 }}>
-        {matches.length} saved · {matches.filter(match => match.syncStatus === 'pending').length} awaiting upload
+        {matches.length} on this device · {matches.filter(match => match.syncStatus === 'pending').length} awaiting upload
       </Typography>
-      {matches.length === 0 && <Typography color="text.secondary">No saved matches yet. Use Close match after finishing your sets.</Typography>}
-      <Stack component="ul" aria-label="Saved matches" spacing={2} sx={{ listStyle: 'none', p: 0, m: 0 }}>
+      {matches.length === 0 && <Typography color="text.secondary">No pending uploads. Confirmed match history and season statistics are on the public results page.</Typography>}
+      <Stack component="ul" aria-label="Pending matches" spacing={2} sx={{ listStyle: 'none', p: 0, m: 0 }}>
         {matches.map(match => <Paper component="li" key={match.id} variant="outlined" sx={{ p: 2, overflowWrap: 'anywhere' }}>
           <Chip size="small" label={statusLabel(match)} sx={{ mb: 1 }} />
           {states[match.id]?.error && <Alert severity="warning" sx={{ mb: 1 }}>{states[match.id].error}</Alert>}
           {states[match.id]?.attemptedAt && <Typography variant="caption" sx={{ display: 'block', mb: 1 }}>Last attempt: {closedDate(states[match.id].attemptedAt)}</Typography>}
           {match.unavailable ? <Alert severity="warning">This match could not be read. Its data is still on this device.</Alert> : <>
-            <Typography component="h3" variant="subtitle1">
-              {match.state.teams.A.name} {match.state.teams.A.setsWon} × {match.state.teams.B.setsWon} {match.state.teams.B.name}
-            </Typography>
+            <Typography component="h3" variant="subtitle1">{groupNames[match.state.groupId] ?? 'Group not associated'}</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               Closed <time dateTime={match.closedAt}>{closedDate(match.closedAt)}</time>
             </Typography>
-            <Button size="small" variant="outlined" onClick={() => setSelected(match)}>View details</Button>
             {!match.state.groupId && <Button size="small" disabled={busy || uploading} onClick={() => setAssociating(match)}>Associate players</Button>}
-            {match.state.groupId && <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>Players associated with a group</Typography>}
           </>}
         </Paper>)}
       </Stack>
     </>}
-    {selected && <Dialog open fullWidth maxWidth="sm" onClose={() => setSelected(null)} aria-labelledby="saved-match-title">
-      <DialogTitle id="saved-match-title">Saved match</DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Closed {closedDate(selected.closedAt)} · {statusLabel(selected)}</Typography>
-        <MatchSummary state={selected.state} />
-      </DialogContent>
-      <DialogActions><Button onClick={() => setSelected(null)}>Done</Button></DialogActions>
-    </Dialog>}
+    </Box></DialogContent>
+    <DialogActions><Button onClick={onClose}>Done</Button></DialogActions>
+    </Dialog>
     {associating && <EditTeamsDialog state={associating.state} database={database} archiveId={associating.id}
       onClose={() => setAssociating(null)} onSave={() => { setAssociating(null); setAttempt(value => value + 1); }} />}
-  </Box>;
+  </>;
 }

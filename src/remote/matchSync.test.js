@@ -6,7 +6,7 @@ import { assignMatchPlayers, loadDevelopmentGroup, registerPlayer } from '../gam
 import { cacheAuthorizedGroups, registryCache } from '../game/registryCache.js';
 import { CLOSED_STORE, SETTINGS_STORE, closeStoredMatch, createLocalId, listStoredMatches, loadStoredMatch, openMatchDatabase, saveStoredMatch, transactionDone } from '../game/storage.js';
 import { matchPayload } from './matchPayload.js';
-import { isPendingSyncRunning, readClosedMatch, removeConfirmedMatch, syncPendingMatches, uploadStoredMatch } from './matchSync.js';
+import { closeDatabaseWhenUploadsFinish, isPendingSyncRunning, readClosedMatch, removeConfirmedMatch, syncPendingMatches, uploadStoredMatch } from './matchSync.js';
 import { readMatchUploadStates, uploadStateKey } from './matchUploadState.js';
 
 const user = '11111111-1111-4111-8111-111111111111';
@@ -223,6 +223,26 @@ test('an expired lease after restart is shown as interrupted and can be recovere
   assert.equal((await syncPendingMatches(database, undefined, remote.client)).confirmed, 1);
   assert.equal(await readClosedMatch(database, id), undefined);
   assert.deepEqual(await readMatchUploadStates(database), {});
+});
+
+test('leaving the scoreboard for a public route lets an already requested queue finish before closing its connection', async t => {
+  const { database, factory, archive, remote } = await fixture(t);
+  await addArchive(database, archive);
+  let release; let reached;
+  const gate = new Promise(resolve => { release = resolve; });
+  const arrival = new Promise(resolve => { reached = resolve; });
+  const originalRpc = remote.client.rpc;
+  remote.client.rpc = async (name, args) => {
+    if (name === 'submit_match') { reached(); await gate; }
+    return originalRpc(name, args);
+  };
+  const queue = syncPendingMatches(database, undefined, remote.client); await arrival;
+  const closing = closeDatabaseWhenUploadsFinish(database);
+  assert.equal((await listStoredMatches(database)).length, 2);
+  release(); assert.equal((await queue).confirmed, 2); await closing;
+  assert.throws(() => database.transaction(CLOSED_STORE), error => error.name === 'InvalidStateError');
+  const reopened = await openMatchDatabase(factory); t.after(() => reopened.close());
+  assert.deepEqual(await listStoredMatches(reopened), []); assert.equal(remote.stored.size, 2);
 });
 
 test('expired sessions preserve pending data and report an error until sign-in is restored', async t => {

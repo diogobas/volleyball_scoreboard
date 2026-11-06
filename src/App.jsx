@@ -11,10 +11,12 @@ import { Roster, ScorePanel } from './components/TeamPanel';
 import EditTeamsDialog from './components/EditTeamsDialog';
 import Statistics from './components/Statistics';
 import CloseMatchDialog from './components/CloseMatchDialog';
-import MatchHistory from './components/MatchHistory';
+import PendingUploadsDialog from './components/PendingUploadsDialog';
 import PlayerRegistryDialog from './components/PlayerRegistryDialog';
 import { registryCache } from './game/registryCache';
-import { uploadStoredMatch } from './remote/matchSync';
+import { closeDatabaseWhenUploadsFinish, uploadStoredMatch } from './remote/matchSync';
+import { DEVELOPMENT_GROUP_ID } from './game/registry';
+import { publicGroupHref } from './public/routes';
 const AccountDialog = lazy(() => import('./components/AccountDialog').catch(() => ({ default: AccountLoadFailure })));
 
 function AccountLoadFailure({ onClose }) {
@@ -47,7 +49,7 @@ export default function App() {
       }
     }
     initialize();
-    return () => { cancelled = true; database?.close(); };
+    return () => { cancelled = true; if (database) void closeDatabaseWhenUploadsFinish(database); };
   }, [attempt]);
 
   if (error) return <Box component="main" className="app">
@@ -70,6 +72,7 @@ function MatchApp({ database, initialState }) {
   const [editing, setEditing] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [registryOpen, setRegistryOpen] = useState(false);
+  const [pendingOpen, setPendingOpen] = useState(false);
   const [registryVersion, setRegistryVersion] = useState(0);
   const [registryNotice, setRegistryNotice] = useState('');
   const [confirmation, setConfirmation] = useState(null);
@@ -98,10 +101,10 @@ function MatchApp({ database, initialState }) {
       const result = await uploadStoredMatch(database, id);
       if (result.status === 'confirmed') {
         setCloseSuccess(false);
-        setRegistryNotice('Match confirmed online. Its local copy has been removed; players remain available offline.');
+        setRegistryNotice('Match confirmed online. Its local copy has been removed. View the match in Public results.');
       }
     } catch (error) {
-      setRegistryNotice(`Match upload was not confirmed. Your match is kept on this device. ${error.message || ''} Use History → Sync pending matches to retry.`);
+      setRegistryNotice(`Match upload was not confirmed. Your match is kept on this device. ${error.message || ''} Use Players & sync → Pending uploads to retry.`);
     } finally {
       setRegistryVersion(value => value + 1);
     }
@@ -183,11 +186,8 @@ function MatchApp({ database, initialState }) {
       <Box className="stats-panel" role="tabpanel" id="stats-panel" aria-labelledby="stats-tab" hidden={tab !== 1}>
         {tab === 1 && <Statistics state={state} teamOrder={teamOrder} />}
       </Box>
-      <Box role="tabpanel" id="history-panel" aria-labelledby="history-tab" hidden={tab !== 2}>
-        {tab === 2 && <MatchHistory refreshVersion={registryVersion} database={database} />}
-      </Box>
     </Box>
-    {tab !== 2 && <><Box className="actions">
+    <Box className="actions">
       <Button variant="outlined" color="inherit" size="small" startIcon={<UndoRounded />} disabled={!last}
         aria-label={last?.type === 'set' ? 'Undo last set' : last?.type === 'roster' ? 'Undo last roster change' : 'Undo last point'} onClick={() => dispatch({ type: 'undo' })}>
         Undo
@@ -200,15 +200,15 @@ function MatchApp({ database, initialState }) {
       <Button variant="outlined" color="inherit" size="small" startIcon={<SwapHorizRounded />} aria-pressed={state.sidesSwapped}
         onClick={() => dispatch({ type: 'switchSides' })}>Switch sides</Button>
     </Box>
-    {scoreA + scoreB > 0 && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', px: 2 }}>Close the current set before closing the match.</Typography>}</>}
+    {scoreA + scoreB > 0 && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', px: 2 }}>Close the current set before closing the match.</Typography>}
     <Tabs value={tab} onChange={changeTab} variant="fullWidth" className="tabs" aria-label="Match view">
       <Tab id="game-tab" aria-controls="game-panel" label="Game" />
       <Tab id="stats-tab" aria-controls="stats-panel" label="Statistics" />
-      <Tab id="history-tab" aria-controls="history-panel" label="History" />
     </Tabs>
     <Box sx={{ px: 2, pb: 1 }}>
       <Button color="inherit" size="small" onClick={() => setAccountOpen(true)}>Account &amp; groups</Button>
       <Button color="inherit" size="small" onClick={() => setRegistryOpen(true)}>Players &amp; sync</Button>
+      <Button component="a" color="inherit" size="small" href={state.groupId && state.groupId !== DEVELOPMENT_GROUP_ID ? publicGroupHref(state.groupId) : '#/groups'}>Public results</Button>
     </Box>
     {tab === 0 && <Box component="details" className="log-wrap">
       <Box component="summary"><Typography component="span" variant="overline" color="text.secondary">Recent points ({state.log.length})</Typography></Box>
@@ -222,15 +222,16 @@ function MatchApp({ database, initialState }) {
           </Paper>)}
       </Box>
     </Box>}
-    {tab !== 2 && <Box component="footer" className="footer">
+    <Box component="footer" className="footer">
       <Button color="inherit" size="small" startIcon={<RestartAltRounded />} onClick={() => setConfirmation('reset')}>Reset match</Button>
       <Typography variant="caption" color="text.secondary">{saved ? 'Saved on this device' : storageWarning ? 'Local saving unavailable' : 'Saving…'}</Typography>
-    </Box>}
+    </Box>
     {accountOpen && <Suspense fallback={<Typography role="status" sx={{ px: 2 }}>Loading account…</Typography>}>
       <AccountDialog database={database} onClose={() => setAccountOpen(false)} />
     </Suspense>}
     {registryOpen && <PlayerRegistryDialog database={database} preferredGroupId={state.groupId}
-      onChanged={registryChanged} onClose={() => setRegistryOpen(false)} />}
+      onChanged={registryChanged} onClose={() => setRegistryOpen(false)} onPending={() => { setRegistryOpen(false); setPendingOpen(true); }} />}
+    {pendingOpen && <PendingUploadsDialog database={database} refreshVersion={registryVersion} onClose={() => setPendingOpen(false)} />}
     {editing && <EditTeamsDialog state={state} database={database} teamOrder={teamOrder} onClose={() => setEditing(false)}
       onSave={updated => { setState(updated); setSavedState(updated); setEditing(false); }} />}
     {confirmation === 'closeMatch' && <CloseMatchDialog state={state} saving={closingMatch} error={closeError}

@@ -4,8 +4,9 @@ import { DEVELOPMENT_GROUP_ID } from '../game/registry';
 import { cachedAdmin, linkDevelopmentData, registryCache, renamePendingPlayer, resolvePlayerIdentity, selectRegistryGroup } from '../game/registryCache';
 import { listStoredMatches } from '../game/storage';
 import { prepareRegistry, synchronizePlayers } from '../remote/playerRegistry';
+import { publicGroupHref } from '../public/routes';
 
-export default function PlayerRegistryDialog({ database, preferredGroupId, onChanged, onClose }) {
+export default function PlayerRegistryDialog({ database, preferredGroupId, onChanged, onClose, onPending }) {
   const [cache, setCache] = useState(null);
   const [groupId, setGroupId] = useState(null);
   const [attempt, setAttempt] = useState(0);
@@ -56,7 +57,8 @@ export default function PlayerRegistryDialog({ database, preferredGroupId, onCha
       <DialogTitle id="registry-title">Players &amp; sync</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
-          <Typography variant="body2">Players stay on this device for offline use. Newly closed matches in online groups upload automatically when connected. This panel synchronizes player registrations; use History → Sync pending matches for saved games.</Typography>
+          <Typography variant="body2">Players stay on this device for offline use. Newly closed matches in online groups upload automatically when connected. Use Pending uploads to send saved games; results and season statistics are on the public page.</Typography>
+          <Button variant="outlined" disabled={busy} onClick={onPending}>Pending uploads</Button>
           {error && <Alert severity="warning">{error}</Alert>}
           {message && <Alert severity={error ? 'info' : 'success'}>{message}</Alert>}
           {!cache && !error && <Typography role="status">Loading registry…</Typography>}
@@ -74,6 +76,7 @@ export default function PlayerRegistryDialog({ database, preferredGroupId, onCha
               <Typography variant="body2">Last player update: {group.lastSyncedAt ? new Date(group.lastSyncedAt).toLocaleString() : 'Not downloaded yet'}</Typography>
               {!allowed && <Alert severity="warning">Your account is not authorized for this cached group. Sign in and refresh access to synchronize. Local matches are kept.</Alert>}
               <Button variant="contained" disabled={busy || !allowed} onClick={() => run(sync)}>Sync players</Button>
+              <Button component="a" href={publicGroupHref(group.id)} disabled={busy}>Public group results</Button>
               {!cache.groups.find(item => item.id === DEVELOPMENT_GROUP_ID)?.linkedTo && <Button disabled={busy || !allowed} onClick={() => run(async () => {
                 const matches = await listStoredMatches(database);
                 setLinkCount(matches.filter(match => match.state?.groupId === DEVELOPMENT_GROUP_ID).length);

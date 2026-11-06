@@ -85,6 +85,12 @@ async function upload(database, id, suppliedClient, guard) {
 const queues = new WeakMap();
 export const isPendingSyncRunning = database => queues.has(database);
 
+export async function closeDatabaseWhenUploadsFinish(database) {
+  const jobs = [...(running.get(database)?.values() ?? []), queues.get(database)].filter(Boolean);
+  if (jobs.length) await Promise.allSettled(jobs);
+  database.close();
+}
+
 // Explicit invocation only. Snapshot IDs so games closed during this run wait for
 // their own automatic attempt or the next user request. Failures never stop others.
 export async function syncPendingMatches(database, onProgress = () => {}, suppliedClient) {
