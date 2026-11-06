@@ -7,7 +7,7 @@ export default function CloseMatchDialog({ state, saving, error, onClose, onConf
     <DialogTitle id="close-match-title">Close match?</DialogTitle>
     <DialogContent aria-busy={saving}>
       <DialogContentText id="close-match-description" sx={{ mb: 2 }}>
-        Review the result before closing. This match will be saved on this device, awaiting upload.
+        Review the result before closing. This match will be saved on this device first. Online groups upload automatically when connected; the local copy is removed only after server confirmation.
         A new match will start with the same players and sides. You cannot undo this closure.
       </DialogContentText>
       <MatchSummary state={state} />

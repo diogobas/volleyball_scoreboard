@@ -6,7 +6,7 @@ import RestartAltRounded from '@mui/icons-material/RestartAltRounded';
 import CheckRounded from '@mui/icons-material/CheckRounded';
 import SwapHorizRounded from '@mui/icons-material/SwapHorizRounded';
 import { canCloseMatch, matchReducer, TEAM_IDS, teamScore } from './game/match';
-import { closeStoredMatch, loadStoredMatch, openMatchDatabase, saveStoredMatch } from './game/storage';
+import { closeStoredMatch, createLocalId, loadStoredMatch, openMatchDatabase, saveStoredMatch } from './game/storage';
 import { Roster, ScorePanel } from './components/TeamPanel';
 import EditTeamsDialog from './components/EditTeamsDialog';
 import Statistics from './components/Statistics';
@@ -14,7 +14,7 @@ import CloseMatchDialog from './components/CloseMatchDialog';
 import MatchHistory from './components/MatchHistory';
 import PlayerRegistryDialog from './components/PlayerRegistryDialog';
 import { registryCache } from './game/registryCache';
-import { synchronizePlayers } from './remote/playerRegistry';
+import { uploadStoredMatch } from './remote/matchSync';
 const AccountDialog = lazy(() => import('./components/AccountDialog').catch(() => ({ default: AccountLoadFailure })));
 
 function AccountLoadFailure({ onClose }) {
@@ -90,14 +90,20 @@ function MatchApp({ database, initialState }) {
     setState(current); setSavedState(current); setRegistryVersion(value => value + 1);
   }
 
-  async function refreshAfterMatch(groupId) {
+  async function sendClosedMatch(id, groupId) {
     try {
       const cache = await registryCache(database);
       if (cache.groups.find(group => group.id === groupId)?.localOnly !== false) return;
-      const result = await synchronizePlayers(database, groupId);
-      setRegistryNotice(result.error || (result.conflicts ? 'Player registry needs identity confirmation. Open Players & sync.' : 'Player registry updated. Match remains saved on this device.'));
-    } catch {
-      setRegistryNotice('Player registry could not be updated. Your match is saved. Use Players & sync to retry.');
+      setRegistryNotice('Uploading the closed match. Its local copy is kept until the server confirms it.');
+      const result = await uploadStoredMatch(database, id);
+      if (result.status === 'confirmed') {
+        setCloseSuccess(false);
+        setRegistryNotice('Match confirmed online. Its local copy has been removed; players remain available offline.');
+      }
+    } catch (error) {
+      setRegistryNotice(`Match upload was not confirmed. Your match is kept on this device. ${error.message || 'Try again later.'}`);
+    } finally {
+      setRegistryVersion(value => value + 1);
     }
   }
 
@@ -107,7 +113,8 @@ function MatchApp({ database, initialState }) {
     setClosingMatch(true);
     setCloseError('');
     try {
-      const nextState = await closeStoredMatch(database, state);
+      const id = createLocalId();
+      const nextState = await closeStoredMatch(database, state, { id });
       setState(nextState);
       setSavedState(nextState);
       setStorageWarning('');
@@ -115,7 +122,7 @@ function MatchApp({ database, initialState }) {
       setTab(0);
       setCloseSuccess(true);
       if (nextState.groupId && globalThis.navigator?.onLine !== false) {
-        void refreshAfterMatch(nextState.groupId);
+        void sendClosedMatch(id, nextState.groupId);
       }
     } catch (error) {
       setCloseError(`The match could not be closed. Your current match has been kept. ${error.message} You can retry.`);

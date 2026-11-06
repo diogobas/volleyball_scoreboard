@@ -27,7 +27,7 @@ export default function MatchHistory({ database }) {
   return <Box sx={{ p: 2 }}>
     <Typography component="h2" variant="h5">Saved matches</Typography>
     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-      Matches are stored on this device only. Remote upload is not available yet.
+      Matches kept on this device. Newly closed matches in online groups upload automatically when connected and leave this list only after server confirmation. Earlier pending matches stay here for manual upload in the next update.
     </Typography>
     {error ? <Alert severity="error" action={<Button color="inherit" onClick={() => setAttempt(value => value + 1)}>Retry</Button>}>
       Saved matches could not be loaded. Your data has been kept on this device.
