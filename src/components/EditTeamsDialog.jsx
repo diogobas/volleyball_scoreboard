@@ -72,7 +72,8 @@ export default function EditTeamsDialog({ state, database, teamOrder = TEAM_IDS,
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ my: 2 }}>
         <TextField label="New player name" value={name} onChange={event => { setName(event.target.value); setExisting(null); }}
           slotProps={{ htmlInput: { maxLength: 60 } }} disabled={busy} fullWidth />
-        <Button variant="outlined" disabled={busy || !name.trim()} onClick={createPlayer}>Register player</Button>
+        <Button variant="outlined" disabled={busy || !name.trim()} onClick={createPlayer}
+          sx={{ flexShrink: 0, whiteSpace: 'nowrap', px: 2 }}>Register player</Button>
       </Stack>
       {existing && <Button disabled={busy || locked} onClick={() => { choose(target.team, target.index, existing.id); setExisting(null); setError(''); }}>
         Use {existing.name} for Team {TEAM_IDS.indexOf(target.team) + 1} · Player {target.index + 1}
@@ -90,8 +91,8 @@ export default function EditTeamsDialog({ state, database, teamOrder = TEAM_IDS,
               value={player.personId ?? ''} disabled={busy || locked}
               onFocus={() => setTarget({ team: id, index: i })}
               onChange={event => choose(id, i, event.target.value)}
-              slotProps={{ select: { native: true } }} fullWidth>
-              <option value="">{`Select player (previously ${state.teams[id].players[i].name})`}</option>
+              slotProps={{ select: { native: true }, inputLabel: { shrink: true } }} fullWidth>
+              <option value="">Select player</option>
               {players.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
             </TextField>)}
         </Stack>)}
