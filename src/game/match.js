@@ -102,6 +102,8 @@ function addPoint(state, action) {
   if (!player) return state;
   return {
     ...state,
+    ...(!state.startedAt && action.startedAt && !state.log.some(entry => entry.type === 'point')
+      ? { startedAt: action.startedAt } : {}),
     teams: { ...state.teams, [action.team]: { ...team,
       players: team.players.map(p => p.id === player.id
         ? { ...p, setPoints: p.setPoints + 1, matchPoints: p.matchPoints + 1 } : p),
@@ -191,10 +193,12 @@ export function matchReducer(state, action) {
         };
       }
       const team = state.teams[last.team];
-      return { ...state, log: state.log.slice(0, -1), teams: { ...state.teams,
+      const previous = { ...state, log: state.log.slice(0, -1), teams: { ...state.teams,
         [last.team]: { ...team, players: team.players.map(p => p.id === last.playerId
           ? { ...p, setPoints: p.setPoints - 1, matchPoints: p.matchPoints - 1 } : p) },
       } };
+      if (!previous.log.some(entry => entry.type === 'point')) delete previous.startedAt;
+      return previous;
     }
     case 'edit':
       return { ...state, teams: Object.fromEntries(TEAM_IDS.map(id => [id, {
@@ -218,6 +222,10 @@ export function restoreMatch(raw) {
   const saved = JSON.parse(raw);
   const initial = createMatch();
   initial.sidesSwapped = saved.sidesSwapped === true;
+  if (saved.startedAt !== undefined) {
+    if (typeof saved.startedAt !== 'string' || !Number.isFinite(Date.parse(saved.startedAt))) throw new Error('Invalid start date');
+    initial.startedAt = saved.startedAt;
+  }
   if (saved.groupId !== undefined) {
     if (!uuidPattern.test(saved.groupId)) throw new Error('Invalid group');
     initial.groupId = saved.groupId;

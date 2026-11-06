@@ -65,7 +65,8 @@ function MatchApp({ database, initialState }) {
   const [leftTeam, rightTeam] = teamOrder.map(id => state.teams[id]);
 
   function dispatch(action) {
-    if (!closingRef.current) setState(previous => matchReducer(previous, action));
+    const timedAction = action.type === 'point' ? { ...action, startedAt: new Date().toISOString() } : action;
+    if (!closingRef.current) setState(previous => matchReducer(previous, timedAction));
   }
 
   async function finishMatch() {

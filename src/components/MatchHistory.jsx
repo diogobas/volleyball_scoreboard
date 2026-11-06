@@ -3,6 +3,7 @@ import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogT
 import { listStoredMatches } from '../game/storage';
 import MatchSummary from './MatchSummary';
 import EditTeamsDialog from './EditTeamsDialog';
+import SeasonStatistics from './SeasonStatistics';
 
 const closedDate = value => new Date(value).toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -31,6 +32,7 @@ export default function MatchHistory({ database }) {
     {error ? <Alert severity="error" action={<Button color="inherit" onClick={() => setAttempt(value => value + 1)}>Retry</Button>}>
       Saved matches could not be loaded. Your data has been kept on this device.
     </Alert> : matches === null ? <Typography role="status">Loading saved matches…</Typography> : <>
+      <SeasonStatistics database={database} matches={matches} />
       <Typography role="status" sx={{ mb: 2 }}>
         {matches.length} saved · {matches.filter(match => match.syncStatus === 'pending').length} awaiting upload
       </Typography>

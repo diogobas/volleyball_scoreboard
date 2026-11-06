@@ -36,6 +36,7 @@ Acesse o IP do computador e a porta mostrada no terminal. Esse servidor é para 
 - Reiniciar a partida com confirmação, preservando os nomes.
 - “Close match” salva a partida encerrada no aparelho e começa outra, preservando nomes, jogadores e lados. Exige ao menos um set encerrado e nenhum set aberto com pontos. A confirmação mostra resultado, sets e pontos por jogador; empates são permitidos. A partida encerrada e a próxima são gravadas em uma única transação: se falhar, a partida atual permanece. “Undo” da nova partida não desfaz esse fechamento. Ainda não há envio remoto.
 - A aba **History** lista as partidas encerradas no aparelho, da mais recente para a mais antiga, com data, resultado e contagem de pendências. **View details** mostra os sets e pontos de todos os jogadores. A consulta funciona offline e não altera a partida em andamento.
+- **History → Season statistics** mostra pontos, partidas, vitórias e dias de presença por jogador, com filtro por ano e fuso do grupo. Considera apenas partidas encerradas e associadas; várias partidas no mesmo dia contam uma presença. Quem jogou pelos dois times não recebe vitória individual naquela partida.
 - Interface em inglês, com layout responsivo para celular, desktop e orientação horizontal. A primeira tela prioriza os pontos do set e as duas listas de jogadores, incluindo erro adversário. Na vertical, o placar ocupa cerca de um terço da altura útil e os jogadores os dois terços restantes; o tamanho dos pontos aproveita essa área e reserva espaço para dois dígitos, sem diminuir ao passar de 9 para 10. Na horizontal, as listas de jogadores ficam nas extremidades, com largura baseada em 16 caracteres (a referência é “Opponent’s error”), mais espaço para o contador de pontos e as margens. O placar geral ocupa o espaço restante no centro, com números de 128–360 px ajustados ao espaço, com a mesma fonte para um ou dois dígitos. Os nomes dos times não aparecem na tela de pontuação; a identificação acessível e as cores acompanham a troca de lados.
 - A lista de jogadores se expande para aproveitar a altura útil da tela, respeitando as áreas seguras do aparelho. Os botões dividem esse espaço igualmente e mantêm pelo menos 44 px de altura na vertical e 48 px na horizontal. Em telas muito baixas, com nomes longos ou texto ampliado, a página permite rolagem para preservar os alvos de toque.
 - Undo, Close set, Close match, Teams & players e Switch sides ficam depois dos jogadores; as abas Game/Statistics/History vêm depois dessas ações. Ao selecionar uma aba, a visualização volta ao início da área do placar e do conteúdo selecionado.
@@ -95,9 +96,26 @@ Cada set de partida associada contém seus seis jogadores por time. O resumo de 
 
 Pontos individuais são somados por UUID. O Top 3 tem uma entrada por pessoa, incluindo quem atuou pelos dois times ou saiu; cada lista por time mostra somente os pontos feitos por aquela pessoa naquele time. Ao fechar a partida, o arquivo mantém todo esse histórico e a nova partida começa com a escalação mais recente e contadores zerados. Partidas anteriores continuam legíveis; se já estavam associadas, a escalação fixa de cada set é reconstruída ao ler seu histórico. Não há inferência de identidade em partidas ainda não associadas.
 
-O banco permanece na versão 2. O estado acrescenta `initialRoster` quando necessário, eventos `roster` e escalações nos eventos de fechamento de set; o replay valida e restaura as alterações e pontos em sequência. Estatísticas de presença, vitórias e temporadas serão entregues na subfase 2.3.
+O banco permanece na versão 2. O estado acrescenta `initialRoster` quando necessário, eventos `roster` e escalações nos eventos de fechamento de set; o replay valida e restaura as alterações e pontos em sequência.
 
 Roteiro de aprovação: [testar a subfase 2.2](docs/testing-lineup-changes-2.2.md).
+
+### Estatísticas individuais e temporadas — subfase 2.3
+
+Na aba **History**, **Season statistics** mostra a tabela local do grupo de desenvolvimento e um seletor de temporada. A temporada inicial é o ano atual no fuso do grupo; também aparecem anos com partidas associadas. A tabela inclui jogadores cadastrados ainda sem participação e mantém participantes históricos mesmo se não estiverem no cadastro carregado. A ordenação é por pontos, vitórias e nome. Em telas estreitas, a tabela permite rolagem horizontal dentro do próprio quadro.
+
+- **Points** soma pontos atribuídos ao UUID da pessoa, incluindo os dois times; exclui erros adversários.
+- **Matches** conta uma partida por pessoa que participou de pelo menos um set com pontuação, mesmo sem pontuar. Quem saiu conta; quem só foi selecionado após o último set, sem jogar, não conta.
+- **Wins** conta uma vitória para quem atuou exclusivamente no time com mais sets vencidos. Empates e participação pelos dois times não concedem vitória. Entrar como substituto também permite vitória, se participou somente pelo time vencedor.
+- **Days** conta datas distintas de participação no grupo, com uma presença mesmo quando houve várias partidas naquele dia. Não representa percentual de frequência nem uma chamada separada.
+
+A data de início é registrada em UTC no primeiro ponto de cada nova partida (`state.startedAt`), incluindo ponto por erro adversário. O ano e a data de presença são calculados no fuso persistido do grupo, independentemente do fuso do aparelho que consulta. Essa data permanece ao recarregar e atravessar sets; desfazer todos os pontos remove o início, e reset/fechamento preparam outra partida sem data até o primeiro ponto.
+
+Partidas de versões anteriores podem não ter data de início. Elas usam `closedAt` como aproximação e a tela informa quantas partidas da temporada usam essa regra. Partidas antigas em andamento não recebem um início inventado no próximo ponto. Associar um arquivo antigo mantém suas datas e o inclui na tabela ao atualizar History. Partidas sem associação ou ilegíveis ficam fora dos totais, com avisos explicando a exclusão. A partida em andamento também fica fora.
+
+Os totais são derivados dos arquivos locais a cada consulta, sem gravar contadores acumulados ou alterar as partidas. A associação atualiza a consulta, e futuras correções poderão recalcular os resultados sem contagem duplicada. Falha ao carregar o cadastro oferece **Retry**, mantendo a lista de partidas disponível. Não há sincronização nem estatísticas de outros aparelhos nesta entrega.
+
+Roteiro de aprovação: [testar a subfase 2.3](docs/testing-season-statistics-2.3.md).
 
 ## Verificar e gerar o build
 
