@@ -104,6 +104,8 @@ Roteiro de aprovação: [testar a subfase 2.2](docs/testing-lineup-changes-2.2.m
 
 Na aba **History**, **Season statistics** mostra a tabela local do grupo de desenvolvimento e um seletor de temporada. A temporada inicial é o ano atual no fuso do grupo; também aparecem anos com partidas associadas. A tabela inclui jogadores cadastrados ainda sem participação e mantém participantes históricos mesmo se não estiverem no cadastro carregado. A ordenação é por pontos, vitórias e nome. Em telas estreitas, a tabela permite rolagem horizontal dentro do próprio quadro.
 
+**Direção para a fase 4:** a consulta de estatísticas de temporada (pontos, partidas, vitórias e frequência) tem como destino a página pública por grupo. A tabela local permanece temporariamente no aplicativo para validar os dados durante a implementação. Ao disponibilizar a consulta pública, planejar sua retirada da interface do app, reutilizando as regras já testadas e passando a consultar os dados remotos. Essa mudança se refere ao resumo de temporada; o placar, as estatísticas da partida atual e a gestão de partidas pendentes continuam no aplicativo. A subfase 2.3 foi validada pelo usuário no computador; a validação em aparelhos permanece pendente.
+
 - **Points** soma pontos atribuídos ao UUID da pessoa, incluindo os dois times; exclui erros adversários.
 - **Matches** conta uma partida por pessoa que participou de pelo menos um set com pontuação, mesmo sem pontuar. Quem saiu conta; quem só foi selecionado após o último set, sem jogar, não conta.
 - **Wins** conta uma vitória para quem atuou exclusivamente no time com mais sets vencidos. Empates e participação pelos dois times não concedem vitória. Entrar como substituto também permite vitória, se participou somente pelo time vencedor.
