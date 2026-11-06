@@ -148,7 +148,7 @@ function MatchApp({ database, initialState }) {
         onClick={() => setConfirmation('closeSet')}>Close set</Button>
       <Button variant="outlined" color="inherit" size="small" startIcon={<CheckRounded />} disabled={!canCloseMatch(state) || !saved}
         onClick={() => { setCloseError(''); setCloseSuccess(false); setConfirmation('closeMatch'); }}>Close match</Button>
-      <Button variant="outlined" color="inherit" size="small" startIcon={<EditOutlined />} onClick={() => setEditing(true)}>Edit names</Button>
+      <Button variant="outlined" color="inherit" size="small" startIcon={<EditOutlined />} onClick={() => setEditing(true)}>Teams &amp; players</Button>
       <Button variant="outlined" color="inherit" size="small" startIcon={<SwapHorizRounded />} aria-pressed={state.sidesSwapped}
         onClick={() => dispatch({ type: 'switchSides' })}>Switch sides</Button>
     </Box>
@@ -174,8 +174,8 @@ function MatchApp({ database, initialState }) {
       <Button color="inherit" size="small" startIcon={<RestartAltRounded />} onClick={() => setConfirmation('reset')}>Reset match</Button>
       <Typography variant="caption" color="text.secondary">{saved ? 'Saved on this device' : storageWarning ? 'Local saving unavailable' : 'Saving…'}</Typography>
     </Box>}
-    {editing && <EditTeamsDialog teams={state.teams} teamOrder={teamOrder} onClose={() => setEditing(false)}
-      onSave={teams => { dispatch({ type: 'edit', teams }); setEditing(false); }} />}
+    {editing && <EditTeamsDialog state={state} database={database} teamOrder={teamOrder} onClose={() => setEditing(false)}
+      onSave={updated => { setState(updated); setSavedState(updated); setEditing(false); }} />}
     {confirmation === 'closeMatch' && <CloseMatchDialog state={state} saving={closingMatch} error={closeError}
       onClose={() => setConfirmation(null)} onConfirm={finishMatch} />}
     <Dialog open={confirmation === 'closeSet' || confirmation === 'reset'} onClose={() => setConfirmation(null)} aria-labelledby="confirm-title" aria-describedby="confirm-message">

@@ -23,21 +23,21 @@ Acesse o IP do computador e a porta mostrada no terminal. Esse servidor é para 
 
 ## Recursos
 
-- Dois times com seis jogadores cada, mantendo os elencos originais.
+- Dois times com seis jogadores cada. Partidas antigas mantêm seus elencos até a associação explícita aos jogadores cadastrados.
 - Um toque no jogador adiciona um ponto ao time e às estatísticas individuais.
 - “Opponent’s error” adiciona um ponto ao time da coluna selecionada.
 - Placar do set, sets vencidos e pontos acumulados por jogador.
 - “Switch sides” (botão com texto e setas horizontais) troca os times de lado na tela, acompanhando a posição dos jogadores na quadra. Cores, pontos e estatísticas permanecem vinculados ao mesmo time. A posição é salva e mantida ao reiniciar a partida; a troca manual não entra no histórico de pontos. Ao encerrar um set, os times trocam de lado automaticamente, tanto no fechamento automático quanto no manual. Desfazer esse fechamento restaura os lados anteriores; sets salvos antes desse recurso mantêm o comportamento anterior.
 - Fechamento automático dos sets a partir de 25 pontos, com vantagem mínima de 2, sem limite máximo. O botão “Close set” permite encerrar manualmente com outro placar, mediante confirmação; os totais individuais da partida são mantidos.
 - Desfazer pontos e o fechamento do último set, em ordem inversa.
-- Edição dos nomes com salvar/cancelar, sem perder os pontos. Campos em branco mantêm o nome anterior. Na tela do jogo, os jogadores aparecem em ordem alfabética, considerando acentos e maiúsculas equivalentes; “Opponent’s error” permanece sempre por último. A ordenação se atualiza ao salvar os nomes e mantém os pontos vinculados a cada jogador.
+- **Teams & players** permite cadastrar jogadores offline e selecionar as 12 pessoas da partida. Cada jogador tem UUID permanente dentro de um grupo; posições no time continuam compatíveis com as partidas antigas. A mesma pessoa não pode ocupar duas posições. Nomes repetidos geram aviso para escolher a pessoa existente ou cadastrar outra com sobrenome. Na tela do jogo, os jogadores aparecem em ordem alfabética, considerando acentos e maiúsculas equivalentes; “Opponent’s error” permanece por último.
 - Estatísticas por jogador e histórico de sets. Cada set encerrado pode ser expandido para mostrar o ranking de todos os jogadores que pontuaram naquele set, entre os dois times, excluindo erro adversário; empates compartilham a posição. A aba Statistics usa toda a largura disponível, sem o placar do set. No topo, o Top 3 mostra os três maiores pontuadores da partida entre os dois times, excluindo erro adversário e jogadores ainda sem pontos. Empates mostram a mesma posição; a seleção mantém a ordem original dos times e jogadores, independentemente da troca de lados.
 - Reiniciar a partida com confirmação, preservando os nomes.
 - “Close match” salva a partida encerrada no aparelho e começa outra, preservando nomes, jogadores e lados. Exige ao menos um set encerrado e nenhum set aberto com pontos. A confirmação mostra resultado, sets e pontos por jogador; empates são permitidos. A partida encerrada e a próxima são gravadas em uma única transação: se falhar, a partida atual permanece. “Undo” da nova partida não desfaz esse fechamento. Ainda não há envio remoto.
 - A aba **History** lista as partidas encerradas no aparelho, da mais recente para a mais antiga, com data, resultado e contagem de pendências. **View details** mostra os sets e pontos de todos os jogadores. A consulta funciona offline e não altera a partida em andamento.
 - Interface em inglês, com layout responsivo para celular, desktop e orientação horizontal. A primeira tela prioriza os pontos do set e as duas listas de jogadores, incluindo erro adversário. Na vertical, o placar ocupa cerca de um terço da altura útil e os jogadores os dois terços restantes; o tamanho dos pontos aproveita essa área e reserva espaço para dois dígitos, sem diminuir ao passar de 9 para 10. Na horizontal, as listas de jogadores ficam nas extremidades, com largura baseada em 16 caracteres (a referência é “Opponent’s error”), mais espaço para o contador de pontos e as margens. O placar geral ocupa o espaço restante no centro, com números de 128–360 px ajustados ao espaço, com a mesma fonte para um ou dois dígitos. Os nomes dos times não aparecem na tela de pontuação; a identificação acessível e as cores acompanham a troca de lados.
 - A lista de jogadores se expande para aproveitar a altura útil da tela, respeitando as áreas seguras do aparelho. Os botões dividem esse espaço igualmente e mantêm pelo menos 44 px de altura na vertical e 48 px na horizontal. Em telas muito baixas, com nomes longos ou texto ampliado, a página permite rolagem para preservar os alvos de toque.
-- Undo, Close set, Edit names e Switch sides ficam depois dos jogadores; as abas Game/Statistics vêm depois dessas ações. Ao selecionar uma aba, a visualização volta ao início da área do placar e do conteúdo selecionado.
+- Undo, Close set, Close match, Teams & players e Switch sides ficam depois dos jogadores; as abas Game/Statistics/History vêm depois dessas ações. Ao selecionar uma aba, a visualização volta ao início da área do placar e do conteúdo selecionado.
 - Histórico de pontos recolhido por padrão; toque em “Recent points” para expandir. O histórico não aumenta a altura da tela enquanto está recolhido.
 - Salvamento automático transacional em IndexedDB, incluindo o histórico necessário para desfazer após recarregar. Partidas da versão anterior são migradas do `localStorage`; a cópia antiga é preservada para recuperação, mas não é atualizada nem substitui os dados do novo banco.
 - Fontes distribuídas no próprio build, sem dependência do Google Fonts em tempo de execução.
@@ -48,7 +48,7 @@ Os dados ficam apenas no navegador/dispositivo e na origem usada para acessar o 
 
 ### Banco local — subfase 1.1
 
-O banco `volleyball-scoreboard` usa versão 1, com os armazenamentos `activeMatches` (partida atual) e `closedMatches` (partidas encerradas). O registro atual possui versão de formato própria. O placar só é liberado depois de concluir a leitura/migração. Uma falha de leitura não inicia uma partida vazia sobre os dados existentes; a tela oferece tentar novamente. Falhas de gravação mostram um aviso com **Retry saving**; mantenha o app aberto até salvar com sucesso.
+O banco `volleyball-scoreboard` usa versão 2, com os armazenamentos `activeMatches` (partida atual), `closedMatches` (partidas encerradas), `groups` e `players`. A atualização da versão 1 adiciona os cadastros sem alterar nem associar partidas automaticamente. Os registros de partida mantêm `formatVersion: 1`, com campos opcionais para grupo e identidades permanentes. O placar só é liberado depois de concluir a leitura/migração. Uma falha de leitura não inicia uma partida vazia sobre os dados existentes; a tela oferece tentar novamente. Falhas de gravação mostram um aviso com **Retry saving**; mantenha o app aberto até salvar com sucesso.
 
 O app solicita armazenamento persistente quando a plataforma oferece essa API, mas a concessão depende do navegador. Desinstalar o app ou limpar seus dados ainda pode apagar a partida. Ao sair, aguarde **Saved on this device**. A cópia antiga no `localStorage` representa somente o estado anterior à migração; voltar para uma versão antiga do aplicativo não recupera os pontos feitos depois dela.
 
@@ -71,6 +71,18 @@ A aba **History** consulta novamente o banco local sempre que é aberta. Mostra 
 Todas as partidas encerradas normalmente nesta fase ficam como **Awaiting upload**; a interface informa que o envio remoto ainda não está disponível. Uma falha ao ler o histórico oferece **Retry** e não altera o jogo atual. Um registro inválido aparece com aviso, preservando seus dados e permitindo consultar os demais. A leitura não altera nem exclui registros. Fechar uma partida atualiza a lista ao abrir History; recarregar ou reiniciar o app mantém os dados na mesma instalação/origem.
 
 Roteiro de aprovação: [testar a subfase 1.3](docs/testing-match-history-1.3.md).
+
+### Cadastro e identidades — subfase 2.1
+
+Abra **Teams & players** para usar o **Development group**, um grupo de teste somente local. O banco já separa jogadores por grupo, mas criação/seleção de grupos reais e acesso administrativo serão conectados ao servidor na fase 3. O grupo de desenvolvimento é criado uma única vez, com fuso do aparelho; nenhum nome do elenco antigo vira cadastro automaticamente.
+
+**Register player** salva o nome no aparelho imediatamente, com UUID, grupo, nome normalizado e estado pendente. O nome tem até 60 caracteres. A comparação ignora acentos, maiúsculas e espaços excedentes. Um nome repetido é recusado; um primeiro nome isolado também gera aviso quando já existe alguém com esse primeiro nome. Nomes completos diferentes podem coexistir. O aviso oferece usar a pessoa existente na última posição selecionada ou informar sobrenome para outra pessoa. Cadastros já confirmados permanecem mesmo ao cancelar as alterações da escalação.
+
+Selecione uma pessoa diferente em cada uma das 12 posições e confirme **Save**. Para partidas antigas em andamento, isso associa todos os pontos anteriores de cada posição à pessoa escolhida, preservando seus contadores e os nomes no histórico de pontos. Confira todas as posições antes de salvar. A partir do primeiro ponto de uma partida já associada, os jogadores ficam fixos até fechar/reiniciar a partida; as trocas entre sets serão implementadas na subfase 2.2. Os nomes dos times continuam editáveis. A próxima partida preserva os UUIDs e permite reorganizar o elenco antes de pontuar.
+
+Em **History**, partidas ainda sem grupo oferecem **Associate players**. A associação é explícita, transacional e preserva UUID da partida, data de fechamento, pendência, nomes originais, sets e pontos; acrescenta somente o grupo e as identidades dos participantes e autores dos pontos. Não altera o jogo atual. Nesta versão, a associação de uma partida arquivada só pode ser feita uma vez; correções administrativas serão implementadas depois. Falhas de gravação não aplicam associação parcial. Partidas antigas ainda não associadas continuam disponíveis para jogar e consultar.
+
+Roteiro de aprovação: [testar a subfase 2.1](docs/testing-player-registry-2.1.md).
 
 ## Verificar e gerar o build
 

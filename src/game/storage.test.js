@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { IDBFactory } from 'fake-indexeddb';
 import { createMatch, matchReducer } from './match.js';
-import { ACTIVE_STORE, CLOSED_STORE, DATABASE_NAME, DATABASE_VERSION, closeStoredMatch,
+import { ACTIVE_STORE, CLOSED_STORE, GROUP_STORE, PLAYER_STORE, DATABASE_NAME, DATABASE_VERSION, closeStoredMatch,
   listStoredMatches, loadStoredMatch, openMatchDatabase, saveStoredMatch } from './storage.js';
 
 const point = (state, team = 'A') => matchReducer(state, { type: 'point', team, playerId: 'p1' });
@@ -21,7 +21,7 @@ test('creates a versioned database with separate active and closed match stores'
   t.after(() => database.close());
   assert.equal(database.name, DATABASE_NAME);
   assert.equal(database.version, DATABASE_VERSION);
-  assert.deepEqual([...database.objectStoreNames], [ACTIVE_STORE, CLOSED_STORE]);
+  assert.deepEqual([...database.objectStoreNames], [ACTIVE_STORE, CLOSED_STORE, GROUP_STORE, PLAYER_STORE]);
   assert.deepEqual(await loadStoredMatch(database, () => null), createMatch());
   assert.equal((await storedValue(database, ACTIVE_STORE, 'current')).formatVersion, 1);
   assert.equal(await storedValue(database, CLOSED_STORE, 'current'), undefined);

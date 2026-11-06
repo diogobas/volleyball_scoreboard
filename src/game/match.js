@@ -1,5 +1,6 @@
 export const STORAGE_KEY = 'volleyball-scoreboard:v1';
 export const TEAM_IDS = ['A', 'B'];
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const rosters = {
   A: ['Anderson', 'Carlos', 'Diego', 'Jota', 'Kaue', 'KJ'],
   B: ['Chicó', 'Denilson', 'Diogo', 'Dimitri', 'Gaëtan', 'Omer'],
@@ -41,6 +42,7 @@ function addPoint(state, action) {
         ? { ...p, setPoints: p.setPoints + 1, matchPoints: p.matchPoints + 1 } : p),
     } },
     log: [...state.log, { type: 'point', team: action.team, playerId: player.id,
+      ...(player.personId ? { personId: player.personId } : {}),
       playerName: player.name, teamName: team.name }],
   };
 }
@@ -118,10 +120,10 @@ export function matchReducer(state, action) {
       return { ...state, teams: Object.fromEntries(TEAM_IDS.map(id => [id, {
         ...state.teams[id], name: action.teams[id].name.trim().slice(0, 16) || state.teams[id].name,
         players: state.teams[id].players.map((p, i) => p.isError ? p : { ...p,
-          name: action.teams[id].players[i].name.trim().slice(0, 20) || p.name }),
+          name: p.personId ? p.name : action.teams[id].players[i].name.trim().slice(0, 20) || p.name }),
       }])) };
     case 'reset':
-      return { ...createMatch(), sidesSwapped: state.sidesSwapped, teams: Object.fromEntries(TEAM_IDS.map(id => [id, {
+      return { ...createMatch(), ...(state.groupId ? { groupId: state.groupId } : {}), sidesSwapped: state.sidesSwapped, teams: Object.fromEntries(TEAM_IDS.map(id => [id, {
         ...state.teams[id], setsWon: 0,
         players: state.teams[id].players.map(p => ({ ...p, setPoints: 0, matchPoints: 0 })),
       }])) };
@@ -136,6 +138,11 @@ export function restoreMatch(raw) {
   const saved = JSON.parse(raw);
   const initial = createMatch();
   initial.sidesSwapped = saved.sidesSwapped === true;
+  if (saved.groupId !== undefined) {
+    if (!uuidPattern.test(saved.groupId)) throw new Error('Invalid group');
+    initial.groupId = saved.groupId;
+  }
+  const people = new Set();
   for (const id of TEAM_IDS) {
     const team = saved.teams[id];
     if (typeof team.name !== 'string' || !team.name.trim() || team.name.length > 16 ||
@@ -143,8 +150,13 @@ export function restoreMatch(raw) {
     initial.teams[id].name = team.name;
     team.players.forEach((p, i) => {
       if (p.id !== initial.teams[id].players[i].id || typeof p.name !== 'string' ||
-          !p.name.trim() || p.name.length > 20) throw new Error('Invalid player');
+          !p.name.trim() || p.name.length > 60) throw new Error('Invalid player');
       if (!initial.teams[id].players[i].isError) initial.teams[id].players[i].name = p.name;
+      if (!initial.teams[id].players[i].isError && saved.groupId) {
+        if (!uuidPattern.test(p.personId) || people.has(p.personId)) throw new Error('Invalid player identity');
+        people.add(p.personId);
+        initial.teams[id].players[i].personId = p.personId;
+      } else if (p.personId !== undefined) throw new Error('Unexpected player identity');
     });
   }
   if (!Array.isArray(saved.log)) throw new Error('Invalid history');
@@ -153,6 +165,8 @@ export function restoreMatch(raw) {
     if (entry.type === 'point') {
       if (!TEAM_IDS.includes(entry.team) || !initial.teams[entry.team].players.some(p => p.id === entry.playerId) ||
           typeof entry.playerName !== 'string' || typeof entry.teamName !== 'string') throw new Error('Invalid point');
+      const personId = initial.teams[entry.team].players.find(p => p.id === entry.playerId).personId;
+      if (entry.personId !== personId) throw new Error('Invalid point identity');
       restored = addPoint(restored, { team: entry.team, playerId: entry.playerId });
       restored.log[restored.log.length - 1] = { ...restored.log.at(-1), playerName: entry.playerName, teamName: entry.teamName };
     } else if (entry.type === 'set') {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Stack, Typography } from '@mui/material';
 import { listStoredMatches } from '../game/storage';
 import MatchSummary from './MatchSummary';
+import EditTeamsDialog from './EditTeamsDialog';
 
 const closedDate = value => new Date(value).toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -10,6 +11,7 @@ export default function MatchHistory({ database }) {
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [selected, setSelected] = useState(null);
+  const [associating, setAssociating] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,6 +46,8 @@ export default function MatchHistory({ database }) {
               Closed <time dateTime={match.closedAt}>{closedDate(match.closedAt)}</time>
             </Typography>
             <Button size="small" variant="outlined" onClick={() => setSelected(match)}>View details</Button>
+            {!match.state.groupId && <Button size="small" onClick={() => setAssociating(match)}>Associate players</Button>}
+            {match.state.groupId && <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>Players associated with a group</Typography>}
           </>}
         </Paper>)}
       </Stack>
@@ -56,5 +60,7 @@ export default function MatchHistory({ database }) {
       </DialogContent>
       <DialogActions><Button onClick={() => setSelected(null)}>Done</Button></DialogActions>
     </Dialog>}
+    {associating && <EditTeamsDialog state={associating.state} database={database} archiveId={associating.id}
+      onClose={() => setAssociating(null)} onSave={() => { setAssociating(null); setAttempt(value => value + 1); }} />}
   </Box>;
 }

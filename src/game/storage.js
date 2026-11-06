@@ -1,12 +1,14 @@
 import { canCloseMatch, createMatch, matchReducer, restoreMatch, STORAGE_KEY } from './match.js';
 
 export const DATABASE_NAME = 'volleyball-scoreboard';
-export const DATABASE_VERSION = 1;
+export const DATABASE_VERSION = 2;
 export const ACTIVE_STORE = 'activeMatches';
 export const CLOSED_STORE = 'closedMatches';
+export const GROUP_STORE = 'groups';
+export const PLAYER_STORE = 'players';
 const ACTIVE_KEY = 'current';
 
-function transactionDone(transaction) {
+export function transactionDone(transaction) {
   return new Promise((resolve, reject) => {
     transaction.oncomplete = () => resolve();
     transaction.onabort = () => reject(transaction.error ?? new Error('Local transaction aborted'));
@@ -23,6 +25,12 @@ export function openMatchDatabase(factory = globalThis.indexedDB) {
       const database = request.result;
       if (!database.objectStoreNames.contains(ACTIVE_STORE)) database.createObjectStore(ACTIVE_STORE);
       if (!database.objectStoreNames.contains(CLOSED_STORE)) database.createObjectStore(CLOSED_STORE, { keyPath: 'id' });
+      if (!database.objectStoreNames.contains(GROUP_STORE)) database.createObjectStore(GROUP_STORE, { keyPath: 'id' });
+      if (!database.objectStoreNames.contains(PLAYER_STORE)) {
+        const players = database.createObjectStore(PLAYER_STORE, { keyPath: 'id' });
+        players.createIndex('groupId', 'groupId');
+        players.createIndex('groupName', ['groupId', 'normalizedName'], { unique: true });
+      }
     };
     request.onerror = () => reject(request.error);
     request.onblocked = () => {
@@ -95,7 +103,7 @@ export async function listStoredMatches(database) {
     String(a.id).localeCompare(String(b.id)));
 }
 
-function archiveId() {
+export function createLocalId() {
   // getRandomValues also works when testing the web app over a local HTTP network.
   const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
@@ -105,7 +113,7 @@ function archiveId() {
 }
 
 export async function closeStoredMatch(database, state, {
-  id = archiveId(), closedAt = new Date().toISOString(),
+  id = createLocalId(), closedAt = new Date().toISOString(),
 } = {}) {
   const snapshot = restoreMatch(JSON.stringify(state));
   if (!canCloseMatch(snapshot)) throw new Error('Close the current set before closing the match.');
