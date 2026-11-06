@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, Container, Divider, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, Container, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
 import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
 import SportsVolleyballRounded from '@mui/icons-material/SportsVolleyballRounded';
 import { listPublicGroups, publicGroupSummary, publicMatchDetails } from '../remote/publicStats';
@@ -9,12 +9,17 @@ function playedTime(match, timeZone) {
   return new Intl.DateTimeFormat('en', { timeZone, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(match.started_at ?? match.closed_at));
 }
 const resultText = match => match.sets_a === match.sets_b ? 'Draw' : `Winner: ${match.sets_a > match.sets_b ? match.team_a_name : match.team_b_name}`;
+const MatchAdministration = lazy(() => import('./MatchAdministration').catch(() => ({ default: AdminLoadFailure })));
+function AdminLoadFailure({ onClose }) {
+  return <Dialog open onClose={onClose}><DialogTitle>Administrator tools unavailable</DialogTitle><DialogContent>Reconnect and reload the page to load administrator tools.</DialogContent><DialogActions><Button onClick={onClose}>Close tools</Button></DialogActions></Dialog>;
+}
 
 export default function PublicResults({ route }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [attempt, setAttempt] = useState(0);
+  const [toolsOpen, setToolsOpen] = useState(false);
   useEffect(() => {
     let active = true;
     setLoading(true); setError('');
@@ -56,10 +61,15 @@ export default function PublicResults({ route }) {
         </Paper>)}
       </Stack>}
       {data && route.kind === 'group' && <GroupSeason data={data} route={route} loading={loading} refresh={() => setAttempt(value => value + 1)} />}
-      {data && route.kind === 'match' && <MatchDetails data={data} loading={loading} refresh={() => setAttempt(value => value + 1)} />}
+      {data && route.kind === 'match' && <><MatchDetails data={data} loading={loading} refresh={() => setAttempt(value => value + 1)} />
+        <Button variant="outlined" sx={{ mt: 3 }} onClick={() => setToolsOpen(true)}>Administrator tools</Button>
+      </>}
     </>}
     <Divider sx={{ mt: 5, mb: 2 }} />
     <Typography component="footer" variant="caption" color="text.secondary">Only matches confirmed on the server appear here. Pending games stay on the device until uploaded.</Typography>
+    {toolsOpen && route.kind === 'match' && <Suspense fallback={<Typography role="status">Loading administrator tools…</Typography>}>
+      <MatchAdministration groupId={route.groupId} matchId={route.matchId} onSaved={() => setAttempt(value => value + 1)} onClose={() => setToolsOpen(false)} />
+    </Suspense>}
   </Container>;
 }
 

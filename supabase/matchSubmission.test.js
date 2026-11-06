@@ -18,7 +18,7 @@ test('atomic match ingestion runs against PostgreSQL with real constraints and p
     grant execute on function auth.uid() to anon, authenticated;
     revoke all on auth.users from public, anon, authenticated;
   `);
-  for (const file of ['20261106000100_groups_and_match_schema.sql', '20261106000200_player_registry_sync.sql', '20261106000300_atomic_match_submission.sql']) {
+  for (const file of ['20261106000100_groups_and_match_schema.sql', '20261106000200_player_registry_sync.sql', '20261106000300_atomic_match_submission.sql', '20261106000400_public_statistics.sql', '20261106000500_administrative_corrections.sql']) {
     await database.exec(await readFile(new URL(`./migrations/${file}`, import.meta.url), 'utf8'));
   }
   const query = (sql, values = []) => database.query(sql, values);

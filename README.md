@@ -191,6 +191,22 @@ A página tem seleção de temporada, paginação, links diretos, atualização 
 
 Preparação e roteiro: [testar a subfase 4.1](docs/testing-public-results-4.1.md). As seções anteriores documentam a evolução das subfases; onde citam History ou o resumo local, a navegação atual é a descrita aqui.
 
+### Correções administrativas — subfase 4.2
+
+Na página pública de uma partida, **Administrator tools** permite entrar com uma conta já autorizada no grupo e corrigir participantes, autores, pontos e limites dos sets. A sessão web administrativa é separada da conta do placar; as consultas públicas continuam anônimas. Abrir as ferramentas não acessa o IndexedDB do aplicativo.
+
+Aplique [20261106000500_administrative_corrections.sql](supabase/migrations/20261106000500_administrative_corrections.sql) depois das quatro anteriores. As RPCs `get_match_for_edit`, `correct_match` e `match_revision_history` conferem permissão no servidor. A validação e reconstrução dos registros da partida são compartilhadas com o envio inicial por uma função privada, sem execução direta pelos clientes. O contrato de `submit_match` permanece compatível com versões anteriores do aplicativo.
+
+O editor permite substituir pessoas em cada set, reassociando seus pontos naquele time, trocar a autoria de pontos individuais, adicionar/remover pontos e corrigir fechamentos. Divisão e mudança de limite preservam a ordem da sequência; a junção exige os mesmos participantes por time. Todo set tem seis pessoas diferentes por time e pontos com autoria válida ou erro adversário explícito. Placares são derivados dos pontos; grupo, datas e nomes gerais dos times permanecem fixos. Não há exclusão de partidas.
+
+Salvar exige internet, motivo de 1–500 caracteres e revisão **Before/After**. O servidor bloqueia a linha, confere a versão carregada, reconstrói sets, escalações e pontos, incrementa a versão e grava autor, data, motivo e snapshots anterior/novo em uma transação. Erros revertem tudo. A consulta pública recalcula os resultados a partir dos registros atuais. **Private revision history** mostra as revisões somente para administradores do grupo, paginadas em 20 registros.
+
+Uma versão desatualizada é recusada e mantém o rascunho para revisão explícita após **Load latest version**. A tentativa tem UUID próprio: repetir a mesma correção após confirmação perdida não duplica revisões. O envio original permanece imutável em metadados privados; reenvios antigos confirmam sua recepção sem alterar a versão corrigida. Falhas e timeouts não são apresentados como confirmação de salvamento.
+
+Rascunhos ficam em memória enquanto as ferramentas estão abertas. Não há salvamento offline de correções; fechar/recarregar a página perde o rascunho. A consulta pública e o aplicativo continuam sem acesso a motivos ou autorias privadas. A publicação e a validação integrada ficam na 4.3.
+
+Roteiro de aprovação: [testar a subfase 4.2](docs/testing-admin-corrections-4.2.md).
+
 ## Verificar e gerar o build
 
 ```sh
