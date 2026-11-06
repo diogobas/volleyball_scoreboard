@@ -11,6 +11,7 @@ import { Roster, ScorePanel } from './components/TeamPanel';
 import EditTeamsDialog from './components/EditTeamsDialog';
 import Statistics from './components/Statistics';
 import CloseMatchDialog from './components/CloseMatchDialog';
+import MatchHistory from './components/MatchHistory';
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -118,7 +119,7 @@ function MatchApp({ database, initialState }) {
   return <Box component="main" className="app" aria-label="Volleyball Scoreboard">
     {closeSuccess && <Alert severity="success" onClose={() => setCloseSuccess(false)} sx={{ mx: 2, mb: 2 }}>Match saved on this device, awaiting upload. A new match has started.</Alert>}
     {storageWarning && <Alert severity="warning" action={<Button color="inherit" size="small" onClick={retrySave}>Retry saving</Button>} sx={{ mx: 2, mb: 2 }}>{storageWarning}</Alert>}
-    <Box ref={courtRef} className={`court${tab === 1 ? ' court--stats' : ''}`}>
+    <Box ref={courtRef} className={`court${tab !== 0 ? ' court--stats' : ''}`}>
       {tab === 0 && <Box className="scoreboard">
         <Stack className="set-bar" direction="row" sx={{ alignItems: 'center', justifyContent: 'center', gap: 2 }}>
           <Typography className="sets-won" variant="body2" aria-label={`Sets won by ${leftTeam.name}`}>{leftTeam.setsWon}</Typography>
@@ -134,8 +135,11 @@ function MatchApp({ database, initialState }) {
       <Box className="stats-panel" role="tabpanel" id="stats-panel" aria-labelledby="stats-tab" hidden={tab !== 1}>
         {tab === 1 && <Statistics state={state} teamOrder={teamOrder} />}
       </Box>
+      <Box role="tabpanel" id="history-panel" aria-labelledby="history-tab" hidden={tab !== 2}>
+        {tab === 2 && <MatchHistory database={database} />}
+      </Box>
     </Box>
-    <Box className="actions">
+    {tab !== 2 && <><Box className="actions">
       <Button variant="outlined" color="inherit" size="small" startIcon={<UndoRounded />} disabled={!last}
         aria-label={last?.type === 'set' ? 'Undo last set' : 'Undo last point'} onClick={() => dispatch({ type: 'undo' })}>
         Undo
@@ -148,10 +152,11 @@ function MatchApp({ database, initialState }) {
       <Button variant="outlined" color="inherit" size="small" startIcon={<SwapHorizRounded />} aria-pressed={state.sidesSwapped}
         onClick={() => dispatch({ type: 'switchSides' })}>Switch sides</Button>
     </Box>
-    {scoreA + scoreB > 0 && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', px: 2 }}>Close the current set before closing the match.</Typography>}
+    {scoreA + scoreB > 0 && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', px: 2 }}>Close the current set before closing the match.</Typography>}</>}
     <Tabs value={tab} onChange={changeTab} variant="fullWidth" className="tabs" aria-label="Match view">
       <Tab id="game-tab" aria-controls="game-panel" label="Game" />
       <Tab id="stats-tab" aria-controls="stats-panel" label="Statistics" />
+      <Tab id="history-tab" aria-controls="history-panel" label="History" />
     </Tabs>
     {tab === 0 && <Box component="details" className="log-wrap">
       <Box component="summary"><Typography component="span" variant="overline" color="text.secondary">Recent points ({state.log.length})</Typography></Box>
@@ -165,10 +170,10 @@ function MatchApp({ database, initialState }) {
           </Paper>)}
       </Box>
     </Box>}
-    <Box component="footer" className="footer">
+    {tab !== 2 && <Box component="footer" className="footer">
       <Button color="inherit" size="small" startIcon={<RestartAltRounded />} onClick={() => setConfirmation('reset')}>Reset match</Button>
       <Typography variant="caption" color="text.secondary">{saved ? 'Saved on this device' : storageWarning ? 'Local saving unavailable' : 'Saving…'}</Typography>
-    </Box>
+    </Box>}
     {editing && <EditTeamsDialog teams={state.teams} teamOrder={teamOrder} onClose={() => setEditing(false)}
       onSave={teams => { dispatch({ type: 'edit', teams }); setEditing(false); }} />}
     {confirmation === 'closeMatch' && <CloseMatchDialog state={state} saving={closingMatch} error={closeError}

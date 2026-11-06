@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { IDBFactory } from 'fake-indexeddb';
 import { createMatch, matchReducer } from './match.js';
 import { ACTIVE_STORE, CLOSED_STORE, DATABASE_NAME, DATABASE_VERSION, closeStoredMatch,
-  loadStoredMatch, openMatchDatabase, saveStoredMatch } from './storage.js';
+  listStoredMatches, loadStoredMatch, openMatchDatabase, saveStoredMatch } from './storage.js';
 
 const point = (state, team = 'A') => matchReducer(state, { type: 'point', team, playerId: 'p1' });
 
@@ -253,4 +253,71 @@ test('closing a stale view does not discard changes saved by another tab', async
   await assert.rejects(closeStoredMatch(database, state, { id: 'stale' }), /saved match changed/);
   assert.deepEqual(await loadStoredMatch(database), changed);
   assert.equal(await storedValue(database, CLOSED_STORE, 'stale'), undefined);
+});
+
+test('history starts empty and excludes the current match', async t => {
+  const database = await openMatchDatabase(new IDBFactory());
+  t.after(() => database.close());
+  await saveStoredMatch(database, closedSet());
+  assert.deepEqual(await listStoredMatches(database), []);
+});
+
+test('history reads persisted archives newest first without changing either store', async t => {
+  const factory = new IDBFactory();
+  let database = await openMatchDatabase(factory);
+  t.after(() => database.close());
+  const first = closedSet();
+  const second = closedSet(createMatch(), 'B');
+  await saveStoredMatch(database, first);
+  await closeStoredMatch(database, first, { id: 'older', closedAt: '2026-11-05T12:00:00.000Z' });
+  await saveStoredMatch(database, second);
+  await closeStoredMatch(database, second, { id: 'newer', closedAt: '2026-11-06T12:00:00.000Z' });
+  const current = point(createMatch());
+  await saveStoredMatch(database, current);
+  database.close();
+  database = await openMatchDatabase(factory);
+  const matches = await listStoredMatches(database);
+  assert.deepEqual(matches.map(match => match.id), ['newer', 'older']);
+  assert.equal(matches.filter(match => match.syncStatus === 'pending').length, 2);
+  assert.deepEqual(matches[0].state, second);
+  assert.deepEqual(matches[1].state, first);
+  assert.deepEqual(await loadStoredMatch(database), current);
+  for (const archive of matches) assert.deepEqual(await storedValue(database, CLOSED_STORE, archive.id), archive);
+});
+
+test('one unreadable archive remains visible and does not prevent reading healthy matches', async t => {
+  const database = await openMatchDatabase(new IDBFactory());
+  t.after(() => database.close());
+  const state = closedSet();
+  await saveStoredMatch(database, state);
+  await closeStoredMatch(database, state, { id: 'healthy' });
+  const records = [
+    { id: 'unsupported', formatVersion: 2, syncStatus: 'pending', state },
+    { id: 'invalid', formatVersion: 1, closedAt: new Date().toISOString(), state: {} },
+    { id: 'incomplete', formatVersion: 1, closedAt: new Date().toISOString(), state: createMatch() },
+  ];
+  const transaction = database.transaction(CLOSED_STORE, 'readwrite');
+  records.forEach(record => transaction.objectStore(CLOSED_STORE).put(record));
+  const matches = await listStoredMatches(database);
+  assert.equal(matches.length, 4);
+  assert.deepEqual(matches[0].state, state);
+  assert.equal(matches.filter(match => match.unavailable).length, 3);
+  for (const record of records) assert.deepEqual(await storedValue(database, CLOSED_STORE, record.id), record);
+});
+
+test('history read failures reject and a later read can retry without data loss', async t => {
+  const database = await openMatchDatabase(new IDBFactory());
+  t.after(() => database.close());
+  const state = closedSet();
+  await saveStoredMatch(database, state);
+  await closeStoredMatch(database, state, { id: 'preserved' });
+  const original = database.transaction.bind(database);
+  database.transaction = (...args) => {
+    const transaction = original(...args);
+    queueMicrotask(() => transaction.abort());
+    return transaction;
+  };
+  await assert.rejects(listStoredMatches(database));
+  database.transaction = original;
+  assert.equal((await listStoredMatches(database))[0].id, 'preserved');
 });

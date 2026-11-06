@@ -74,6 +74,27 @@ export async function saveStoredMatch(database, state) {
   await done;
 }
 
+export async function listStoredMatches(database) {
+  const transaction = database.transaction(CLOSED_STORE, 'readonly');
+  const done = transactionDone(transaction);
+  const request = transaction.objectStore(CLOSED_STORE).getAll();
+  await done;
+  return request.result.map(archive => {
+    try {
+      if (archive.formatVersion !== 1 || !Number.isFinite(Date.parse(archive.closedAt))) {
+        throw new Error('Unsupported archive');
+      }
+      const state = restoreMatch(JSON.stringify(archive.state));
+      if (!canCloseMatch(state)) throw new Error('Incomplete archive');
+      return { ...archive, state };
+    } catch {
+      // Keep unreadable entries visible without modifying or dropping their stored data.
+      return { id: archive.id, syncStatus: archive.syncStatus, unavailable: true };
+    }
+  }).sort((a, b) => (Date.parse(b.closedAt) || 0) - (Date.parse(a.closedAt) || 0) ||
+    String(a.id).localeCompare(String(b.id)));
+}
+
 function archiveId() {
   // getRandomValues also works when testing the web app over a local HTTP network.
   const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));

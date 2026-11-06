@@ -34,6 +34,7 @@ Acesse o IP do computador e a porta mostrada no terminal. Esse servidor é para 
 - Estatísticas por jogador e histórico de sets. Cada set encerrado pode ser expandido para mostrar o ranking de todos os jogadores que pontuaram naquele set, entre os dois times, excluindo erro adversário; empates compartilham a posição. A aba Statistics usa toda a largura disponível, sem o placar do set. No topo, o Top 3 mostra os três maiores pontuadores da partida entre os dois times, excluindo erro adversário e jogadores ainda sem pontos. Empates mostram a mesma posição; a seleção mantém a ordem original dos times e jogadores, independentemente da troca de lados.
 - Reiniciar a partida com confirmação, preservando os nomes.
 - “Close match” salva a partida encerrada no aparelho e começa outra, preservando nomes, jogadores e lados. Exige ao menos um set encerrado e nenhum set aberto com pontos. A confirmação mostra resultado, sets e pontos por jogador; empates são permitidos. A partida encerrada e a próxima são gravadas em uma única transação: se falhar, a partida atual permanece. “Undo” da nova partida não desfaz esse fechamento. Ainda não há envio remoto.
+- A aba **History** lista as partidas encerradas no aparelho, da mais recente para a mais antiga, com data, resultado e contagem de pendências. **View details** mostra os sets e pontos de todos os jogadores. A consulta funciona offline e não altera a partida em andamento.
 - Interface em inglês, com layout responsivo para celular, desktop e orientação horizontal. A primeira tela prioriza os pontos do set e as duas listas de jogadores, incluindo erro adversário. Na vertical, o placar ocupa cerca de um terço da altura útil e os jogadores os dois terços restantes; o tamanho dos pontos aproveita essa área e reserva espaço para dois dígitos, sem diminuir ao passar de 9 para 10. Na horizontal, as listas de jogadores ficam nas extremidades, com largura baseada em 16 caracteres (a referência é “Opponent’s error”), mais espaço para o contador de pontos e as margens. O placar geral ocupa o espaço restante no centro, com números de 128–360 px ajustados ao espaço, com a mesma fonte para um ou dois dígitos. Os nomes dos times não aparecem na tela de pontuação; a identificação acessível e as cores acompanham a troca de lados.
 - A lista de jogadores se expande para aproveitar a altura útil da tela, respeitando as áreas seguras do aparelho. Os botões dividem esse espaço igualmente e mantêm pelo menos 44 px de altura na vertical e 48 px na horizontal. Em telas muito baixas, com nomes longos ou texto ampliado, a página permite rolagem para preservar os alvos de toque.
 - Undo, Close set, Edit names e Switch sides ficam depois dos jogadores; as abas Game/Statistics vêm depois dessas ações. Ao selecionar uma aba, a visualização volta ao início da área do placar e do conteúdo selecionado.
@@ -47,7 +48,7 @@ Os dados ficam apenas no navegador/dispositivo e na origem usada para acessar o 
 
 ### Banco local — subfase 1.1
 
-O banco `volleyball-scoreboard` usa versão 1, com os armazenamentos `activeMatches` (partida atual) e `closedMatches` (reservado para partidas encerradas nas próximas subfases). O registro atual possui versão de formato própria. O placar só é liberado depois de concluir a leitura/migração. Uma falha de leitura não inicia uma partida vazia sobre os dados existentes; a tela oferece tentar novamente. Falhas de gravação mostram um aviso com **Retry saving**; mantenha o app aberto até salvar com sucesso.
+O banco `volleyball-scoreboard` usa versão 1, com os armazenamentos `activeMatches` (partida atual) e `closedMatches` (partidas encerradas). O registro atual possui versão de formato própria. O placar só é liberado depois de concluir a leitura/migração. Uma falha de leitura não inicia uma partida vazia sobre os dados existentes; a tela oferece tentar novamente. Falhas de gravação mostram um aviso com **Retry saving**; mantenha o app aberto até salvar com sucesso.
 
 O app solicita armazenamento persistente quando a plataforma oferece essa API, mas a concessão depende do navegador. Desinstalar o app ou limpar seus dados ainda pode apagar a partida. Ao sair, aguarde **Saved on this device**. A cópia antiga no `localStorage` representa somente o estado anterior à migração; voltar para uma versão antiga do aplicativo não recupera os pontos feitos depois dela.
 
@@ -57,11 +58,19 @@ Roteiro de aprovação: [testar a subfase 1.1](docs/testing-local-storage-1.1.md
 
 O botão **Close match** fica disponível depois de salvar os pontos e encerrar todos os sets com pontuação. Confira o resumo e use **Save and start new match**. Durante a gravação, a confirmação fica bloqueada para impedir envios repetidos. Só depois de concluir a transação o app exibe a nova partida e a mensagem de sucesso. Se ocorrer erro, a confirmação permanece aberta para tentar novamente ou cancelar.
 
-Cada registro em `closedMatches` contém UUID, `formatVersion: 1`, data de fechamento (`closedAt`), estado completo da partida e `syncStatus: 'pending'`. O aplicativo não envia nem apaga esses registros nesta subfase. A lista navegável de partidas será implementada na subfase 1.3; por enquanto, é possível inspecionar os registros nas ferramentas do navegador.
+Cada registro em `closedMatches` contém UUID, `formatVersion: 1`, data de fechamento (`closedAt`), estado completo da partida e `syncStatus: 'pending'`. O aplicativo não envia nem apaga esses registros nesta fase. Eles podem ser consultados na aba **History** ou inspecionados nas ferramentas do navegador.
 
 **Reset match** continua descartando a partida em andamento, sem arquivá-la; para guardá-la, use **Close match**. Partidas já arquivadas não são afetadas pelo reset ou pelos pontos da próxima partida. Um fechamento detectando alteração do registro atual por outra aba é recusado; recarregue e confira o jogo antes de tentar novamente.
 
 Roteiro de aprovação: [testar a subfase 1.2](docs/testing-close-match-1.2.md).
+
+### Histórico e pendências — subfase 1.3
+
+A aba **History** consulta novamente o banco local sempre que é aberta. Mostra o total de partidas salvas, o total aguardando envio e uma lista com data de fechamento no fuso do aparelho e resultado em sets. **View details** abre uma consulta do vencedor/empate, placares de cada set, participantes e pontos individuais, incluindo erros adversários separados. As ações de jogo e reset ficam disponíveis nas abas Game/Statistics; o histórico é apenas para consulta.
+
+Todas as partidas encerradas normalmente nesta fase ficam como **Awaiting upload**; a interface informa que o envio remoto ainda não está disponível. Uma falha ao ler o histórico oferece **Retry** e não altera o jogo atual. Um registro inválido aparece com aviso, preservando seus dados e permitindo consultar os demais. A leitura não altera nem exclui registros. Fechar uma partida atualiza a lista ao abrir History; recarregar ou reiniciar o app mantém os dados na mesma instalação/origem.
+
+Roteiro de aprovação: [testar a subfase 1.3](docs/testing-match-history-1.3.md).
 
 ## Verificar e gerar o build
 
