@@ -33,6 +33,7 @@ Acesse o IP do computador e a porta mostrada no terminal. Esse servidor é para 
 - Edição dos nomes com salvar/cancelar, sem perder os pontos. Campos em branco mantêm o nome anterior. Na tela do jogo, os jogadores aparecem em ordem alfabética, considerando acentos e maiúsculas equivalentes; “Opponent’s error” permanece sempre por último. A ordenação se atualiza ao salvar os nomes e mantém os pontos vinculados a cada jogador.
 - Estatísticas por jogador e histórico de sets. Cada set encerrado pode ser expandido para mostrar o ranking de todos os jogadores que pontuaram naquele set, entre os dois times, excluindo erro adversário; empates compartilham a posição. A aba Statistics usa toda a largura disponível, sem o placar do set. No topo, o Top 3 mostra os três maiores pontuadores da partida entre os dois times, excluindo erro adversário e jogadores ainda sem pontos. Empates mostram a mesma posição; a seleção mantém a ordem original dos times e jogadores, independentemente da troca de lados.
 - Reiniciar a partida com confirmação, preservando os nomes.
+- “Close match” salva a partida encerrada no aparelho e começa outra, preservando nomes, jogadores e lados. Exige ao menos um set encerrado e nenhum set aberto com pontos. A confirmação mostra resultado, sets e pontos por jogador; empates são permitidos. A partida encerrada e a próxima são gravadas em uma única transação: se falhar, a partida atual permanece. “Undo” da nova partida não desfaz esse fechamento. Ainda não há envio remoto.
 - Interface em inglês, com layout responsivo para celular, desktop e orientação horizontal. A primeira tela prioriza os pontos do set e as duas listas de jogadores, incluindo erro adversário. Na vertical, o placar ocupa cerca de um terço da altura útil e os jogadores os dois terços restantes; o tamanho dos pontos aproveita essa área e reserva espaço para dois dígitos, sem diminuir ao passar de 9 para 10. Na horizontal, as listas de jogadores ficam nas extremidades, com largura baseada em 16 caracteres (a referência é “Opponent’s error”), mais espaço para o contador de pontos e as margens. O placar geral ocupa o espaço restante no centro, com números de 128–360 px ajustados ao espaço, com a mesma fonte para um ou dois dígitos. Os nomes dos times não aparecem na tela de pontuação; a identificação acessível e as cores acompanham a troca de lados.
 - A lista de jogadores se expande para aproveitar a altura útil da tela, respeitando as áreas seguras do aparelho. Os botões dividem esse espaço igualmente e mantêm pelo menos 44 px de altura na vertical e 48 px na horizontal. Em telas muito baixas, com nomes longos ou texto ampliado, a página permite rolagem para preservar os alvos de toque.
 - Undo, Close set, Edit names e Switch sides ficam depois dos jogadores; as abas Game/Statistics vêm depois dessas ações. Ao selecionar uma aba, a visualização volta ao início da área do placar e do conteúdo selecionado.
@@ -50,7 +51,17 @@ O banco `volleyball-scoreboard` usa versão 1, com os armazenamentos `activeMatc
 
 O app solicita armazenamento persistente quando a plataforma oferece essa API, mas a concessão depende do navegador. Desinstalar o app ou limpar seus dados ainda pode apagar a partida. Ao sair, aguarde **Saved on this device**. A cópia antiga no `localStorage` representa somente o estado anterior à migração; voltar para uma versão antiga do aplicativo não recupera os pontos feitos depois dela.
 
-Roteiro de aprovação: [testar a subfase 1.1](docs/testing-local-storage-1.1.md). O fechamento de partidas e a consulta do histórico ainda não fazem parte desta entrega.
+Roteiro de aprovação: [testar a subfase 1.1](docs/testing-local-storage-1.1.md).
+
+### Fechar partida — subfase 1.2
+
+O botão **Close match** fica disponível depois de salvar os pontos e encerrar todos os sets com pontuação. Confira o resumo e use **Save and start new match**. Durante a gravação, a confirmação fica bloqueada para impedir envios repetidos. Só depois de concluir a transação o app exibe a nova partida e a mensagem de sucesso. Se ocorrer erro, a confirmação permanece aberta para tentar novamente ou cancelar.
+
+Cada registro em `closedMatches` contém UUID, `formatVersion: 1`, data de fechamento (`closedAt`), estado completo da partida e `syncStatus: 'pending'`. O aplicativo não envia nem apaga esses registros nesta subfase. A lista navegável de partidas será implementada na subfase 1.3; por enquanto, é possível inspecionar os registros nas ferramentas do navegador.
+
+**Reset match** continua descartando a partida em andamento, sem arquivá-la; para guardá-la, use **Close match**. Partidas já arquivadas não são afetadas pelo reset ou pelos pontos da próxima partida. Um fechamento detectando alteração do registro atual por outra aba é recusado; recarregue e confira o jogo antes de tentar novamente.
+
+Roteiro de aprovação: [testar a subfase 1.2](docs/testing-close-match-1.2.md).
 
 ## Verificar e gerar o build
 

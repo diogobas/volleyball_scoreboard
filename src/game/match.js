@@ -24,6 +24,11 @@ export function teamScore(team) {
   return team.players.reduce((sum, player) => sum + player.setPoints, 0);
 }
 
+export function canCloseMatch(state) {
+  return state.log.some(entry => entry.type === 'set') &&
+    TEAM_IDS.every(id => teamScore(state.teams[id]) === 0);
+}
+
 // Replay stored points without applying new rules to historical sets.
 function addPoint(state, action) {
   const team = state.teams[action.team];

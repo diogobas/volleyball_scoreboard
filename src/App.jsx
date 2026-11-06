@@ -1,15 +1,16 @@
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper, Stack, Tab, Tabs, Typography } from '@mui/material';
 import UndoRounded from '@mui/icons-material/UndoRounded';
 import EditOutlined from '@mui/icons-material/EditOutlined';
 import RestartAltRounded from '@mui/icons-material/RestartAltRounded';
 import CheckRounded from '@mui/icons-material/CheckRounded';
 import SwapHorizRounded from '@mui/icons-material/SwapHorizRounded';
-import { matchReducer, TEAM_IDS, teamScore } from './game/match';
-import { loadStoredMatch, openMatchDatabase, saveStoredMatch } from './game/storage';
+import { canCloseMatch, matchReducer, TEAM_IDS, teamScore } from './game/match';
+import { closeStoredMatch, loadStoredMatch, openMatchDatabase, saveStoredMatch } from './game/storage';
 import { Roster, ScorePanel } from './components/TeamPanel';
 import EditTeamsDialog from './components/EditTeamsDialog';
 import Statistics from './components/Statistics';
+import CloseMatchDialog from './components/CloseMatchDialog';
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -46,7 +47,11 @@ export default function App() {
 
 function MatchApp({ database, initialState }) {
   const courtRef = useRef(null);
-  const [state, dispatch] = useReducer(matchReducer, initialState);
+  const [state, setState] = useState(initialState);
+  const closingRef = useRef(false);
+  const [closingMatch, setClosingMatch] = useState(false);
+  const [closeError, setCloseError] = useState('');
+  const [closeSuccess, setCloseSuccess] = useState(false);
   const [storageWarning, setStorageWarning] = useState('');
   const [tab, setTab] = useState(0);
   const [editing, setEditing] = useState(false);
@@ -57,6 +62,31 @@ function MatchApp({ database, initialState }) {
   const scoreB = teamScore(state.teams.B);
   const teamOrder = state.sidesSwapped ? ['B', 'A'] : TEAM_IDS;
   const [leftTeam, rightTeam] = teamOrder.map(id => state.teams[id]);
+
+  function dispatch(action) {
+    if (!closingRef.current) setState(previous => matchReducer(previous, action));
+  }
+
+  async function finishMatch() {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    setClosingMatch(true);
+    setCloseError('');
+    try {
+      const nextState = await closeStoredMatch(database, state);
+      setState(nextState);
+      setSavedState(nextState);
+      setStorageWarning('');
+      setConfirmation(null);
+      setTab(0);
+      setCloseSuccess(true);
+    } catch (error) {
+      setCloseError(`The match could not be closed. Your current match has been kept. ${error.message} You can retry.`);
+    } finally {
+      closingRef.current = false;
+      setClosingMatch(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -70,6 +100,7 @@ function MatchApp({ database, initialState }) {
   }, [database, state]);
 
   function retrySave() {
+    if (closingRef.current) return;
     saveStoredMatch(database, state).then(() => {
       setSavedState(state);
       setStorageWarning('');
@@ -85,6 +116,7 @@ function MatchApp({ database, initialState }) {
   const last = state.log.at(-1);
   const closing = confirmation === 'closeSet';
   return <Box component="main" className="app" aria-label="Volleyball Scoreboard">
+    {closeSuccess && <Alert severity="success" onClose={() => setCloseSuccess(false)} sx={{ mx: 2, mb: 2 }}>Match saved on this device, awaiting upload. A new match has started.</Alert>}
     {storageWarning && <Alert severity="warning" action={<Button color="inherit" size="small" onClick={retrySave}>Retry saving</Button>} sx={{ mx: 2, mb: 2 }}>{storageWarning}</Alert>}
     <Box ref={courtRef} className={`court${tab === 1 ? ' court--stats' : ''}`}>
       {tab === 0 && <Box className="scoreboard">
@@ -110,10 +142,13 @@ function MatchApp({ database, initialState }) {
       </Button>
       <Button variant="outlined" color="inherit" size="small" startIcon={<CheckRounded />} disabled={scoreA + scoreB === 0}
         onClick={() => setConfirmation('closeSet')}>Close set</Button>
+      <Button variant="outlined" color="inherit" size="small" startIcon={<CheckRounded />} disabled={!canCloseMatch(state) || !saved}
+        onClick={() => { setCloseError(''); setCloseSuccess(false); setConfirmation('closeMatch'); }}>Close match</Button>
       <Button variant="outlined" color="inherit" size="small" startIcon={<EditOutlined />} onClick={() => setEditing(true)}>Edit names</Button>
       <Button variant="outlined" color="inherit" size="small" startIcon={<SwapHorizRounded />} aria-pressed={state.sidesSwapped}
         onClick={() => dispatch({ type: 'switchSides' })}>Switch sides</Button>
     </Box>
+    {scoreA + scoreB > 0 && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', px: 2 }}>Close the current set before closing the match.</Typography>}
     <Tabs value={tab} onChange={changeTab} variant="fullWidth" className="tabs" aria-label="Match view">
       <Tab id="game-tab" aria-controls="game-panel" label="Game" />
       <Tab id="stats-tab" aria-controls="stats-panel" label="Statistics" />
@@ -136,7 +171,9 @@ function MatchApp({ database, initialState }) {
     </Box>
     {editing && <EditTeamsDialog teams={state.teams} teamOrder={teamOrder} onClose={() => setEditing(false)}
       onSave={teams => { dispatch({ type: 'edit', teams }); setEditing(false); }} />}
-    <Dialog open={Boolean(confirmation)} onClose={() => setConfirmation(null)} aria-labelledby="confirm-title" aria-describedby="confirm-message">
+    {confirmation === 'closeMatch' && <CloseMatchDialog state={state} saving={closingMatch} error={closeError}
+      onClose={() => setConfirmation(null)} onConfirm={finishMatch} />}
+    <Dialog open={confirmation === 'closeSet' || confirmation === 'reset'} onClose={() => setConfirmation(null)} aria-labelledby="confirm-title" aria-describedby="confirm-message">
       <DialogTitle id="confirm-title">{closing ? `Close set ${state.currentSet}?` : 'Reset match?'}</DialogTitle>
       <DialogContent><DialogContentText id="confirm-message">
         {closing ? `Final score: ${leftTeam.name} ${teamScore(leftTeam)} × ${teamScore(rightTeam)} ${rightTeam.name}. Set scores will reset; match statistics will be kept.${scoreA === scoreB ? ' The score is tied, so neither team will be awarded a set.' : ''}`
