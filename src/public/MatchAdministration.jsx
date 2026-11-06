@@ -193,9 +193,9 @@ function SetEditor({ set, index, payload, players, change }) {
       <Typography component="h3" variant="subtitle1">Points · Set {index + 1}</Typography>
       <Typography variant="caption" color="text.secondary">A: {set.team_a_name} · B: {set.team_b_name}</Typography>
       <Box sx={{ maxHeight: 420, overflowY: 'auto', mb: 2, pr: .5 }}>
-        {set.points.map((point, pointIndex) => <Box key={pointIndex} sx={{ py: 1 }}>
-          <Typography variant="caption">Point {pointIndex + 1}</Typography>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+        {set.points.map((point, pointIndex) => <Box key={pointIndex} sx={{ pt: 1.5, pb: 2 }}>
+          <Typography variant="caption" sx={{ display: 'block', mb: 1.5 }}>Point {pointIndex + 1}</Typography>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
             <TextField select size="small" label="Team" value={point.team} sx={{ width: 90, flexShrink: 0 }} slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
               onChange={event => change(payload => editPoint(payload,index,pointIndex,{ team: event.target.value }))}>
               <option value="A">A</option><option value="B">B</option>

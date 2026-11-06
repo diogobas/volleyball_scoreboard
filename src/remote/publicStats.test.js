@@ -7,6 +7,8 @@ const groupId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const matchId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 test('hash routes preserve season and page, support deep links and leave the scoreboard at the default URL', () => {
   for (const hash of ['', '#', '#/', '#/app']) assert.deepEqual(readRoute(hash), { kind: 'app' });
+  for (const hash of ['', '#', '#/']) assert.deepEqual(readRoute(hash,'public'), { kind: 'groups' });
+  assert.deepEqual(readRoute('#/app','public'), { kind: 'app' });
   assert.deepEqual(readRoute('#/groups'), { kind: 'groups' });
   const href = publicGroupHref(groupId, { season: 2025, page: 2, matchId });
   assert.deepEqual(readRoute(href), { kind: 'match', groupId, matchId, season: 2025, page: 2 });

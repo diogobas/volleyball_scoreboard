@@ -1,5 +1,8 @@
 node_modules/
 dist/
+dist-public/
+.cloudflare/
+.wrangler/
 .env
 .env.*
 !.env.example
@@ -12,3 +15,4 @@ test-results/
 artifacts/
 *.jks
 *.keystore
+android/keystore.properties

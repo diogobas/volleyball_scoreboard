@@ -8,8 +8,9 @@ export function publicGroupHref(groupId, { season = null, page = 1, matchId = nu
   return `#/groups/${groupId}${matchId ? `/matches/${matchId}` : ''}${query ? `?${query}` : ''}`;
 }
 
-export function readRoute(hash = '') {
-  if (['', '#', '#/', '#/app'].includes(hash)) return { kind: 'app' };
+export function readRoute(hash = '', defaultView = 'app') {
+  if (hash === '#/app') return { kind: 'app' };
+  if (['', '#', '#/'].includes(hash)) return { kind: defaultView === 'public' ? 'groups' : 'app' };
   const [path, query = ''] = hash.slice(1).split('?');
   if (path === '/groups' && !query) return { kind: 'groups' };
   const parts = /^\/groups\/([^/]+)(?:\/matches\/([^/]+))?$/.exec(path);

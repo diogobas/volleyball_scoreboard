@@ -187,7 +187,7 @@ A consulta calcula pontos individuais, partidas, vitórias e dias a partir dos s
 
 **History foi removida do aplicativo**, junto com a tabela local de temporada. Game e Statistics continuam mostrando a partida atual. Para enviar arquivos offline, use **Players & sync → Pending uploads → Sync pending matches**. Esse painel exibe apenas grupo, data, estado e erro por pendência, mantendo a associação explícita de arquivos antigos sem grupo. A remoção da interface de histórico não apaga jogos locais. Arquivos pendentes só entram na consulta pública após confirmação remota.
 
-A página tem seleção de temporada, paginação, links diretos, atualização e estados de vazio/erro. O link **Public results** no app abre o grupo atual; **Open scoreboard** retorna ao placar. A publicação continua prevista para a 4.3; a entrega atual é local, para aprovação antes das correções administrativas da 4.2.
+A página tem seleção de temporada, paginação, links diretos, atualização e estados de vazio/erro. O link **Public results** no app abre o grupo atual; **Open scoreboard** retorna ao placar. A publicação e os builds de teste estão documentados na subfase 4.3.
 
 Preparação e roteiro: [testar a subfase 4.1](docs/testing-public-results-4.1.md). As seções anteriores documentam a evolução das subfases; onde citam History ou o resumo local, a navegação atual é a descrita aqui.
 
@@ -250,7 +250,7 @@ O projeto usa Capacitor 8 para incluir a aplicação React em um app Android. A 
 
 - Nome: `Volleyball Scoreboard`
 - Identificador: `com.diogobastos.volleyballscoreboard`
-- Versão inicial: `1.0` (`versionCode` 1)
+- Versão atual: `1.1.0` (`versionCode` 3)
 - Android mínimo: 7.0 (API 24), com Android System WebView atualizado.
 - SDK de compilação e destino: API 36.
 
@@ -301,15 +301,15 @@ O teste interno permite distribuir pela Play Store para até 100 testadores, por
 1. Execute `npm test`, `npm run android:sync` e `npm run android:open`.
 2. No Android Studio, aguarde a sincronização do Gradle e abra **Build > Generate Signed Bundle / APK**. Selecione **Android App Bundle**, módulo **app**.
 3. No primeiro envio, use **Create new** para criar um keystore, por exemplo `volleyball-upload.jks`, com alias `upload`. Defina as senhas no próprio Android Studio, validade de pelo menos 25 anos e os dados do certificado. Guarde uma cópia do keystore e as senhas em local seguro, fora do Git. Nos próximos envios, selecione essa mesma chave.
-4. Escolha a variante **release** e gere o bundle. Use **Locate** na notificação de conclusão para encontrar o `.aab` assinado; o destino depende da pasta escolhida no assistente. Um bundle gerado apenas por `./gradlew :app:bundleRelease` não fica assinado com a configuração atual do projeto.
+4. Escolha a variante **release** e gere o bundle. Use **Locate** na notificação de conclusão para encontrar o `.aab` assinado; o destino depende da pasta escolhida no assistente. O build release usa a chave configurada em `android/keystore.properties`; veja o guia 4.3.
 5. No [Play Console](https://play.google.com/console), selecione **Criar app**, informe `Volleyball Scoreboard`, o idioma padrão inglês, tipo **App** e a opção gratuito ou pago conforme sua distribuição. Preencha as declarações exigidas.
 6. Abra **Testar e lançar > Teste > Teste interno** e crie uma versão. Configure o **Play App Signing**, permitindo que o Google gere a chave de assinatura do app, e envie o `.aab` assinado. O identificador enviado será `com.diogobastos.volleyballscoreboard`.
 7. Informe as notas da versão, salve, revise os erros indicados pelo Console e inicie o lançamento para teste interno.
 8. Na aba **Testadores**, crie e selecione uma lista com os e-mails das Contas Google dos participantes e salve. Copie o link de participação e envie aos testadores. Cada pessoa deve abrir o link com a conta cadastrada, aceitar o teste e instalar pela Play Store. O app não aparece na busca pública durante esse teste.
 
-Sugestão de notas em inglês: `Restored the “Opponent’s error” label on scoring buttons and in recent points.`
+Sugestão de notas em inglês: `Offline match saving, safe uploads and public season results.`
 
-O primeiro envio pode usar `versionCode 1` e `versionName "1.0"`, definidos em `android/app/build.gradle`. Para cada novo bundle enviado ao Google Play, aumente o `versionCode` para um número ainda não utilizado. O número de build do iOS é independente.
+Esta entrega usa `versionCode 3` e `versionName "1.1.0"`, definidos em `android/app/build.gradle`. Para cada novo bundle enviado ao Google Play, aumente o `versionCode` para um número ainda não utilizado. O número de build do iOS é independente.
 
 O teste interno pode começar antes de concluir toda a configuração da página pública. O primeiro link pode levar algumas horas para ficar disponível. Siga as pendências mostradas pelo Console para a sua conta.
 
@@ -345,7 +345,7 @@ Se o Xcode informar que não há destinos disponíveis ou que “iOS 26.5 is not
 1. Conecte o iPhone ao Mac por cabo, desbloqueie e aceite “Confiar neste computador” se solicitado.
 2. No Xcode, abra **Settings > Accounts** (ou **Apple Accounts**) e adicione sua conta Apple.
 3. Na barra lateral, selecione o projeto **App** e depois o target **App**. Em **Signing & Capabilities**, mantenha **Automatically manage signing** ativado e selecione sua **Personal Team**.
-4. Mantenha o identificador `com.diogobastos.volleyballscoreboard`. Se o Xcode indicar que ele está indisponível, escolha um identificador exclusivo e atualize também `appId` em `capacitor.config.json`.
+4. Mantenha o identificador iOS `ca.itelligent.volleyballscoreboard`. Se o Xcode indicar que ele está indisponível, escolha um identificador exclusivo e atualize também `appId` em `capacitor.config.json`.
 5. Selecione o iPhone como destino na barra superior e clique em **Run** (⌘R). O Xcode baixa as dependências Swift na primeira compilação.
 6. Se solicitado, ative **Ajustes > Privacidade e Segurança > Modo de Desenvolvedor** no iPhone e siga as instruções para reiniciar e confirmar.
 7. Se o iPhone bloquear a abertura por desenvolvedor não confiável, vá a **Ajustes > Geral > VPN e Gerenciamento de Dispositivo**, selecione sua conta em App de Desenvolvedor e autorize.
@@ -366,20 +366,20 @@ Referências: [Capacitor iOS](https://capacitorjs.com/docs/ios), [conta gratuita
 
 O target iOS está configurado com o identificador `ca.itelligent.volleyballscoreboard` e a equipe selecionada no Xcode. O identificador Android continua `com.diogobastos.volleyballscoreboard`. Para o TestFlight, use o cadastro do App Store Connect correspondente ao identificador iOS.
 
-- Versão iOS preparada: **1.0, build 2**. O build fica em `CURRENT_PROJECT_VERSION`, nas configurações Debug e Release do projeto Xcode. Aumente esse número antes de cada novo envio; a versão Android é independente.
+- Versão iOS preparada: **1.1.0, build 3**. O build fica em `CURRENT_PROJECT_VERSION`, nas configurações Debug e Release do projeto Xcode. Aumente esse número antes de cada novo envio; a versão Android é independente.
 - O app declara `ITSAppUsesNonExemptEncryption = NO`: o código atual não implementa criptografia própria. Reavalie essa declaração se adicionar recursos de criptografia.
 - Execute `npm test` e `npm run ios:sync`. No Xcode, selecione o scheme **App**, destino **Any iOS Device** e **Product > Archive**.
 - No Organizer, selecione o archive e use **Distribute App > App Store Connect > Upload**, com a equipe de distribuição que possui o cadastro do app.
 - Após o processamento da Apple, abra **App Store Connect > Volleyball Scoreboard > TestFlight** para configurar o grupo de teste e as informações da versão.
 
-Os arquivos gerados localmente ficam em `artifacts/ios/`, ignorados pelo Git. O archive `VolleyballScoreboard-1.0-2.xcarchive` pode ser aberto no Organizer; o IPA exportado fica em `TestFlight-1.0-2/App.ipa`. O TestFlight exige uma assinatura ativa do Apple Developer Program e um cadastro do app no App Store Connect.
+Os arquivos gerados localmente ficam em `artifacts/ios/`, ignorados pelo Git. O archive `VolleyballScoreboard-1.1.0-3.xcarchive` pode ser aberto no Organizer; o IPA exportado fica em `TestFlight-1.1.0-3/App.ipa`. O TestFlight exige uma assinatura ativa do Apple Developer Program e um cadastro do app no App Store Connect.
 
 Referência: [envio de builds para o App Store Connect](https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds).
 
-## Próximas etapas
+## Publicação — subfase 4.3
 
-- Testar o APK em um celular Android físico.
-- Definir identificador definitivo e assinatura de release para distribuição.
-- Instalar e testar no iPhone físico pelo Xcode.
+Página pública: https://diogobas.github.io/volleyball_scoreboard/
+
+Consulte [publicação web, TestFlight e Google Play](docs/publishing-4.3.md) e o [roteiro de aprovação em dispositivos](docs/testing-release-4.3.md). O iOS 1.1.0 (3) foi enviado ao App Store Connect; o AAB Android assinado está pronto para upload ao teste interno. Os testes físicos e a liberação dos grupos de testadores ainda precisam ser concluídos.
 
 Referências: [Material UI](https://mui.com/material-ui/getting-started/installation/), [Vite](https://vite.dev/guide/) e [Capacitor Android](https://capacitorjs.com/docs/android).

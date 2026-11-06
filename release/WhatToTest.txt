@@ -1,0 +1,8 @@
+Volleyball Scoreboard 1.1.0 (3)
+
+Offline scoring, persistent player rosters and set substitutions.
+Close matches offline, restart the app, then upload pending matches manually.
+Newly closed online matches upload automatically after local saving.
+Public group results, season statistics and per-set details.
+Authorized web corrections with reason, revision history and conflict protection.
+Game and Statistics remain in the app; historical results are available on the public website.

@@ -15,7 +15,7 @@ export default function Root() {
     window.addEventListener('hashchange', change);
     return () => window.removeEventListener('hashchange', change);
   }, []);
-  const route = readRoute(hash);
+  const route = readRoute(hash, import.meta.env.VITE_DEFAULT_VIEW);
   if (route.kind === 'app') return <App />;
   return <Suspense fallback={<Typography role="status" sx={{ p: 3 }}>Loading public results…</Typography>}>
     <PublicResults key={hash} route={route} />

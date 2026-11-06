@@ -1,0 +1,70 @@
+# Publicação — 1.1.0 (3)
+
+A implementação está em `feat/public-stats-admin`. Nenhum merge na master é necessário para testar/publicar estes artefatos.
+
+## Página pública
+
+Hospedagem escolhida: **GitHub Pages**, usando o repositório público já existente e a branch exclusiva `gh-pages`. É suficiente para este frontend estático; o banco e as permissões continuam no Supabase. Não requer outra conta nem servidor próprio. Endereço:
+
+https://diogobas.github.io/volleyball_scoreboard/
+
+A raiz abre os grupos; links por hash permitem atualizar páginas de partidas sem erro 404. O build do aplicativo continua abrindo o placar. A interface de administração exige conta autorizada e internet. O site não contém senha administrativa nem chave service_role.
+
+Para atualizar, na branch revisada, configure `.env.local` com a URL e chave **publishable** do Supabase conforme `docs/testing-supabase-admin-3.1.md`, autentique `gh auth login` e execute:
+
+```sh
+npm ci
+npm test
+npm run verify:remote
+npm run site:publish:github
+```
+
+O script compila `dist-public`, publica apenas os arquivos estáticos e `.nojekyll`, preserva o histórico da branch de publicação e habilita Pages quando ainda não configurado. Acompanhe o workflow de Pages em Actions; atualização não é instantânea. Não edite `gh-pages` manualmente nem faça merge dela na master. GitHub Pages não interpreta `public/_headers`; esse arquivo é para a alternativa Cloudflare.
+
+Para domínio próprio, configure Settings → Pages → Custom domain e o DNS conforme GitHub; o script preserva o domínio configurado por meio do arquivo CNAME. Nenhum domínio próprio foi configurado nesta entrega.
+
+Alternativa preparada: Workers Static Assets na Cloudflare. `npm run site:prepare`, `npm run site:check` e, após autenticar a CLI cf, `npm run site:deploy`. Não há implantação Cloudflare nesta entrega. O ZIP em `artifacts/web/volleyball-public-1.1.0.zip` também contém o build com index.html na raiz.
+
+Se usar confirmação de e-mail/recuperação na conta, configure em Supabase → Authentication → URL Configuration os endereços de retorno usados no site. Não troque o endpoint do banco para o endereço do site. Consultas públicas não precisam de login.
+
+Referências: [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site), [Workers Static Assets](https://developers.cloudflare.com/workers/static-assets/).
+
+## iOS / TestFlight
+
+Identificador: `ca.itelligent.volleyballscoreboard`. Versão **1.1.0**, build **3**. Archive, exportação e upload ao App Store Connect concluídos nesta entrega. O log local `artifacts/ios/upload-1.1.0-3.log` contém “Upload succeeded”; isto não confirma que a Apple já terminou o processamento ou liberou testadores.
+
+1. Abra [App Store Connect](https://appstoreconnect.apple.com/) → Volleyball Scoreboard → TestFlight.
+2. Aguarde **1.1.0 (3)** terminar o processamento. Confira eventuais pendências de conformidade exibidas pela Apple.
+3. Em **Internal Testing**, selecione/crie um grupo e adicione o build 3. Adicione seu usuário da equipe como testador.
+4. No iPhone, abra o TestFlight com a conta convidada e instale/atualize o aplicativo. Execute o roteiro 4.3 antes de ampliar o grupo.
+5. Para pessoas que não pertencem à equipe App Store Connect, use **External Testing**; o primeiro build externo depende da Beta App Review. Preencha as informações de teste solicitadas pela Apple e selecione os testadores.
+
+Para novos builds, aumente CURRENT_PROJECT_VERSION nas duas configurações do Xcode, execute `npm run ios:sync`, gere Archive e envie pelo Organizer. Há opções de exportação em `release/ios/`. Não reenvie o mesmo número de build. O IPA desta entrega está em `artifacts/ios/TestFlight-1.1.0-3/App.ipa`.
+
+Referência: [testadores internos](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-internal-testers), [TestFlight externo](https://developer.apple.com/testflight/).
+
+## Android / teste interno Google Play
+
+Identificador: `com.diogobastos.volleyballscoreboard`. Versão **1.1.0**, versionCode **3**, mínimo Android 7/API24, destino API36. O pacote assinado está pronto, mas **não foi enviado ao Play Console**:
+
+`artifacts/android/VolleyballScoreboard-1.1.0-3.aab`
+
+1. Abra [Play Console](https://play.google.com/console) e escolha **Criar app**. Nome sugerido: Volleyball Scoreboard; idioma inglês; tipo App; gratuito. Preencha as declarações da sua conta.
+2. Abra **Testar e lançar → Teste → Teste interno** e crie uma versão.
+3. Configure **Play App Signing**, permitindo que o Google gere a chave de assinatura do app. O arquivo fornecido usa sua chave de **upload**, que tem função distinta.
+4. Envie o AAB acima. Confira pacote, versão 1.1.0 e código 3. Use as notas em `release/WhatToTest.txt` como base.
+5. Salve, revise e resolva as pendências indicadas pelo Console; inicie o lançamento para teste interno.
+6. Em **Testadores**, crie/selecione a lista com as Contas Google dos participantes, salve e copie o link de participação.
+7. Abra o link com uma conta dessa lista, aceite o teste e instale pela Play Store. O teste interno comporta até 100 testadores; o aplicativo não precisa aparecer na busca pública.
+
+**Backup obrigatório para continuidade das atualizações:** guarde em local privado `artifacts/android/signing/volleyball-upload.jks` **e** `android/keystore.properties` (contém as senhas). Ambos estão ignorados pelo Git. Não os envie para o repositório nem para testadores. `scripts/create-android-upload-key.py` cria a configuração local inicial; não substitua a chave existente ao atualizar este app.
+
+Para novos bundles: aumente versionCode, mantenha a chave existente, execute `npm run android:bundle`. O resultado fica em `android/app/build/outputs/bundle/release/app-release.aab`. O build release falha com instrução explícita quando a assinatura local não está configurada.
+
+Uma instalação antiga feita pelo APK debug pode ter assinatura diferente da Play Store. Antes de qualquer desinstalação exigida para trocar de assinatura, envie todas as partidas pendentes e confira os resultados no site; desinstalar apaga dados locais. O APK `artifacts/android/VolleyballScoreboard-1.1.0-3-debug.apk` é apenas para instalação direta e não substitui o AAB do Console.
+
+Referência: [teste interno Google Play](https://support.google.com/googleplay/android-developer/answer/9845334).
+
+## Armazenamento e atualização
+
+Dados locais pertencem ao aplicativo/aparelho ou à origem do navegador (protocolo, domínio e porta). Trocar de hospedagem não transfere a partida atual nem pendências. Desinstalação, limpeza de dados e eventual remoção de armazenamento pelo navegador podem apagar conteúdo que ainda não foi confirmado pelo servidor. Atualize mantendo identificador e assinatura; envie pendências antes de migrar instalações. As partidas confirmadas e seus resultados permanecem no Supabase.
