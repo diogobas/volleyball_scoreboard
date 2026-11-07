@@ -9,7 +9,7 @@ O app volta à edição livre de nomes. Conta, cadastro, conciliação e publica
 1. Faça backup do banco Supabase e mantenha a versão atual do site disponível para reversão do frontend. Não limpe o armazenamento dos celulares.
 2. Aplique, depois das cinco migrações existentes, `supabase/migrations/20261107000100_game_days_and_private_review.sql` pelo fluxo SQL já utilizado no projeto. A migração inteira roda em uma transação. Ela conserva os resultados públicos existentes e cria cópias privadas para revisão futura.
 3. Execute `npm test`, `npm run build` e `npm run build:public`. As variáveis Supabase continuam sendo as mesmas de `.env.example`; nenhuma chave privilegiada entra no frontend.
-4. Publique `dist-public` no projeto Pages existente usando `npm run site:pages:check` e `npm run site:pages:deploy`. O painel fica em `https://volleyball-scoreboard-results.pages.dev/#/admin`.
+4. Publique `dist-public` no projeto Pages existente usando `npm run site:pages:check` e `npm run site:pages:deploy`. O painel fica em `https://volleyball-scoreboard-results.pages.dev/#/admin`. O script tenta renovar sessões expiradas do perfil padrão usando `cf auth whoami`; se a renovação falhar, execute `npm exec --yes --package=cf@1.0.0-beta.28 -- cf auth login` e tente publicar novamente. Perfis personalizados via `CF_AUTH_CONFIG` devem ser renovados explicitamente na CLI.
 5. Gere e instale os apps com `npm run android:sync` / `npm run ios:sync` e o procedimento nativo habitual. No Android, `cd android` e `./gradlew assembleDebug` gera `android/app/build/outputs/apk/debug/app-debug.apk`.
 6. Aplique primeiro o banco, depois o site e os apps. Clientes antigos passam a receber confirmação de **recebimento privado**, mesmo que sua mensagem antiga ainda diga que o resultado está público. A confirmação já permite limpar o celular porque a submissão original está preservada no servidor.
 
@@ -86,3 +86,9 @@ Para isolar também a configuração, inicie o Vite com `VITE_SUPABASE_URL=https
 - Logs em `artifacts/court-validation/`; capturas em `artifacts/court-browser/` (artefatos locais ignorados pelo Git).
 - Não havia aparelho Android conectado ou simulador iniciado. O teste em modo avião no aparelho físico permanece como validação manual do roteiro.
 - Nenhuma migração remota, publicação no Pages, instalação em celular ou submissão às lojas foi feita nesta implementação.
+
+## Publicação após aplicação da migração
+
+Em 7 de novembro de 2026, após a aplicação da migração pelo responsável, o site 1.2.0 foi publicado no Cloudflare Pages. Deployment: `790bb711-3127-4d23-9a86-4f8b08d331ae`. A sessão OAuth expirada foi renovada pela CLI oficial; o uploader agora tenta essa renovação automaticamente no perfil padrão antes de pedir novo login.
+
+A verificação remota somente de leitura confirmou os oito resultados existentes, seus detalhes e o bloqueio de acesso administrativo anônimo. Administração: `https://volleyball-scoreboard-results.pages.dev/#/admin`. A publicação do site não envia o app ao TestFlight.

@@ -2,6 +2,7 @@
 // https://developers.cloudflare.com/api/resources/pages/subresources/assets/
 import { readFile, readdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
@@ -33,8 +34,23 @@ let token = process.env.CLOUDFLARE_API_TOKEN;
 if (!token) {
   // Reuse the cf session only in memory. Never write or print credentials.
   const configFile = process.env.CF_AUTH_CONFIG || path.join(homedir(),'Library/Preferences/cloudflare/config/default.json');
-  const config = JSON.parse(await readFile(configFile,'utf8'));
-  if (Date.parse(config.expiration_time) <= Date.now()) throw new Error('Cloudflare session expired; run cf auth login.');
+  let config = JSON.parse(await readFile(configFile,'utf8'));
+  if (Date.parse(config.expiration_time) <= Date.now() && !process.env.CF_AUTH_CONFIG) {
+    console.log('Refreshing the expired Cloudflare session with cf…');
+    try {
+      // Let the official CLI rotate and persist its own OAuth credentials.
+      // Suppress CLI output: the uploader never prints authentication details.
+      execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm',
+        ['exec','--yes','--package=cf@1.0.0-beta.28','--','cf','auth','whoami'],
+        { stdio: 'ignore', timeout: 60_000 });
+      config = JSON.parse(await readFile(configFile,'utf8'));
+    } catch {
+      throw new Error('Cloudflare session could not be refreshed. Run npm exec --yes --package=cf@1.0.0-beta.28 -- cf auth login, then retry site:pages:deploy.');
+    }
+  }
+  if (!Number.isFinite(Date.parse(config.expiration_time)) || Date.parse(config.expiration_time) <= Date.now()) {
+    throw new Error('Cloudflare session expired. Renew the selected cf profile with cf auth login, then retry site:pages:deploy.');
+  }
   token = config.oauth_token;
 }
 if (!token) throw new Error('Authenticate with cf or provide CLOUDFLARE_API_TOKEN locally.');
