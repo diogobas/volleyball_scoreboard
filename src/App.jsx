@@ -1,31 +1,19 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper, Stack, Tab, Tabs, Typography } from '@mui/material';
 import UndoRounded from '@mui/icons-material/UndoRounded';
 import EditOutlined from '@mui/icons-material/EditOutlined';
 import RestartAltRounded from '@mui/icons-material/RestartAltRounded';
 import CheckRounded from '@mui/icons-material/CheckRounded';
 import SwapHorizRounded from '@mui/icons-material/SwapHorizRounded';
-import { canCloseMatch, matchReducer, TEAM_IDS, teamScore } from './game/match';
-import { closeStoredMatch, createLocalId, loadStoredMatch, openMatchDatabase, saveStoredMatch } from './game/storage';
+import { canCloseMatch, enableCourtMode, matchReducer, TEAM_IDS, teamScore } from './game/match';
+import { closeStoredMatch, createLocalId, listStoredMatches, loadStoredMatch, openMatchDatabase, saveStoredMatch } from './game/storage';
 import { Roster, ScorePanel } from './components/TeamPanel';
 import EditTeamsDialog from './components/EditTeamsDialog';
 import Statistics from './components/Statistics';
 import CloseMatchDialog from './components/CloseMatchDialog';
-import PendingUploadsDialog from './components/PendingUploadsDialog';
-import PlayerRegistryDialog from './components/PlayerRegistryDialog';
-import { registryCache } from './game/registryCache';
-import { closeDatabaseWhenUploadsFinish, uploadStoredMatch } from './remote/matchSync';
-import { DEVELOPMENT_GROUP_ID } from './game/registry';
-import { publicGroupHref } from './public/routes';
-const AccountDialog = lazy(() => import('./components/AccountDialog').catch(() => ({ default: AccountLoadFailure })));
-
-function AccountLoadFailure({ onClose }) {
-  return <Dialog open onClose={onClose} aria-labelledby="account-load-title">
-    <DialogTitle id="account-load-title">Account &amp; groups</DialogTitle>
-    <DialogContent><Alert severity="warning">Account tools could not be loaded. You can keep playing. Reload the app when connected to try again.</Alert></DialogContent>
-    <DialogActions><Button onClick={onClose}>Done</Button></DialogActions>
-  </Dialog>;
-}
+import { applyDayLineup } from './game/gameDay';
+import SavedMatchesDialog from './components/SavedMatchesDialog';
+import { closeDayDatabaseWhenUploadsFinish, uploadReceivedMatch } from './remote/gameDays';
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -38,7 +26,7 @@ export default function App() {
     async function initialize() {
       try {
         database = await openMatchDatabase();
-        const state = await loadStoredMatch(database);
+        const state = enableCourtMode(await loadStoredMatch(database));
         if (cancelled) { database.close(); return; }
         setSession({ database, state });
         // Best effort: unsupported/denied persistent storage must not prevent play.
@@ -49,7 +37,7 @@ export default function App() {
       }
     }
     initialize();
-    return () => { cancelled = true; if (database) void closeDatabaseWhenUploadsFinish(database); };
+    return () => { cancelled = true; if (database) void closeDayDatabaseWhenUploadsFinish(database); };
   }, [attempt]);
 
   if (error) return <Box component="main" className="app">
@@ -70,11 +58,9 @@ function MatchApp({ database, initialState }) {
   const [storageWarning, setStorageWarning] = useState('');
   const [tab, setTab] = useState(0);
   const [editing, setEditing] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [registryOpen, setRegistryOpen] = useState(false);
   const [pendingOpen, setPendingOpen] = useState(false);
-  const [registryVersion, setRegistryVersion] = useState(0);
-  const [registryNotice, setRegistryNotice] = useState('');
+  const [pendingCount, setPendingCount] = useState(0);
+  const [syncNotice, setSyncNotice] = useState('');
   const [confirmation, setConfirmation] = useState(null);
   const [savedState, setSavedState] = useState(initialState);
   const saved = savedState === state;
@@ -88,45 +74,39 @@ function MatchApp({ database, initialState }) {
     if (!closingRef.current) setState(previous => matchReducer(previous, timedAction));
   }
 
-  async function registryChanged() {
-    const current = await loadStoredMatch(database);
-    setState(current); setSavedState(current); setRegistryVersion(value => value + 1);
+  async function refreshPending() {
+    try { setPendingCount((await listStoredMatches(database)).length); }
+    catch { setSyncNotice('Saved matches could not be loaded. Existing data has been kept.'); }
   }
+  useEffect(() => { void refreshPending(); }, [database]);
 
-  async function sendClosedMatch(id, groupId) {
+  async function sendClosedMatch(id) {
     try {
-      const cache = await registryCache(database);
-      if (cache.groups.find(group => group.id === groupId)?.localOnly !== false) return;
-      setRegistryNotice('Uploading the closed match. Its local copy is kept until the server confirms it.');
-      const result = await uploadStoredMatch(database, id);
-      if (result.status === 'confirmed') {
-        setCloseSuccess(false);
-        setRegistryNotice('Match confirmed online. Its local copy has been removed. View the match in Public results.');
-      }
+      setSyncNotice('Sending for administrator review. Local copy is kept until receipt is confirmed.');
+      await uploadReceivedMatch(database, id);
+      setCloseSuccess(false);
+      setSyncNotice('Received for administrator review. Local copy removed.');
     } catch (error) {
-      setRegistryNotice(`Match upload was not confirmed. Your match is kept on this device. ${error.message || ''} Use Players & sync → Pending uploads to retry.`);
-    } finally {
-      setRegistryVersion(value => value + 1);
-    }
+      setSyncNotice(`Sync was not confirmed. Your match is kept on this device. ${error.message || ''} Open Saved matches to retry.`);
+    } finally { void refreshPending(); }
   }
 
-  async function finishMatch() {
+  async function finishMatch(sync = false, dayContext = null) {
     if (closingRef.current) return;
     closingRef.current = true;
     setClosingMatch(true);
     setCloseError('');
     try {
       const id = createLocalId();
-      const nextState = await closeStoredMatch(database, state, { id });
+      const nextState = await closeStoredMatch(database, state, { id, dayContext });
       setState(nextState);
       setSavedState(nextState);
       setStorageWarning('');
       setConfirmation(null);
       setTab(0);
       setCloseSuccess(true);
-      if (nextState.groupId && globalThis.navigator?.onLine !== false) {
-        void sendClosedMatch(id, nextState.groupId);
-      }
+      void refreshPending();
+      if (sync) void sendClosedMatch(id);
     } catch (error) {
       setCloseError(`The match could not be closed. Your current match has been kept. ${error.message} You can retry.`);
     } finally {
@@ -168,7 +148,7 @@ function MatchApp({ database, initialState }) {
   const closing = confirmation === 'closeSet';
   return <Box component="main" className="app" aria-label="Volleyball Scoreboard">
     {closeSuccess && <Alert severity="success" onClose={() => setCloseSuccess(false)} sx={{ mx: 2, mb: 2 }}>Match saved on this device, awaiting upload. A new match has started.</Alert>}
-    {registryNotice && <Alert severity="info" onClose={() => setRegistryNotice('')} sx={{ mx: 2, mb: 2 }}>{registryNotice}</Alert>}
+    {syncNotice && <Alert severity="info" onClose={() => setSyncNotice('')} sx={{ mx: 2, mb: 2 }}>{syncNotice}</Alert>}
     {storageWarning && <Alert severity="warning" action={<Button color="inherit" size="small" onClick={retrySave}>Retry saving</Button>} sx={{ mx: 2, mb: 2 }}>{storageWarning}</Alert>}
     <Box ref={courtRef} className={`court${tab !== 0 ? ' court--stats' : ''}`}>
       {tab === 0 && <Box className="scoreboard">
@@ -195,8 +175,9 @@ function MatchApp({ database, initialState }) {
       <Button variant="outlined" color="inherit" size="small" startIcon={<CheckRounded />} disabled={scoreA + scoreB === 0}
         onClick={() => setConfirmation('closeSet')}>Close set</Button>
       <Button variant="outlined" color="inherit" size="small" startIcon={<CheckRounded />} disabled={!canCloseMatch(state) || !saved}
-        onClick={() => { setCloseError(''); setCloseSuccess(false); setConfirmation('closeMatch'); }}>Close match</Button>
-      <Button variant="outlined" color="inherit" size="small" startIcon={<EditOutlined />} onClick={() => setEditing(true)}>Teams &amp; players</Button>
+        onClick={() => { setCloseError(''); setCloseSuccess(false); setConfirmation('closeMatch'); }}>Save match</Button>
+      <Button color="inherit" size="small" onClick={() => setPendingOpen(true)}>Saved matches ({pendingCount})</Button>
+      <Button variant="outlined" color="inherit" size="small" startIcon={<EditOutlined />} onClick={() => setEditing(true)}>Edit names</Button>
       <Button variant="outlined" color="inherit" size="small" startIcon={<SwapHorizRounded />} aria-pressed={state.sidesSwapped}
         onClick={() => dispatch({ type: 'switchSides' })}>Switch sides</Button>
     </Box>
@@ -205,11 +186,6 @@ function MatchApp({ database, initialState }) {
       <Tab id="game-tab" aria-controls="game-panel" label="Game" />
       <Tab id="stats-tab" aria-controls="stats-panel" label="Statistics" />
     </Tabs>
-    <Box sx={{ px: 2, pb: 1 }}>
-      <Button color="inherit" size="small" onClick={() => setAccountOpen(true)}>Account &amp; groups</Button>
-      <Button color="inherit" size="small" onClick={() => setRegistryOpen(true)}>Players &amp; sync</Button>
-      <Button component="a" color="inherit" size="small" href={state.groupId && state.groupId !== DEVELOPMENT_GROUP_ID ? publicGroupHref(state.groupId) : '#/groups'}>Public results</Button>
-    </Box>
     {tab === 0 && <Box component="details" className="log-wrap">
       <Box component="summary"><Typography component="span" variant="overline" color="text.secondary">Recent points ({state.log.length})</Typography></Box>
       <Box className="log-list">
@@ -226,14 +202,12 @@ function MatchApp({ database, initialState }) {
       <Button color="inherit" size="small" startIcon={<RestartAltRounded />} onClick={() => setConfirmation('reset')}>Reset match</Button>
       <Typography variant="caption" color="text.secondary">{saved ? 'Saved on this device' : storageWarning ? 'Local saving unavailable' : 'Saving…'}</Typography>
     </Box>
-    {accountOpen && <Suspense fallback={<Typography role="status" sx={{ px: 2 }}>Loading account…</Typography>}>
-      <AccountDialog database={database} onClose={() => setAccountOpen(false)} />
-    </Suspense>}
-    {registryOpen && <PlayerRegistryDialog database={database} preferredGroupId={state.groupId}
-      onChanged={registryChanged} onClose={() => setRegistryOpen(false)} onPending={() => { setRegistryOpen(false); setPendingOpen(true); }} />}
-    {pendingOpen && <PendingUploadsDialog database={database} refreshVersion={registryVersion} onClose={() => setPendingOpen(false)} />}
-    {editing && <EditTeamsDialog state={state} database={database} teamOrder={teamOrder} onClose={() => setEditing(false)}
-      onSave={updated => { setState(updated); setSavedState(updated); setEditing(false); }} />}
+    {pendingOpen && <SavedMatchesDialog database={database} onChanged={refreshPending} onClose={() => setPendingOpen(false)} />}
+    {editing && <EditTeamsDialog state={state} teamOrder={teamOrder} onClose={() => setEditing(false)}
+      onSave={(teams, dayContext, imported) => {
+        setState(previous => matchReducer(imported ? applyDayLineup(previous, dayContext) : previous, { type: 'edit', teams }));
+        setEditing(false);
+      }} />}
     {confirmation === 'closeMatch' && <CloseMatchDialog state={state} saving={closingMatch} error={closeError}
       onClose={() => setConfirmation(null)} onConfirm={finishMatch} />}
     <Dialog open={confirmation === 'closeSet' || confirmation === 'reset'} onClose={() => setConfirmation(null)} aria-labelledby="confirm-title" aria-describedby="confirm-message">

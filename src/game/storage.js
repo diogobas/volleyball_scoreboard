@@ -142,7 +142,7 @@ export function createLocalId() {
 }
 
 export async function closeStoredMatch(database, state, {
-  id = createLocalId(), closedAt = new Date().toISOString(),
+  id = createLocalId(), closedAt = new Date().toISOString(), dayContext = null,
 } = {}) {
   if (!canCloseMatch(restoreMatch(JSON.stringify(state)))) throw new Error('Close the current set before closing the match.');
   let nextState;
@@ -160,7 +160,7 @@ export async function closeStoredMatch(database, state, {
       }
       const snapshot = restoreMatch(JSON.stringify(expected));
       nextState = matchReducer(snapshot, { type: 'reset' });
-      const archive = { id, formatVersion: 1, closedAt, syncStatus: 'pending', state: snapshot };
+      const archive = { id, formatVersion: 1, closedAt, syncStatus: 'pending', state: snapshot, ...(dayContext ? { dayContext } : {}) };
       // Both writes commit together. add() also prevents replacing an existing archive.
       transaction.objectStore(CLOSED_STORE).add(archive);
       active.put({ formatVersion: 1, state: nextState }, ACTIVE_KEY);

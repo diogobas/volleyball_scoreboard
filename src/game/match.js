@@ -132,7 +132,7 @@ export function setRanking(state, setNumber) {
     TEAM_IDS.indexOf(a.teamId) - TEAM_IDS.indexOf(b.teamId) || a.id.localeCompare(b.id));
 }
 
-export function matchReducer(state, action) {
+function reduceMatch(state, action) {
   switch (action.type) {
     case 'roster': {
       if (!state.groupId || !canChangeRoster(state)) throw new Error('Players can only change between sets, before the next point.');
@@ -200,20 +200,33 @@ export function matchReducer(state, action) {
       if (!previous.log.some(entry => entry.type === 'point')) delete previous.startedAt;
       return previous;
     }
-    case 'edit':
-      return { ...state, teams: Object.fromEntries(TEAM_IDS.map(id => [id, {
+    case 'edit': {
+      const teams = Object.fromEntries(TEAM_IDS.map(id => [id, {
         ...state.teams[id], name: action.teams[id].name.trim().slice(0, 16) || state.teams[id].name,
         players: state.teams[id].players.map((p, i) => p.isError ? p : { ...p,
-          name: p.personId ? p.name : action.teams[id].players[i].name.trim().slice(0, 20) || p.name }),
-      }])) };
+          name: p.personId && !state.court ? p.name : action.teams[id].players[i].name.trim().slice(0, state.court ? 60 : 20) || p.name }),
+      }]));
+      if (TEAM_IDS.every(id => teams[id].name === state.teams[id].name && teams[id].players.every((p, i) => p.name === state.teams[id].players[i].name))) return state;
+      return { ...state, teams, ...(state.court ? { court: { ...state.court, changes: [...state.court.changes,
+        { at: state.log.length, teams: structuredClone(teams) }] } } : {}) };
+    }
     case 'reset':
-      return { ...createMatch(), ...(state.groupId ? { groupId: state.groupId } : {}), sidesSwapped: state.sidesSwapped, teams: Object.fromEntries(TEAM_IDS.map(id => [id, {
+      return { ...createMatch(), ...(state.dayContext ? { dayContext: state.dayContext } : {}), ...(state.court ? { court: { initial: structuredClone(state.teams), changes: [] } } : {}), ...(state.groupId ? { groupId: state.groupId } : {}), sidesSwapped: state.sidesSwapped, teams: Object.fromEntries(TEAM_IDS.map(id => [id, {
         ...state.teams[id], setsWon: 0,
         players: state.teams[id].players.map(p => ({ ...p, setPoints: 0, matchPoints: 0 })),
       }])) };
     default:
       return state;
   }
+}
+
+export function matchReducer(state, action) {
+  const next = reduceMatch(state, action);
+  // Name edits remain in effect after Undo, just as in the original app.
+  // Move edits back with the removed event so subsequent points use the current lineup.
+  if (action.type === 'undo' && next.court) return { ...next, court: { ...next.court,
+    changes: next.court.changes.map(change => ({ ...change, at: Math.min(change.at, next.log.length) })) } };
+  return next;
 }
 
 // Replaying the log validates saved counters and set snapshots instead of trusting them.
@@ -281,8 +294,36 @@ export function restoreMatch(raw) {
       }
     } else throw new Error('Invalid event');
   }
-  if (saved.initialRoster && JSON.stringify(matchRoster(restored)) !== JSON.stringify(matchRoster({ teams: saved.teams }))) {
+  if (!saved.court && saved.initialRoster && JSON.stringify(matchRoster(restored)) !== JSON.stringify(matchRoster({ teams: saved.teams }))) {
     throw new Error('Roster does not match its history');
   }
+  if (saved.court) {
+    const checkTeams = teams => {
+      for (const id of TEAM_IDS) {
+        if (typeof teams?.[id]?.name !== 'string' || !teams[id].name.trim() || teams[id].name.length > 16 || teams[id].players?.length !== 7) throw new Error('Invalid saved names');
+        teams[id].players.forEach((p, i) => { if (p.id !== (i === 6 ? 'err' : `p${i+1}`) || typeof p.name !== 'string' || !p.name.trim() || p.name.length > 60) throw new Error('Invalid saved player name'); });
+      }
+    };
+    checkTeams(saved.court.initial);
+    if (!Array.isArray(saved.court.changes)) throw new Error('Invalid name history');
+    for (const change of saved.court.changes) {
+      if (!Number.isInteger(change.at) || change.at < 0) throw new Error('Invalid name change');
+      checkTeams(change.teams);
+    }
+    restored.court = structuredClone(saved.court);
+    for (const id of TEAM_IDS) {
+      restored.teams[id].name = saved.teams[id].name;
+      restored.teams[id].players.forEach((p, i) => { if (!p.isError) p.name = saved.teams[id].players[i].name; });
+    }
+  }
+  if (saved.dayContext) {
+    const day = saved.dayContext;
+    if (!uuidPattern.test(day.day_id) || !uuidPattern.test(day.group_id) || typeof day.code !== 'string' || !Number.isInteger(day.lineup_version)) throw new Error('Invalid saved game day');
+    restored.dayContext = structuredClone(day);
+  }
   return restored;
+}
+
+export function enableCourtMode(state) {
+  return state.court ? state : { ...state, court: { initial: structuredClone(state.teams), changes: [] } };
 }
