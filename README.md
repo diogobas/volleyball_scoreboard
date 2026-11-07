@@ -1,3 +1,5 @@
+> **Atualização em `feat/court-app-game-days`:** app com edição livre de nomes, escalações por código e salvamento/sincronização explícitos. Administração e publicação por dia ficam no site. O roteiro atual, a ordem de migração/publicação e os testes das três etapas estão em [App de quadra e dias de jogo](docs/testing-court-app-game-days.md). As seções de fases anteriores abaixo documentam o comportamento anterior e não substituem esse roteiro.
+
 # Placar de Vôlei
 
 Migração do arquivo `Volleyball Scoreboard.html` para React, Material UI e Vite. O HTML original está preservado como referência e não faz parte do build.
