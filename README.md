@@ -378,7 +378,7 @@ Referência: [envio de builds para o App Store Connect](https://developer.apple.
 
 ## Publicação — subfase 4.3
 
-Página pública: https://diogobas.github.io/volleyball_scoreboard/
+Página pública: https://volleyball-scoreboard-results.diogovvb.workers.dev/
 
 Consulte [publicação web, TestFlight e Google Play](docs/publishing-4.3.md) e o [roteiro de aprovação em dispositivos](docs/testing-release-4.3.md). O iOS 1.1.0 (3) foi enviado ao App Store Connect; o AAB Android assinado está pronto para upload ao teste interno. Os testes físicos e a liberação dos grupos de testadores ainda precisam ser concluídos.
 

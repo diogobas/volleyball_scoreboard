@@ -4,7 +4,27 @@ A implementação está em `feat/public-stats-admin`. Nenhum merge na master é 
 
 ## Página pública
 
-Hospedagem escolhida: **GitHub Pages**, usando o repositório público já existente e a branch exclusiva `gh-pages`. É suficiente para este frontend estático; o banco e as permissões continuam no Supabase. Não requer outra conta nem servidor próprio. Endereço:
+**Endereço principal na Cloudflare:**
+
+https://volleyball-scoreboard-results.diogovvb.workers.dev/
+
+Publicado em Workers Static Assets na conta Cloudflare existente. O build contém apenas arquivos estáticos; banco, autenticação e permissões continuam no Supabase. Foram conferidos HTTPS, cabeçalhos, grupos, oito partidas, detalhes e recarga de links no site publicado, sem gravações remotas.
+
+Para atualizar após revisar alterações:
+
+```sh
+npm test
+npm run verify:remote
+npm run site:prepare
+npm run site:check
+npm run site:deploy
+```
+
+Caso a sessão expire, execute `npm exec --yes --package=cf@1.0.0-beta.28 -- cf auth login` e autorize no navegador. O projeto usa a CLI cf fixada na versão 1.0.0-beta.28 e o nome `volleyball-scoreboard-results`. Não foi configurado domínio próprio. O site GitHub Pages abaixo continua disponível como alternativa.
+
+### Publicação alternativa no GitHub Pages
+
+Publicação inicial: **GitHub Pages**, usando o repositório público já existente e a branch exclusiva `gh-pages`. É suficiente para este frontend estático; o banco e as permissões continuam no Supabase. Não requer outra conta nem servidor próprio. Endereço:
 
 https://diogobas.github.io/volleyball_scoreboard/
 
@@ -23,7 +43,7 @@ O script compila `dist-public`, publica apenas os arquivos estáticos e `.nojeky
 
 Para domínio próprio, configure Settings → Pages → Custom domain e o DNS conforme GitHub; o script preserva o domínio configurado por meio do arquivo CNAME. Nenhum domínio próprio foi configurado nesta entrega.
 
-Alternativa preparada: Workers Static Assets na Cloudflare. `npm run site:prepare`, `npm run site:check` e, após autenticar a CLI cf, `npm run site:deploy`. Não há implantação Cloudflare nesta entrega. O ZIP em `artifacts/web/volleyball-public-1.1.0.zip` também contém o build com index.html na raiz.
+A publicação Cloudflare descrita acima já está ativa. O ZIP em `artifacts/web/volleyball-public-1.1.0.zip` também contém o build com index.html na raiz.
 
 Se usar confirmação de e-mail/recuperação na conta, configure em Supabase → Authentication → URL Configuration os endereços de retorno usados no site. Não troque o endpoint do banco para o endereço do site. Consultas públicas não precisam de login.
 

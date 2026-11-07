@@ -6,7 +6,7 @@ Branch: `feat/public-stats-admin`. Versões nativas 1.1.0 (3).
 
 - 139 testes automatizados de regras, persistência, sincronização, API e permissões SQL.
 - Builds web do placar e da página pública; navegação pública de produção em desktop e viewport de celular sem overflow.
-- Publicação GitHub Pages concluída; navegação e recarga de detalhes verificadas no endereço público.
+- Publicações Cloudflare e GitHub Pages concluídas; navegação e recarga de detalhes verificadas no endereço público.
 - Consulta real somente leitura: grupos, oito partidas de 2026, detalhes e recusa de acesso administrativo anônimo.
 - Build Android debug e release AAB assinado, verificado com jarsigner.
 - Archive iOS, exportação e upload App Store Connect concluídos; build de simulador compilado.
@@ -18,7 +18,7 @@ Siga [publicação e instalação](publishing-4.3.md) para selecionar o build Te
 
 ## Passo a passo
 
-1. Abra https://diogobas.github.io/volleyball_scoreboard/ sem login. **Esperado:** lista de grupos; o placar não é a tela inicial do site.
+1. Abra https://volleyball-scoreboard-results.diogovvb.workers.dev/ sem login. **Esperado:** lista de grupos; o placar não é a tela inicial do site.
 2. Abra o grupo, escolha a temporada e uma partida. Recarregue e copie o link para outro navegador/celular. **Esperado:** mesmos sets, participantes, placares e totais; acesso sem conta.
 3. Autentique um administrador e abra as ferramentas de uma partida de teste. Confira a lista Points. **Esperado:** mais espaço entre o título de cada ponto, campos Team/Scorer e a linha seguinte, inclusive no celular.
 4. Corrija um ponto com motivo, salve e consulte sem login no outro aparelho. **Esperado:** placar/estatísticas recalculados; motivo e autoria administrativa continuam privados. Cancele um rascunho e confirme que nada foi salvo.
