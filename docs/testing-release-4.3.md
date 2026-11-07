@@ -18,7 +18,7 @@ Siga [publicação e instalação](publishing-4.3.md) para selecionar o build Te
 
 ## Passo a passo
 
-1. Abra https://volleyball-scoreboard-results.diogovvb.workers.dev/ sem login. **Esperado:** lista de grupos; o placar não é a tela inicial do site.
+1. Abra https://volleyball-scoreboard-results.pages.dev/ sem login. **Esperado:** lista de grupos; o placar não é a tela inicial do site.
 2. Abra o grupo, escolha a temporada e uma partida. Recarregue e copie o link para outro navegador/celular. **Esperado:** mesmos sets, participantes, placares e totais; acesso sem conta.
 3. Autentique um administrador e abra as ferramentas de uma partida de teste. Confira a lista Points. **Esperado:** mais espaço entre o título de cada ponto, campos Team/Scorer e a linha seguinte, inclusive no celular.
 4. Corrija um ponto com motivo, salve e consulte sem login no outro aparelho. **Esperado:** placar/estatísticas recalculados; motivo e autoria administrativa continuam privados. Cancele um rascunho e confirme que nada foi salvo.

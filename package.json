@@ -23,7 +23,9 @@
     "site:check": "npm exec --yes --package=cf@1.0.0-beta.28 -- cf deploy --prebuilt --mode public --dry-run",
     "site:deploy": "npm exec --yes --package=cf@1.0.0-beta.28 -- cf deploy --prebuilt --mode public",
     "site:publish:github": "python3 scripts/publish-github-pages.py",
-    "verify:remote": "node scripts/check-public-backend.mjs"
+    "verify:remote": "node scripts/check-public-backend.mjs",
+    "site:pages:check": "node scripts/publish-pages.mjs",
+    "site:pages:deploy": "node scripts/publish-pages.mjs --upload"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",

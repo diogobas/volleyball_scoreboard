@@ -6,21 +6,21 @@ A implementação está em `feat/public-stats-admin`. Nenhum merge na master é 
 
 **Endereço principal na Cloudflare:**
 
-https://volleyball-scoreboard-results.diogovvb.workers.dev/
+https://volleyball-scoreboard-results.pages.dev/
 
-Publicado em Workers Static Assets na conta Cloudflare existente. O build contém apenas arquivos estáticos; banco, autenticação e permissões continuam no Supabase. Foram conferidos HTTPS, cabeçalhos, grupos, oito partidas, detalhes e recarga de links no site publicado, sem gravações remotas.
+Publicado em Cloudflare Pages por Direct Upload na conta Cloudflare existente, projeto `volleyball-scoreboard-results`, branch de produção `public`. O build contém apenas arquivos estáticos; banco, autenticação e permissões continuam no Supabase. Foram conferidos HTTPS, cabeçalhos, grupos, oito partidas, detalhes e recarga de links no site publicado, sem gravações remotas.
 
 Para atualizar após revisar alterações:
 
 ```sh
 npm test
 npm run verify:remote
-npm run site:prepare
-npm run site:check
-npm run site:deploy
+npm run build:public
+npm run site:pages:check
+npm run site:pages:deploy
 ```
 
-Caso a sessão expire, execute `npm exec --yes --package=cf@1.0.0-beta.28 -- cf auth login` e autorize no navegador. O projeto usa a CLI cf fixada na versão 1.0.0-beta.28 e o nome `volleyball-scoreboard-results`. Não foi configurado domínio próprio. O site GitHub Pages abaixo continua disponível como alternativa.
+Caso a sessão expire, execute `npm exec --yes --package=cf@1.0.0-beta.28 -- cf auth login` e autorize no navegador. O upload usa a API oficial do Pages, com a sessão OAuth da CLI cf apenas em memória. No Mac, o script lê o perfil padrão local do cf; em outro ambiente use `CF_AUTH_CONFIG` com o caminho do perfil, ou `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` definidos localmente. Nenhuma credencial é gravada no projeto. O comando de check apenas lista o total de arquivos, sem requisições remotas. O comando de deploy usa o build já preparado em `dist-public`, sem recompilá-lo. Não há integração Git automática neste projeto Direct Upload. Não foi configurado domínio próprio. O endereço anterior em Workers continua disponível: https://volleyball-scoreboard-results.diogovvb.workers.dev/ Os comandos `site:prepare`, `site:check` e `site:deploy` continuam específicos dessa publicação antiga. O site GitHub Pages abaixo também continua disponível como alternativa.
 
 ### Publicação alternativa no GitHub Pages
 
@@ -39,7 +39,7 @@ npm run verify:remote
 npm run site:publish:github
 ```
 
-O script compila `dist-public`, publica apenas os arquivos estáticos e `.nojekyll`, preserva o histórico da branch de publicação e habilita Pages quando ainda não configurado. Acompanhe o workflow de Pages em Actions; atualização não é instantânea. Não edite `gh-pages` manualmente nem faça merge dela na master. GitHub Pages não interpreta `public/_headers`; esse arquivo é para a alternativa Cloudflare.
+O script compila `dist-public`, publica apenas os arquivos estáticos e `.nojekyll`, preserva o histórico da branch de publicação e habilita Pages quando ainda não configurado. Acompanhe o workflow de Pages em Actions; atualização não é instantânea. Não edite `gh-pages` manualmente nem faça merge dela na master. GitHub Pages não interpreta `public/_headers`; esse arquivo é interpretado na publicação Cloudflare Pages.
 
 Para domínio próprio, configure Settings → Pages → Custom domain e o DNS conforme GitHub; o script preserva o domínio configurado por meio do arquivo CNAME. Nenhum domínio próprio foi configurado nesta entrega.
 
@@ -47,7 +47,7 @@ A publicação Cloudflare descrita acima já está ativa. O ZIP em `artifacts/we
 
 Se usar confirmação de e-mail/recuperação na conta, configure em Supabase → Authentication → URL Configuration os endereços de retorno usados no site. Não troque o endpoint do banco para o endereço do site. Consultas públicas não precisam de login.
 
-Referências: [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site), [Workers Static Assets](https://developers.cloudflare.com/workers/static-assets/).
+Referências: [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site), [Pages Direct Upload](https://developers.cloudflare.com/pages/get-started/direct-upload/).
 
 ## iOS / TestFlight
 
