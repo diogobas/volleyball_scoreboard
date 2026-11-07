@@ -92,3 +92,12 @@ Para isolar também a configuração, inicie o Vite com `VITE_SUPABASE_URL=https
 Em 7 de novembro de 2026, após a aplicação da migração pelo responsável, o site 1.2.0 foi publicado no Cloudflare Pages. Deployment: `790bb711-3127-4d23-9a86-4f8b08d331ae`. A sessão OAuth expirada foi renovada pela CLI oficial; o uploader agora tenta essa renovação automaticamente no perfil padrão antes de pedir novo login.
 
 A verificação remota somente de leitura confirmou os oito resultados existentes, seus detalhes e o bloqueio de acesso administrativo anônimo. Administração: `https://volleyball-scoreboard-results.pages.dev/#/admin`. A publicação do site não envia o app ao TestFlight.
+
+## Envio ao TestFlight — 7 de novembro de 2026
+
+A versão **1.2.0 (4)** foi arquivada, assinada, exportada e enviada ao App Store Connect. O log `artifacts/ios/upload-1.2.0-4.log` confirmou `Upload succeeded` e `Uploaded package is processing`. Isso confirma o recebimento pela Apple, sem confirmar conclusão do processamento ou liberação ao grupo de testadores.
+
+- Archive: `artifacts/ios/VolleyballScoreboard-1.2.0-4.xcarchive`.
+- IPA de distribuição: `artifacts/ios/TestFlight-1.2.0-4/App.ipa`.
+- Testes repetidos antes da geração: 156 aprovados; `npm run ios:sync` concluído.
+- Após o processamento, conferir App Store Connect → Volleyball Scoreboard → TestFlight e adicionar o build ao grupo existente, se necessário. Atualizar pelo TestFlight preservando a instalação; validar o roteiro offline em aparelho físico.
