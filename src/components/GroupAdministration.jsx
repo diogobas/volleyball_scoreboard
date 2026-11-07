@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, Box, Button, Paper, Stack, TextField, Typography } from '@mui/material';
+import GameDayAdministration from '../public/GameDayAdministration';
 import { remoteGroups } from '../remote/groups';
 
 export default function GroupAdministration({ client, userId, busy, setBusy }) {
@@ -48,7 +49,7 @@ export default function GroupAdministration({ client, userId, busy, setBusy }) {
   }
 
   return <Stack spacing={2}>
-    <Alert severity="info">Manage online access here. Open Players &amp; sync to download registries, link development data and resolve player conflicts.</Alert>
+    <Alert severity="info">Manage group access, players, game days and private reviews here. Only closing a day publishes its results.</Alert>
     {error && <Alert severity="error">{error}</Alert>}
     {message && <Alert severity="success">{message}</Alert>}
     <Button disabled={busy} onClick={() => setAttempt(value => value + 1)}>Refresh groups</Button>
@@ -77,6 +78,7 @@ export default function GroupAdministration({ client, userId, busy, setBusy }) {
           helperText="The person must create an account and confirm their email first." />
         <Button type="submit" variant="outlined" disabled={busy}>Add administrator</Button>
       </Stack>
+      <GameDayAdministration key={selected.id} client={client} group={selected} />
     </> : <>
       <Typography component="h3" variant="h6">My groups</Typography>
       {groups === null && !error && <Typography role="status">Loading groups…</Typography>}
@@ -84,7 +86,7 @@ export default function GroupAdministration({ client, userId, busy, setBusy }) {
       {groups?.map(group => <Paper key={group.id} variant="outlined" sx={{ p: 2 }}>
         <Typography sx={{ overflowWrap: 'anywhere' }}>{group.name}</Typography>
         <Typography variant="body2" color="text.secondary">{group.time_zone}</Typography>
-        <Button disabled={busy} onClick={() => { setSelected(group); setError(''); setMessage(''); }}>Manage administrators</Button>
+        <Button disabled={busy} onClick={() => { setSelected(group); setError(''); setMessage(''); }}>Manage group</Button>
       </Paper>)}
       <Box component="form" onSubmit={create}>
         <Typography component="h3" variant="h6" sx={{ mb: 2 }}>Create group</Typography>

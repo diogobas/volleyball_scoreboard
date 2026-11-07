@@ -17,8 +17,8 @@ export function correctionErrors(payload, players) {
     const label = `Set ${index + 1}`;
     if (!set.points.length) errors.push(`${label}: add points or remove the empty set.`);
     const people = teams.flatMap(team => set.rosters[team]);
-    if (teams.some(team => set.rosters[team].length !== 6) || new Set(people.map(person => person.id)).size !== 12 || people.some(person => !known.has(person.id))) {
-      errors.push(`${label}: select 12 different registered players, six per team.`);
+    if (teams.some(team => set.rosters[team].length < 6 || set.rosters[team].length > 100 || new Set(set.rosters[team].map(p => p.id)).size !== set.rosters[team].length) || people.some(person => !known.has(person.id))) {
+      errors.push(`${label}: select at least six registered participants per team, with no repeats within a team. Include substitutes.`);
     }
     if (set.points.some(point => !teams.includes(point.team) || (point.is_opponent_error
       ? point.player_id !== null || point.player_name !== null

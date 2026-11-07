@@ -9,6 +9,7 @@ export function publicGroupHref(groupId, { season = null, page = 1, matchId = nu
 }
 
 export function readRoute(hash = '', defaultView = 'app') {
+  if (hash === '#/admin') return { kind: 'admin' };
   if (hash === '#/app') return { kind: 'app' };
   if (['', '#', '#/'].includes(hash)) return { kind: defaultView === 'public' ? 'groups' : 'app' };
   const [path, query = ''] = hash.slice(1).split('?');

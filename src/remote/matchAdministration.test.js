@@ -17,8 +17,10 @@ test('participant replacements reassign only that team/set while preserving othe
   assert.equal(edited.sets[0].points[0].player_id,players[12].id);
   assert.equal(edited.sets[1].points[2].player_id,players[0].id);
   assert.deepEqual(original,before); assert.deepEqual(correctionErrors(edited,players),[]);
-  const duplicate=replaceParticipant(original,0,'A',0,players[6]);
-  assert.match(correctionErrors(duplicate,players).join(),/12 different/);
+  const duplicate=replaceParticipant(original,0,'A',0,players[1]);
+  assert.match(correctionErrors(duplicate,players).join(),/no repeats/);
+  const switchedSide=replaceParticipant(original,0,'A',0,players[6]);
+  assert.deepEqual(correctionErrors(switchedSide,players),[]);
 });
 
 test('point authors, team changes, additions and removals derive scores and require explicit attribution',()=>{

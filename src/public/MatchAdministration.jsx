@@ -126,7 +126,7 @@ function CorrectionEditor({ client, groupId, matchId, busy, setBusy, onDirty, on
     if (submission.current?.signature !== signature) submission.current = { signature, id: createLocalId() };
     try {
       const result = await correctMatch({ groupId, matchId, version: context.version, payload: draft, reason, revisionId: submission.current.id }, client);
-      setSuccess(`Correction confirmed online as version ${result.version}. Public results are being refreshed.`);
+      setSuccess(`Correction confirmed online as version ${result.version}. The review is private until an administrator closes the game day.`);
       setReview(false); setBlocked(true); onSaved(); onDirty(false);
       try {
         const latest = await getMatchForEdit(groupId, matchId, client);
@@ -174,7 +174,7 @@ function CorrectionEditor({ client, groupId, matchId, busy, setBusy, onDirty, on
   </Stack>;
 }
 
-function SetEditor({ set, index, payload, players, change }) {
+export function SetEditor({ set, index, payload, players, change }) {
   const [boundary, setBoundary] = useState(String(Math.max(1, Math.floor(set.points.length / 2))));
   const count = Number(boundary); const next = payload.sets[index + 1];
   return <Accordion defaultExpanded={index === 0} disableGutters sx={{ mb: 1 }}>
@@ -224,7 +224,7 @@ function SetEditor({ set, index, payload, players, change }) {
   </Accordion>;
 }
 
-function SnapshotComparison({ before, after }) {
+export function SnapshotComparison({ before, after }) {
   return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0,1fr)', sm: 'repeat(2,minmax(0,1fr))' }, gap: 2 }}>
     {[[before,'Before'],[after,'After']].map(([payload,label]) => <Box key={label}>
       <Typography component="h3" variant="subtitle1">{label} · {payload.sets.length} sets</Typography>
