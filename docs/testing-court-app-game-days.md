@@ -127,3 +127,9 @@ Validação: 158 testes aprovados, build público e Chrome mobile aprovados, inc
 O detalhe público da partida usa a mesma apresentação da aba **Statistics** do app: Top 3, totais por time com barras junto aos nomes e histórico de sets com escalações e rankings. O botão **Review in Administration** foi removido do detalhe. Os pontos são somados por identidade, incluindo quem mudou de time; jogadores sem pontos continuam nas barras e erros adversários permanecem separados do Top 3.
 
 Para testar, entre em Matches, abra View match, confira as barras e expanda Set history. A navegação de volta conserva temporada, página e quantidade de partidas. Validação: 161 testes aprovados, build público aprovado e testes Chrome mobile tanto do site quanto do app aprovados. A mudança ainda está local; não houve publicação nem novo envio ao TestFlight.
+
+### Pontuadores nos cartões de Matches
+
+Cada cartão mostra os três maiores pontuadores **daquela partida**, somando todos os seus sets, com nome, time e pontos. Erros adversários e jogadores sem pontos ficam fora do ranking; quando há menos de três pontuadores, são exibidos apenas os existentes. São usados os detalhes públicos já disponíveis, sem nova migração.
+
+Para conferir, abra Matches e compare os pontos de cada cartão com seu detalhe. Uma partida pontuada apenas por erros adversários mostra **No player points recorded**. Se a consulta de pontuadores falhar, o cartão continua disponível e oferece **Retry scorers**. O teste mobile cobre soma entre sets, limite de três, pontos distintos por partida, exclusão de erros, ranking vazio e recuperação de falha. Validação: 161 testes e build público aprovados, além do teste Chrome mobile. Alteração local, sem publicação.

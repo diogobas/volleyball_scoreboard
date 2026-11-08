@@ -131,6 +131,7 @@ function GroupSeason({ data, route, loading, refresh }) {
             <Typography component="h3" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{match.team_a_name} {match.sets_a} × {match.sets_b} {match.team_b_name}</Typography>
             <Typography variant="body2">{resultText(match)}</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>Sets: {match.sets.map(set => `${set.score_a} × ${set.score_b}`).join(' · ')}</Typography>
+            <MatchTopScorers groupId={route.groupId} match={match} />
             <Button component="a" href={publicGroupHref(route.groupId, { season: data.season, page: data.page, pageSize: data.page_size, matchId: match.id })}>View match</Button>
           </Paper>)}
         </Stack>
@@ -144,6 +145,41 @@ function GroupSeason({ data, route, loading, refresh }) {
       </>}
     </Box>
   </>;
+}
+
+function MatchTopScorers({ groupId, match }) {
+  const [players, setPlayers] = useState(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let active = true;
+    setPlayers(null); setFailed(false);
+    publicMatchDetails(groupId, match.id).then(data => {
+      if (active) setPlayers(publicMatchStatistics(data).topPlayers);
+    }).catch(() => { if (active) setFailed(true); });
+    return () => { active = false; };
+  }, [groupId, match, attempt]);
+
+  return <Box sx={{ my: 2 }}>
+    <Typography component="h4" variant="subtitle2" sx={{ mb: 1 }}>Top scorers</Typography>
+    {failed ? <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
+      <Typography variant="body2" color="text.secondary">Scorers could not be loaded.</Typography>
+      <Button size="small" onClick={() => setAttempt(value => value + 1)}>Retry scorers</Button>
+    </Stack> : players === null ? <Typography variant="body2" color="text.secondary" role="status">Loading scorers…</Typography>
+      : players.length === 0 ? <Typography variant="body2" color="text.secondary">No player points recorded.</Typography>
+        : <Box component="ol" aria-label={`Top scorers for ${match.team_a_name} vs ${match.team_b_name}`}
+          sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' }, gap: 1, listStyle: 'none', p: 0, m: 0 }}>
+          {players.map(player => <Box component="li" key={player.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.25,
+            bgcolor: 'action.hover', borderRadius: 1, minWidth: 0 }}>
+            <Typography variant="body2" color="text.secondary">{players.findIndex(item => item.points === player.points) + 1}.</Typography>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, overflowWrap: 'anywhere' }}>{player.name}</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>{player.teamName}</Typography>
+            </Box>
+            <Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{player.points} {player.points === 1 ? 'pt' : 'pts'}</Typography>
+          </Box>)}
+        </Box>}
+  </Box>;
 }
 
 function MatchDetails({ data, loading, refresh }) {

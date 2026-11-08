@@ -10,6 +10,7 @@ const allMatches = Array.from({ length: 26 }, (_, i) => ({
 }));
 const players = [{ id: 'player-a', name: 'Alex', points: 20, matches: 4, wins: 2, days: 2 }];
 let requests = 0;
+let failScorers = true;
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
   await mkdir('artifacts/public-navigation', { recursive: true });
@@ -28,11 +29,23 @@ try {
         seasons: [2026,2025,2024], match_count: matches.length, participant_count: 1, point_count: 20, fallback_dates: 0, players,
         matches: matches.slice((args.p_page-1)*25,args.p_page*25) } });
     }
-    if (name === 'public_match_details') return route.fulfill({ headers, json: { group, group_id: group.id, id: args.p_match_id,
-      started_at: '2025-11-07T23:00:00Z', closed_at: '2025-11-08T01:00:00Z', team_a_name: 'Home', team_b_name: 'Away', sets_a: 1, sets_b: 0, sets: [
+    if (name === 'public_match_details') {
+      if (args.p_match_id === allMatches[0].id && failScorers) {
+        return route.fulfill({ status: 500, headers, json: { message: 'Temporary failure' } });
+      }
+      let sets = [
         { number: 1, team_a_name: 'Home', team_b_name: 'Away', score_a: 4, score_b: 2, errors_a: 1, errors_b: 0,
           players: [{id:'alex',name:'Alex',team:'A',position:1,points:3}, {id:'bob',name:'Bob',team:'A',position:2,points:0}, {id:'chris',name:'Chris',team:'B',position:1,points:2}] },
-      ] } });
+      ];
+      if (args.p_match_id === allMatches[0].id) sets = [...sets,
+        { number: 2, team_a_name: 'Home', team_b_name: 'Away', score_a: 108, score_b: 4, errors_a: 100, errors_b: 0,
+          players: [{id:'alex',name:'Alex',team:'A',position:1,points:4}, {id:'dani',name:'Dani',team:'A',position:2,points:4},
+            {id:'chris',name:'Chris',team:'B',position:1,points:3}, {id:'eve',name:'Eve',team:'B',position:2,points:1}] },
+      ];
+      if (args.p_match_id === allMatches[1].id) sets = [{ ...sets[0], score_a: 25, score_b: 0, errors_a: 25, errors_b: 0, players: [] }];
+      return route.fulfill({ headers, json: { group, group_id: group.id, id: args.p_match_id,
+      started_at: '2025-11-07T23:00:00Z', closed_at: '2025-11-08T01:00:00Z', team_a_name: 'Home', team_b_name: 'Away', sets_a: 1, sets_b: 0, sets } });
+    }
     throw new Error(`Unexpected external request: ${name}`);
   });
   const nav = () => page.getByRole('tablist', { name: 'Group sections' });
@@ -46,6 +59,25 @@ try {
   await page.getByRole('link', { name: 'View matches', exact: true }).click();
   await page.getByRole('heading', { name: 'Matches · 2026', exact: true }).waitFor(); await selected('Matches');
   assert.equal(requests, initialRequests);
+  const firstCard = page.locator('.MuiPaper-root').filter({ has: page.getByRole('heading', { name: 'Home 1 1 × 0 Away', exact: true }) });
+  await firstCard.getByRole('button', { name: 'Retry scorers', exact: true }).waitFor();
+  failScorers = false;
+  await firstCard.getByRole('button', { name: 'Retry scorers', exact: true }).click();
+  const firstScorers = firstCard.getByRole('list', { name: 'Top scorers for Home 1 vs Away', exact: true });
+  await firstScorers.waitFor();
+  assert.equal(await firstScorers.getByRole('listitem').count(), 3);
+  const scorerRows = await firstScorers.getByRole('listitem').allTextContents();
+  assert.match(scorerRows[0], /Alex.*7 pts/);
+  assert.match(scorerRows[1], /Chris.*5 pts/);
+  assert.match(scorerRows[2], /Dani.*4 pts/);
+  assert.doesNotMatch(scorerRows.join(' '), /Bob|Eve|error/i);
+  const secondCard = page.locator('.MuiPaper-root').filter({ has: page.getByRole('heading', { name: 'Home 2 1 × 0 Away', exact: true }) });
+  await secondCard.getByText('No player points recorded.', { exact: true }).waitFor();
+  const thirdScorers = page.getByRole('list', { name: 'Top scorers for Home 3 vs Away', exact: true });
+  await thirdScorers.waitFor();
+  assert.match((await thirdScorers.getByRole('listitem').allTextContents())[0], /Alex.*3 pts/);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  await page.screenshot({ path: 'artifacts/public-navigation/match-card-scorers-mobile.png', fullPage: true });
   await nav().getByRole('tab', { name: 'Overview', exact: true }).click();
   await page.getByRole('link', { name: 'View players', exact: true }).click();
   await page.getByRole('table', { name: 'Player statistics for season 2026' }).waitFor();
@@ -101,5 +133,5 @@ try {
   await mkdir('artifacts/public-navigation', { recursive: true });
   await page.screenshot({ path: 'artifacts/public-navigation/matches-mobile.png', fullPage: true });
   assert.deepEqual(errors, []);
-  console.log('PASS: separate group sections, season selection, match pagination, detail return, reload, browser back and mobile layout.');
+  console.log('PASS: per-match top scorers, error exclusion, empty ranking, retry, separate group sections, pagination, match statistics and mobile layout.');
 } finally { await browser.close(); }
