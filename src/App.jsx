@@ -58,6 +58,7 @@ function MatchApp({ database, initialState }) {
   const [closeSuccess, setCloseSuccess] = useState(false);
   const [storageWarning, setStorageWarning] = useState('');
   const [tab, setTab] = useState(0);
+  const [setupDismissed, setSetupDismissed] = useState(false);
   const [lineupOpen, setLineupOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [pendingOpen, setPendingOpen] = useState(false);
@@ -73,7 +74,10 @@ function MatchApp({ database, initialState }) {
 
   function dispatch(action) {
     const timedAction = action.type === 'point' ? { ...action, startedAt: new Date().toISOString() } : action;
-    if (!closingRef.current) setState(previous => matchReducer(previous, timedAction));
+    if (!closingRef.current) {
+      if (action.type === 'reset') setSetupDismissed(false);
+      setState(previous => matchReducer(previous, timedAction));
+    }
   }
 
   async function refreshPending() {
@@ -101,6 +105,7 @@ function MatchApp({ database, initialState }) {
     try {
       const id = createLocalId();
       const nextState = await closeStoredMatch(database, state, { id, dayContext });
+      setSetupDismissed(false);
       setState(nextState);
       setSavedState(nextState);
       setStorageWarning('');
@@ -153,7 +158,7 @@ function MatchApp({ database, initialState }) {
     {closeSuccess && <Alert severity="success" onClose={() => setCloseSuccess(false)} sx={{ mx: 2, mb: 2 }}>Match saved on this device, awaiting upload. A new match has started.</Alert>}
     {syncNotice && <Alert severity="info" onClose={() => setSyncNotice('')} sx={{ mx: 2, mb: 2 }}>{syncNotice}</Alert>}
     {storageWarning && <Alert severity="warning" action={<Button color="inherit" size="small" onClick={retrySave}>Retry saving</Button>} sx={{ mx: 2, mb: 2 }}>{storageWarning}</Alert>}
-    {tab === 0 && !matchStarted && <Paper variant="outlined" sx={{ mx: 1.5, mb: 1.5, p: 1.5 }} aria-label="Match setup">
+    {tab === 0 && !matchStarted && !setupDismissed && <Paper variant="outlined" sx={{ mx: 1.5, mb: 1.5, p: 1.5 }} aria-label="Match setup">
       <Typography variant="subtitle2">{state.dayContext ? `${state.dayContext.group_name} · ${state.dayContext.play_date}` : 'Before the match'}</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
         {state.dayContext ? 'Game-day lineup loaded. You can start playing offline.' : 'Load the teams prepared by your administrator, or play without a code.'}
@@ -161,7 +166,7 @@ function MatchApp({ database, initialState }) {
       <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
         <Button variant="outlined" size="small" onClick={() => setLineupOpen(true)}>{state.dayContext ? 'Change game-day code' : 'Use game-day code'}</Button>
         <Button size="small" onClick={() => {
-          try { setState(startIndependentMatch(state)); setSyncNotice('Independent match. Edit names or start scoring whenever you are ready.'); }
+          try { setState(startIndependentMatch(state)); setSetupDismissed(true); setSyncNotice(''); }
           catch (error) { setSyncNotice(error.message); }
         }}>Play independently</Button>
       </Stack>
@@ -221,12 +226,13 @@ function MatchApp({ database, initialState }) {
     {lineupOpen && <DayCodeDialog confirmLabel="Load lineup" onClose={() => setLineupOpen(false)} onConfirm={async context => {
       const next = applyDayLineup(state, context);
       const persisted = await saveStoredMatch(database, next);
-      setState(persisted); setSavedState(persisted); setStorageWarning(''); setSyncNotice(''); setLineupOpen(false);
+      setSetupDismissed(false); setState(persisted); setSavedState(persisted); setStorageWarning(''); setSyncNotice(''); setLineupOpen(false);
     }} />}
     {pendingOpen && <SavedMatchesDialog database={database} onChanged={refreshPending} onClose={() => setPendingOpen(false)} />}
     {editing && <EditTeamsDialog state={state} teamOrder={teamOrder} onClose={() => setEditing(false)}
       onSave={(teams, dayContext, imported) => {
         setState(previous => matchReducer(imported ? applyDayLineup(previous, dayContext) : previous, { type: 'edit', teams }));
+        if (imported) setSetupDismissed(false);
         setEditing(false);
       }} />}
     {confirmation === 'closeMatch' && <CloseMatchDialog state={state} saving={closingMatch} error={closeError}

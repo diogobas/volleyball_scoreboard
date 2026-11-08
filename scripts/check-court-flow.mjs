@@ -66,8 +66,11 @@ try {
   }
   await loadPregameLineup();
   await page.getByRole('button',{name:'Play independently',exact:true}).click();await saved();
-  await page.getByRole('button',{name:'Use game-day code',exact:true}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Use game-day code',exact:true}).count(),0);
+  assert.equal(await page.getByRole('button',{name:'Play independently',exact:true}).count(),0);
+  assert.equal(await page.getByText('Independent match. Edit names or start scoring whenever you are ready.',{exact:true}).count(),0);
   assert.equal(await page.evaluate(()=>new Promise(resolve=>{const request=indexedDB.open('volleyball-scoreboard');request.onsuccess=()=>{const db=request.result;const tx=db.transaction('activeMatches');const stored=tx.objectStore('activeMatches').get('current');tx.oncomplete=()=>{db.close();resolve(Boolean(stored.result.state.dayContext));};};})),false);
+  await page.reload();await saved();
   await loadPregameLineup();
   await page.evaluate(()=>localStorage.setItem('qaOffline','true'));await page.reload();await saved();
   await page.getByRole('button',{name:'Change game-day code',exact:true}).waitFor();
