@@ -61,10 +61,12 @@ try {
     await link.getByLabel(/^Code/).fill(code);await link.getByRole('button',{name:'Check code',exact:true}).click();
     await link.getByText('Court test · 2026-11-07',{exact:true}).waitFor();
     await link.getByRole('button',{name:'Load lineup',exact:true}).click();
-    await page.getByRole('button',{name:'Change game-day code',exact:true}).waitFor();await saved();
+    await page.getByRole('button',{name:'Add point to Person 1 — Home',exact:true}).waitFor();await saved();
+    assert.equal(await page.locator('[aria-label="Match setup"]').count(),0);
+    assert.equal(await page.getByRole('button',{name:'Change game-day code',exact:true}).count(),0);
+    assert.ok(Math.abs(await page.locator('.court').evaluate(node=>node.getBoundingClientRect().top)) < 2);
     assert.equal(await edit.count(),0);
   }
-  await loadPregameLineup();
   await page.getByRole('button',{name:'Play independently',exact:true}).click();await saved();
   assert.equal(await page.getByRole('button',{name:'Use game-day code',exact:true}).count(),0);
   assert.equal(await page.getByRole('button',{name:'Play independently',exact:true}).count(),0);
@@ -73,8 +75,9 @@ try {
   await page.reload();await saved();
   await loadPregameLineup();
   await page.evaluate(()=>localStorage.setItem('qaOffline','true'));await page.reload();await saved();
-  await page.getByRole('button',{name:'Change game-day code',exact:true}).waitFor();
+  assert.equal(await page.locator('[aria-label="Match setup"]').count(),0);
   await page.getByRole('button',{name:'Add point to Person 1 — Home',exact:true}).waitFor();
+  assert.ok(Math.abs(await page.locator('.court').evaluate(node=>node.getBoundingClientRect().top)) < 2);
   await page.screenshot({path:'artifacts/court-browser/pregame-mobile.png'});
   await page.evaluate(()=>localStorage.setItem('qaOffline','false'));
   await page.getByRole('button',{name:'Add point to Person 1 — Home',exact:true}).click();await saved();

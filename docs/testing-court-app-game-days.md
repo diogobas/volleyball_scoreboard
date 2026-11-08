@@ -104,7 +104,7 @@ A versão **1.2.0 (4)** foi arquivada, assinada, exportada e enviada ao App Stor
 
 ## Ajuste de preparação da partida — 8 de novembro de 2026
 
-Antes do primeiro ponto, a tela principal oferece **Use game-day code** e **Play independently**. O código baixa os times previamente definidos pelo administrador; a confirmação aplica a escalação e aguarda a gravação local antes de fechar o diálogo. O app mostra grupo/data e mantém a escalação ao reabrir offline. O uso sem código continua disponível desde a abertura, sem exigir nenhuma seleção.
+Antes do primeiro ponto, a tela principal oferece **Use game-day code** e **Play independently**. O código baixa os times previamente definidos pelo administrador; a confirmação aplica a escalação e aguarda a gravação local antes de fechar o diálogo. Grupo e data aparecem na prévia do código. Ao confirmar a escalação, o aviso de preparação desaparece e o placar fica alinhado ao topo, ocupando a tela. O aviso também permanece oculto ao reabrir uma escalação já carregada, inclusive offline. O uso sem código continua disponível desde a abertura, sem exigir nenhuma seleção.
 
 **Play independently** remove o vínculo do jogo atual com o dia/grupo, conservando os nomes editáveis e os lados. As partidas arquivadas não são alteradas. Após o primeiro ponto, as opções de preparação saem da tela para proteger a partida em andamento; a edição livre de nomes permanece disponível.
 

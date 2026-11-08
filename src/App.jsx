@@ -58,7 +58,7 @@ function MatchApp({ database, initialState }) {
   const [closeSuccess, setCloseSuccess] = useState(false);
   const [storageWarning, setStorageWarning] = useState('');
   const [tab, setTab] = useState(0);
-  const [setupDismissed, setSetupDismissed] = useState(false);
+  const [setupDismissed, setSetupDismissed] = useState(Boolean(initialState.dayContext));
   const [lineupOpen, setLineupOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [pendingOpen, setPendingOpen] = useState(false);
@@ -105,7 +105,7 @@ function MatchApp({ database, initialState }) {
     try {
       const id = createLocalId();
       const nextState = await closeStoredMatch(database, state, { id, dayContext });
-      setSetupDismissed(false);
+      setSetupDismissed(Boolean(nextState.dayContext));
       setState(nextState);
       setSavedState(nextState);
       setStorageWarning('');
@@ -166,7 +166,7 @@ function MatchApp({ database, initialState }) {
       <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
         <Button variant="outlined" size="small" onClick={() => setLineupOpen(true)}>{state.dayContext ? 'Change game-day code' : 'Use game-day code'}</Button>
         <Button size="small" onClick={() => {
-          try { setState(startIndependentMatch(state)); setSetupDismissed(true); setSyncNotice(''); }
+          try { setState(startIndependentMatch(state)); setSetupDismissed(true); setSyncNotice(''); requestAnimationFrame(() => courtRef.current?.scrollIntoView({ block: 'start' })); }
           catch (error) { setSyncNotice(error.message); }
         }}>Play independently</Button>
       </Stack>
@@ -226,13 +226,17 @@ function MatchApp({ database, initialState }) {
     {lineupOpen && <DayCodeDialog confirmLabel="Load lineup" onClose={() => setLineupOpen(false)} onConfirm={async context => {
       const next = applyDayLineup(state, context);
       const persisted = await saveStoredMatch(database, next);
-      setSetupDismissed(false); setState(persisted); setSavedState(persisted); setStorageWarning(''); setSyncNotice(''); setLineupOpen(false);
+      setSetupDismissed(true); setState(persisted); setSavedState(persisted); setStorageWarning(''); setSyncNotice(''); setLineupOpen(false);
+      requestAnimationFrame(() => courtRef.current?.scrollIntoView({ block: 'start' }));
     }} />}
     {pendingOpen && <SavedMatchesDialog database={database} onChanged={refreshPending} onClose={() => setPendingOpen(false)} />}
     {editing && <EditTeamsDialog state={state} teamOrder={teamOrder} onClose={() => setEditing(false)}
       onSave={(teams, dayContext, imported) => {
         setState(previous => matchReducer(imported ? applyDayLineup(previous, dayContext) : previous, { type: 'edit', teams }));
-        if (imported) setSetupDismissed(false);
+        if (imported) {
+          setSetupDismissed(true);
+          requestAnimationFrame(() => courtRef.current?.scrollIntoView({ block: 'start' }));
+        }
         setEditing(false);
       }} />}
     {confirmation === 'closeMatch' && <CloseMatchDialog state={state} saving={closingMatch} error={closeError}
