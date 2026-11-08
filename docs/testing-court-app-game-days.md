@@ -109,3 +109,9 @@ Antes do primeiro ponto, a tela principal oferece **Use game-day code** e **Play
 **Play independently** remove o vínculo do jogo atual com o dia/grupo, conservando os nomes editáveis e os lados. As partidas arquivadas não são alteradas. Após o primeiro ponto, as opções de preparação saem da tela para proteger a partida em andamento; a edição livre de nomes permanece disponível.
 
 Validação: **157 testes aprovados**, build web aprovado e fluxo Chrome mobile aprovado para cancelamento do código, carregamento direto, escolha independente e retorno offline. A captura está em `artifacts/court-browser/pregame-mobile.png`. Este ajuste é posterior ao TestFlight 1.2.0 (4); nenhum novo build foi enviado nesta etapa.
+
+## Navegação pública por grupo — 8 de novembro de 2026
+
+A página pública do grupo foi dividida em **Overview**, **Players** e **Matches**, exibindo apenas a seção selecionada. Overview mostra os totais da temporada; Players contém a tabela individual; Matches contém a lista paginada e os links para detalhes. Temporada e página são preservadas na navegação, inclusive ao voltar dos detalhes, recarregar e usar Voltar no navegador. Trocar apenas a seção reutiliza os dados carregados.
+
+Para conferir localmente, abra um grupo em `/#/groups`, navegue pelas três seções, troque a temporada, abra uma partida e use **Back to matches**. O teste automatizado fica em `npm run test:public:browser`, com as mesmas variáveis `BASE_URL` e `PLAYWRIGHT_MODULE` do teste mobile anterior. Foram aprovados os 157 testes, o build público e a navegação Chrome mobile com respostas simuladas. Esta alteração ainda não foi publicada no site.

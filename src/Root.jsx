@@ -20,6 +20,6 @@ export default function Root() {
   if (route.kind === 'admin') return <Suspense fallback={<Typography sx={{ p: 3 }}>Loading administration…</Typography>}><Administration /></Suspense>;
   if (route.kind === 'app') return <App />;
   return <Suspense fallback={<Typography role="status" sx={{ p: 3 }}>Loading public results…</Typography>}>
-    <PublicResults key={hash} route={route} />
+    <PublicResults key={`${route.kind}:${route.groupId ?? ''}:${route.matchId ?? ''}:${route.season ?? ''}:${route.page ?? ''}`} route={route} />
   </Suspense>;
 }

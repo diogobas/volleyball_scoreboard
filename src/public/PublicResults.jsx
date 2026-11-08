@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, Container, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, Container, Divider, Paper, Stack, Tab, Tabs, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
 import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
 import SportsVolleyballRounded from '@mui/icons-material/SportsVolleyballRounded';
 import { listPublicGroups, publicGroupSummary, publicMatchDetails } from '../remote/publicStats';
@@ -35,8 +35,8 @@ export default function PublicResults({ route }) {
       <Button component="a" href="#/admin" variant="outlined" size="small">Administration</Button>
     </Stack>
     {route.kind === 'missing' ? <><Typography component="h1" variant="h3">Page not found</Typography><Button component="a" href="#/groups">Browse groups</Button></> : <>
-      {route.kind !== 'groups' && <Button component="a" href={route.kind === 'match' ? publicGroupHref(route.groupId, { season: route.season, page: route.page }) : '#/groups'} sx={{ mb: 2 }}>
-        {route.kind === 'match' ? '← Back to season' : '← All groups'}
+      {route.kind !== 'groups' && <Button component="a" href={route.kind === 'match' ? publicGroupHref(route.groupId, { season: route.season, page: route.page, view: 'matches' }) : '#/groups'} sx={{ mb: 2 }}>
+        {route.kind === 'match' ? '← Back to matches' : '← All groups'}
       </Button>}
       {route.kind === 'groups' && <><Typography component="h1" variant="h3" sx={{ mb: 1 }}>Results &amp; seasons</Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>Choose a group to see published matches and player statistics. No sign-in required.</Typography></>}
@@ -66,49 +66,68 @@ export default function PublicResults({ route }) {
 
 function GroupSeason({ data, route, loading, refresh }) {
   const pages = Math.max(1, Math.ceil(data.match_count / data.page_size));
+  const view = route.view ?? 'overview';
   return <>
-    <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-      <TextField select label="Season" value={data.season} onChange={event => { window.location.hash = publicGroupHref(route.groupId, { season: Number(event.target.value) }).slice(1); }}
+    <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+      <TextField select label="Season" value={data.season} onChange={event => { window.location.hash = publicGroupHref(route.groupId, { season: Number(event.target.value), view }).slice(1); }}
         slotProps={{ select: { native: true }, inputLabel: { shrink: true } }} size="small" sx={{ minWidth: 120 }}>
         {data.seasons.map(year => <option key={year} value={year}>{year}</option>)}
       </TextField>
       <Button disabled={loading} onClick={refresh}>Refresh results</Button>
     </Stack>
-    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: { xs: 1, sm: 2 }, mb: 4 }}>
-      {[[data.match_count, 'Matches'], [data.participant_count, 'Players'], [data.point_count, 'Points played']].map(([value, label]) => <Paper key={label} variant="outlined" sx={{ p: { xs: 1.5, sm: 2.5 } }}>
-        <Typography sx={{ font: '700 2.5rem/1 "Barlow Condensed", sans-serif', mb: 1 }}>{value}</Typography><Typography variant="body2" color="text.secondary">{label}</Typography>
-      </Paper>)}
+    <Box component="nav" aria-label="Group navigation" sx={{ mb: 3 }}>
+      <Tabs value={view} variant="fullWidth" aria-label="Group sections">
+        {['overview', 'players', 'matches'].map(section => <Tab key={section} component="a" value={section}
+          id={`group-tab-${section}`} aria-controls={`group-section-${section}`}
+          label={section === 'overview' ? 'Overview' : section === 'players' ? 'Players' : 'Matches'}
+          href={publicGroupHref(route.groupId, { season: route.season, page: route.page, view: section })} />)}
+      </Tabs>
     </Box>
-    <Typography component="h2" variant="h5" sx={{ mb: 2 }}>Player statistics · {data.season}</Typography>
-    <TableContainer component={Paper} variant="outlined">
-      <Table size="small" aria-label={`Player statistics for season ${data.season}`} sx={{ minWidth: 470 }}>
-        <TableHead><TableRow><TableCell>Player</TableCell>{['Points', 'Matches', 'Wins', 'Days'].map(label => <TableCell key={label} align="right">{label}</TableCell>)}</TableRow></TableHead>
-        <TableBody>{data.players.map(player => <TableRow key={player.id}>
-          <TableCell component="th" scope="row" sx={{ overflowWrap: 'anywhere', maxWidth: 240 }}>{player.name}</TableCell>
-          {[player.points, player.matches, player.wins, player.days].map((value, i) => <TableCell key={i} align="right">{value}</TableCell>)}
-        </TableRow>)}</TableBody>
-      </Table>
-    </TableContainer>
-    {data.players.length === 0 && <Typography sx={{ mt: 1 }}>No registered players yet.</Typography>}
-    <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'block', sm: 'none' }, mt: 1 }}>Swipe the table sideways to see all columns.</Typography>
-    <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>Days counts one attendance per date in the group time zone, using the match start date. Playing for both teams gives no individual win. Tied matches grant no victory.</Typography>
-    {data.fallback_dates > 0 && <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Older matches using their closing date: {data.fallback_dates}.</Typography>}
-    <Typography component="h2" variant="h5" sx={{ mt: 4, mb: 2 }}>Matches · {data.season}</Typography>
-    {data.matches.length === 0 && <Alert severity="info" action={data.match_count ? <Button component="a" href={publicGroupHref(route.groupId, { season: data.season })}>First page</Button> : undefined}>{data.match_count ? 'No matches on this page.' : 'No confirmed matches in this season.'}</Alert>}
-    <Stack spacing={2}>
-      {data.matches.map(match => <Paper key={match.id} variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{playedTime(match, data.group.time_zone)}{!match.started_at && ' · Closing date'}</Typography>
-        <Typography component="h3" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{match.team_a_name} {match.sets_a} × {match.sets_b} {match.team_b_name}</Typography>
-        <Typography variant="body2">{resultText(match)}</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>Sets: {match.sets.map(set => `${set.score_a} × ${set.score_b}`).join(' · ')}</Typography>
-        <Button component="a" href={publicGroupHref(route.groupId, { season: data.season, page: data.page, matchId: match.id })}>View match</Button>
-      </Paper>)}
-    </Stack>
-    {(pages > 1 || data.page > 1) && <Stack component="nav" aria-label="Match pages" direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mt: 3, gap: 1 }}>
-      <Button component="a" disabled={data.page <= 1} href={publicGroupHref(route.groupId, { season: data.season, page: Math.max(1, data.page - 1) })}>Previous</Button>
-      <Typography variant="body2">Page {data.page} of {pages}</Typography>
-      <Button component="a" disabled={data.page >= pages} href={publicGroupHref(route.groupId, { season: data.season, page: data.page + 1 })}>Next</Button>
-    </Stack>}
+    <Box role="tabpanel" id={`group-section-${view}`} aria-labelledby={`group-tab-${view}`}>
+      {view === 'overview' && <>
+        <Typography component="h2" variant="h5" sx={{ mb: 2 }}>Season overview · {data.season}</Typography>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: { xs: 1, sm: 2 }, mb: 4 }}>
+          {[[data.match_count, 'Matches'], [data.participant_count, 'Players'], [data.point_count, 'Points played']].map(([value, label]) => <Paper key={label} variant="outlined" sx={{ p: { xs: 1.5, sm: 2.5 } }}>
+            <Typography sx={{ font: '700 2.5rem/1 "Barlow Condensed", sans-serif', mb: 1 }}>{value}</Typography><Typography variant="body2" color="text.secondary">{label}</Typography>
+          </Paper>)}
+        </Box>
+        <Typography variant="body2" color="text.secondary">Choose Players for individual statistics or Matches to browse published results.</Typography>
+      </>}
+      {view === 'players' && <>
+        <Typography component="h2" variant="h5" sx={{ mb: 2 }}>Player statistics · {data.season}</Typography>
+        <TableContainer component={Paper} variant="outlined">
+          <Table size="small" aria-label={`Player statistics for season ${data.season}`} sx={{ minWidth: 470 }}>
+            <TableHead><TableRow><TableCell>Player</TableCell>{['Points', 'Matches', 'Wins', 'Days'].map(label => <TableCell key={label} align="right">{label}</TableCell>)}</TableRow></TableHead>
+            <TableBody>{data.players.map(player => <TableRow key={player.id}>
+              <TableCell component="th" scope="row" sx={{ overflowWrap: 'anywhere', maxWidth: 240 }}>{player.name}</TableCell>
+              {[player.points, player.matches, player.wins, player.days].map((value, i) => <TableCell key={i} align="right">{value}</TableCell>)}
+            </TableRow>)}</TableBody>
+          </Table>
+        </TableContainer>
+        {data.players.length === 0 && <Typography sx={{ mt: 1 }}>No registered players yet.</Typography>}
+        <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'block', sm: 'none' }, mt: 1 }}>Swipe the table sideways to see all columns.</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>Days counts one attendance per date in the group time zone, using the match start date. Playing for both teams gives no individual win. Tied matches grant no victory.</Typography>
+        {data.fallback_dates > 0 && <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Older matches using their closing date: {data.fallback_dates}.</Typography>}
+      </>}
+      {view === 'matches' && <>
+        <Typography component="h2" variant="h5" sx={{ mb: 2 }}>Matches · {data.season}</Typography>
+        {data.matches.length === 0 && <Alert severity="info" action={data.match_count ? <Button component="a" href={publicGroupHref(route.groupId, { season: data.season, view: 'matches' })}>First page</Button> : undefined}>{data.match_count ? 'No matches on this page.' : 'No confirmed matches in this season.'}</Alert>}
+        <Stack spacing={2}>
+          {data.matches.map(match => <Paper key={match.id} variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{playedTime(match, data.group.time_zone)}{!match.started_at && ' · Closing date'}</Typography>
+            <Typography component="h3" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{match.team_a_name} {match.sets_a} × {match.sets_b} {match.team_b_name}</Typography>
+            <Typography variant="body2">{resultText(match)}</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>Sets: {match.sets.map(set => `${set.score_a} × ${set.score_b}`).join(' · ')}</Typography>
+            <Button component="a" href={publicGroupHref(route.groupId, { season: data.season, page: data.page, matchId: match.id })}>View match</Button>
+          </Paper>)}
+        </Stack>
+        {(pages > 1 || data.page > 1) && <Stack component="nav" aria-label="Match pages" direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mt: 3, gap: 1 }}>
+          <Button component="a" disabled={data.page <= 1} href={publicGroupHref(route.groupId, { season: data.season, page: Math.max(1, data.page - 1), view: 'matches' })}>Previous</Button>
+          <Typography variant="body2">Page {data.page} of {pages}</Typography>
+          <Button component="a" disabled={data.page >= pages} href={publicGroupHref(route.groupId, { season: data.season, page: data.page + 1, view: 'matches' })}>Next</Button>
+        </Stack>}
+      </>}
+    </Box>
   </>;
 }
 

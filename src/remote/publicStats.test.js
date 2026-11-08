@@ -11,8 +11,15 @@ test('hash routes preserve season and page, support deep links and leave the sco
   assert.deepEqual(readRoute('#/app','public'), { kind: 'app' });
   assert.deepEqual(readRoute('#/groups'), { kind: 'groups' });
   const href = publicGroupHref(groupId, { season: 2025, page: 2, matchId });
-  assert.deepEqual(readRoute(href), { kind: 'match', groupId, matchId, season: 2025, page: 2 });
+  assert.deepEqual(readRoute(href), { kind: 'match', groupId, matchId, season: 2025, page: 2, view: 'matches' });
   assert.equal(readRoute(publicGroupHref(groupId)).season, null);
+  assert.equal(readRoute(publicGroupHref(groupId)).view, 'overview');
+  for (const view of ['overview','players','matches']) {
+    const route = readRoute(publicGroupHref(groupId, { season: 2025, page: 2, view }));
+    assert.equal(route.view, view); assert.equal(route.season, 2025); assert.equal(route.page, 2);
+  }
+  assert.equal(readRoute(`#/groups/${groupId}/matches/${matchId}?season=2025&page=2`).view,'matches');
+  assert.equal(readRoute(`#/groups/${groupId}?view=unknown`).kind,'missing');
   assert.equal(readRoute(publicGroupHref(groupId, { season: 2025 })).page, 1);
   assert.equal(readRoute(`#/groups/${groupId.toUpperCase()}`).groupId, groupId);
   for (const href of ['#/history', '#/groups/not-a-uuid', `#/groups/${groupId}/matches/no`, `#/groups/${groupId}?season=`,
