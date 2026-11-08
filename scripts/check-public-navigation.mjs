@@ -12,6 +12,7 @@ const players = [{ id: 'player-a', name: 'Alex', points: 20, matches: 4, wins: 2
 let requests = 0;
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
+  await mkdir('artifacts/public-navigation', { recursive: true });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await page.route('**/*', async route => {
@@ -28,7 +29,10 @@ try {
         matches: matches.slice((args.p_page-1)*25,args.p_page*25) } });
     }
     if (name === 'public_match_details') return route.fulfill({ headers, json: { group, group_id: group.id, id: args.p_match_id,
-      started_at: '2025-11-07T23:00:00Z', closed_at: '2025-11-08T01:00:00Z', team_a_name: 'Home', team_b_name: 'Away', sets_a: 1, sets_b: 0, sets: [] } });
+      started_at: '2025-11-07T23:00:00Z', closed_at: '2025-11-08T01:00:00Z', team_a_name: 'Home', team_b_name: 'Away', sets_a: 1, sets_b: 0, sets: [
+        { number: 1, team_a_name: 'Home', team_b_name: 'Away', score_a: 4, score_b: 2, errors_a: 1, errors_b: 0,
+          players: [{id:'alex',name:'Alex',team:'A',position:1,points:3}, {id:'bob',name:'Bob',team:'A',position:2,points:0}, {id:'chris',name:'Chris',team:'B',position:1,points:2}] },
+      ] } });
     throw new Error(`Unexpected external request: ${name}`);
   });
   const nav = () => page.getByRole('tablist', { name: 'Group sections' });
@@ -55,7 +59,17 @@ try {
   await page.getByRole('link', { name: 'Go to next page', exact: true }).click();
   await page.getByText('Page 2 of 6', { exact: true }).waitFor();
   await page.getByRole('link', { name: 'View match', exact: true }).first().click();
-  await page.getByRole('heading', { name: 'Sets & players', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Top 3', exact: true }).waitFor();
+  assert.equal(await page.getByRole('link',{name:'Review in Administration',exact:true}).count(),0);
+  assert.equal(await page.getByRole('progressbar',{name:'Points for Alex — Home',exact:true}).getAttribute('aria-valuetext'),'3 points');
+  assert.equal(await page.getByRole('progressbar',{name:'Points for Bob — Home',exact:true}).getAttribute('aria-valuenow'),'0');
+  assert.equal(await page.getByRole('progressbar',{name:'Points for Opponent’s error — Home',exact:true}).getAttribute('aria-valuetext'),'1 points');
+  const podium=page.getByRole('list',{name:'Top 3 players',exact:true});
+  assert.equal(await podium.getByRole('listitem').count(),2);
+  assert.equal(await podium.getByText('Alex',{exact:true}).count(),1);
+  await page.getByRole('button',{name:/Set 1.*Home 4 × 2 Away/}).click();
+  await page.getByRole('heading',{name:'Player ranking · Set 1',exact:true}).waitFor();
+  await page.screenshot({path:'artifacts/public-navigation/match-statistics-mobile.png',fullPage:true});
   await page.getByRole('link', { name: '← Back to matches', exact: true }).click();
   await page.getByText('Page 2 of 6', { exact: true }).waitFor(); await selected('Matches');
   assert.equal(await page.getByRole('combobox', { name: 'Season', exact: true }).inputValue(), '2025');

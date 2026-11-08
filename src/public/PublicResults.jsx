@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, Container, Divider, Pagination, PaginationItem, Paper, Stack, Tab, Tabs, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
-import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
+import { Alert, Box, Button, Chip, Container, Divider, Pagination, PaginationItem, Paper, Stack, Tab, Tabs, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
 import SportsVolleyballRounded from '@mui/icons-material/SportsVolleyballRounded';
 import { listPublicGroups, publicGroupSummary, publicMatchDetails } from '../remote/publicStats';
+import StatisticsView from '../components/StatisticsView';
+import { publicMatchStatistics } from './matchStatistics';
 import { publicGroupHref } from './routes';
 
 function playedTime(match, timeZone) {
@@ -55,9 +56,7 @@ export default function PublicResults({ route }) {
         </Paper>)}
       </Stack>}
       {data && route.kind === 'group' && <GroupSeason data={data} route={route} loading={loading} refresh={() => setAttempt(value => value + 1)} />}
-      {data && route.kind === 'match' && <><MatchDetails data={data} loading={loading} refresh={() => setAttempt(value => value + 1)} />
-        <Button component="a" href="#/admin" variant="outlined" sx={{ mt: 3 }}>Review in Administration</Button>
-      </>}
+      {data && route.kind === 'match' && <MatchDetails data={data} loading={loading} refresh={() => setAttempt(value => value + 1)} />}
     </>}
     <Divider sx={{ mt: 5, mb: 2 }} />
     <Typography component="footer" variant="caption" color="text.secondary">Only published results appear here. Received matches remain private until an administrator closes their game day.</Typography>
@@ -148,33 +147,14 @@ function GroupSeason({ data, route, loading, refresh }) {
 }
 
 function MatchDetails({ data, loading, refresh }) {
+  const statistics = publicMatchStatistics(data);
   return <>
     <Typography component="h1" variant="h4" sx={{ overflowWrap: 'anywhere' }}>{data.team_a_name} {data.sets_a} × {data.sets_b} {data.team_b_name}</Typography>
     <Stack direction="row" sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 1, mt: 2, mb: 2 }}>
       <Chip label={resultText(data)} /><Button disabled={loading} onClick={refresh}>Refresh match</Button>
     </Stack>
     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>{playedTime(data, data.group.time_zone)}{!data.started_at && ' · Closing date (start time unavailable)'}</Typography>
-    <Typography component="h2" variant="h5" sx={{ mb: 2 }}>Sets &amp; players</Typography>
-    {data.sets.map(set => <Accordion key={set.number} defaultExpanded={set.number === 1} disableGutters sx={{ mb: 1, border: '1px solid', borderColor: 'divider', '&:before': { display: 'none' } }}>
-      <AccordionSummary expandIcon={<ExpandMoreRounded />} aria-controls={`set-${set.number}-details`} id={`set-${set.number}-title`}>
-        <Typography sx={{ overflowWrap: 'anywhere' }}>Set {set.number} · {set.team_a_name} {set.score_a} × {set.score_b} {set.team_b_name}</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 3 }}>
-          {['A', 'B'].map(team => <Box key={team}>
-            <Typography component="h3" variant="subtitle1" sx={{ mb: 1 }}>{team === 'A' ? set.team_a_name : set.team_b_name} · Points</Typography>
-            <Box component="dl" sx={{ m: 0 }}>
-              {set.players.filter(player => player.team === team).map(player => <Stack key={player.id} direction="row" sx={{ justifyContent: 'space-between', gap: 2, py: .5 }}>
-                <Typography component="dt" variant="body2" sx={{ overflowWrap: 'anywhere' }}>{player.name}</Typography><Typography component="dd" variant="body2" sx={{ m: 0 }}>{player.points}</Typography>
-              </Stack>)}
-              <Stack direction="row" sx={{ justifyContent: 'space-between', gap: 2, mt: 1 }}>
-                <Typography component="dt" variant="body2" color="text.secondary">Opponent’s error</Typography><Typography component="dd" variant="body2" sx={{ m: 0 }}>{team === 'A' ? set.errors_a : set.errors_b}</Typography>
-              </Stack>
-            </Box>
-          </Box>)}
-        </Box>
-      </AccordionDetails>
-    </Accordion>)}
+    <StatisticsView {...statistics} />
     <Typography variant="caption" color="text.secondary">Names and lineups are those recorded for each set. Player points exclude opponent errors.</Typography>
   </>;
 }

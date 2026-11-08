@@ -1,82 +1,13 @@
-import { Accordion, AccordionDetails, AccordionSummary, Box, LinearProgress, Paper, Stack, Typography } from '@mui/material';
-import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
-import { teamColors } from '../theme';
-import { matchPlayerStats, setRanking, teamMatchPlayers, TEAM_IDS } from '../game/match';
+import { matchPlayerStats, setRanking, teamMatchPlayers } from '../game/match';
+import StatisticsView from './StatisticsView';
 
 export default function Statistics({ state, teamOrder }) {
-  const sets = state.log.filter(entry => entry.type === 'set');
-  // Use team identity rather than screen position so tied players stay in order when sides switch.
   const topPlayers = matchPlayerStats(state).filter(player => player.matchPoints > 0)
-    .sort((a, b) => b.matchPoints - a.matchPoints)
-    .slice(0, 3);
-  return <Box className="statistics">
-    <Box component="section" className="top-three" aria-labelledby="top-three-title">
-      <Typography component="h2" variant="h5" id="top-three-title">Top 3</Typography>
-      <Typography variant="body2" color="text.secondary">Match points</Typography>
-      {topPlayers.length === 0
-        ? <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>No player points yet.</Typography>
-        : <Box component="ol" className="top-three-list" aria-label="Top 3 players">
-          {topPlayers.map(player => <Paper component="li" key={player.personId ?? `${player.teamId}-${player.id}`}
-            className="top-three-card" elevation={0} style={{ borderTopColor: teamColors[player.teamId] }}>
-            <Typography component="span" className="top-three-rank" aria-label={`Rank ${topPlayers.findIndex(p => p.matchPoints === player.matchPoints) + 1}`}>
-              #{topPlayers.findIndex(p => p.matchPoints === player.matchPoints) + 1}
-            </Typography>
-            <Typography component="h3" className="top-three-name">{player.name}</Typography>
-            <Typography variant="caption" color="text.secondary">{player.teamName}</Typography>
-            <Typography component="p" className="top-three-points">{player.matchPoints}</Typography>
-            <Typography variant="caption" color="text.secondary">points</Typography>
-          </Paper>)}
-        </Box>}
-    </Box>
-    <Box className="stats-grid">
-      {teamOrder.map(id => {
-        const team = state.teams[id];
-        const players = teamMatchPlayers(state, id);
-        const max = Math.max(1, ...players.map(p => p.matchPoints));
-        return <Box key={id}>
-          <Typography variant="h5" sx={{ mb: 2, color: id === 'A' ? '#82b9f1' : '#ff998d' }}>{team.name}</Typography>
-          {[...players].sort((a, b) => b.matchPoints - a.matchPoints).map(player => <Box key={player.id} sx={{ mb: 2 }}>
-            <Stack direction="row" sx={{ justifyContent: 'space-between', gap: 1, mb: .5 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>{player.name}</Typography>
-              <Typography variant="body2">{player.matchPoints}</Typography>
-            </Stack>
-            <LinearProgress variant="determinate" value={player.matchPoints / max * 100}
-              aria-label={`Points for ${player.name} — ${team.name}`} aria-valuetext={`${player.matchPoints} points`}
-              sx={{ height: 8, borderRadius: 2, bgcolor: 'rgba(255,255,255,.08)', '& .MuiLinearProgress-bar': { bgcolor: teamColors[id] } }} />
-          </Box>)}
-        </Box>;
-      })}
-    </Box>
-    {sets.length > 0 && <Box sx={{ mt: 3 }}><Typography variant="overline">Set history</Typography>
-      {sets.map(entry => {
-        const ranking = setRanking(state, entry.setNumber);
-        return <Accordion key={entry.setNumber} disableGutters elevation={0} sx={{ mt: 1, bgcolor: '#ffffff08', backgroundImage: 'none' }}>
-          <AccordionSummary expandIcon={<ExpandMoreRounded />} id={`set-${entry.setNumber}-summary`} aria-controls={`set-${entry.setNumber}-ranking`}>
-            <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
-              <Typography variant="body2">Set {entry.setNumber}</Typography>
-              <Typography variant="body2" color="text.secondary">{entry.teamAName} {entry.scoreA} × {entry.scoreB} {entry.teamBName}</Typography>
-            </Box>
-          </AccordionSummary>
-          <AccordionDetails>
-            {entry.rosters && TEAM_IDS.map(id => <Typography key={id} variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              {id === 'A' ? entry.teamAName : entry.teamBName}: {entry.rosters[id].map(player => player.name).join(', ')}
-            </Typography>)}
-            <Typography component="h3" variant="subtitle2" sx={{ mb: 1 }}>Player ranking · Set {entry.setNumber}</Typography>
-            {ranking.length === 0
-              ? <Typography variant="body2" color="text.secondary">No player points in this set.</Typography>
-              : <Box component="ol" aria-label={`Player ranking for set ${entry.setNumber}`} sx={{ listStyle: 'none', p: 0, m: 0 }}>
-                {ranking.map(player => <Box component="li" key={`${player.teamId}-${player.id}`} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
-                  <Typography variant="body2" sx={{ minWidth: '2ch' }}>#{ranking.findIndex(p => p.points === player.points) + 1}</Typography>
-                  <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
-                    <Typography variant="body2">{player.name}</Typography>
-                    <Typography variant="caption" color="text.secondary">{player.teamName}</Typography>
-                  </Box>
-                  <Typography variant="body2">{player.points} {player.points === 1 ? 'point' : 'points'}</Typography>
-                </Box>)}
-              </Box>}
-          </AccordionDetails>
-        </Accordion>;
-      })}
-    </Box>}
-  </Box>;
+    .sort((a, b) => b.matchPoints - a.matchPoints).slice(0, 3)
+    .map(player => ({ ...player, id: player.personId ?? `${player.teamId}-${player.id}`, points: player.matchPoints }));
+  const teams = teamOrder.map(id => ({ id, name: state.teams[id].name,
+    players: teamMatchPlayers(state, id).map(player => ({ ...player, points: player.matchPoints })),
+  }));
+  const sets = state.log.filter(entry => entry.type === 'set').map(entry => ({ ...entry, ranking: setRanking(state, entry.setNumber) }));
+  return <StatisticsView topPlayers={topPlayers} teams={teams} sets={sets} />;
 }

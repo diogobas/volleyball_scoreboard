@@ -121,3 +121,9 @@ Para conferir localmente, abra um grupo em `/#/groups`, navegue pelas três seç
 Matches agora mostra **5 partidas por página** por padrão, com seleção de **10 ou 25**, intervalo de resultados e navegação numerada. A temporada, a página e o tamanho selecionado permanecem nos links e são recuperados ao voltar dos detalhes ou recarregar. Trocar a temporada ou o tamanho da página retorna à primeira página. Os totais do Overview e de Players continuam considerando toda a temporada. Não é necessária migração adicional no Supabase.
 
 Validação: 158 testes aprovados, build público e Chrome mobile aprovados, incluindo páginas que cruzam os lotes de 25 do servidor, última página parcial e temporada vazia. Alteração ainda local.
+
+### Visual das partidas públicas
+
+O detalhe público da partida usa a mesma apresentação da aba **Statistics** do app: Top 3, totais por time com barras junto aos nomes e histórico de sets com escalações e rankings. O botão **Review in Administration** foi removido do detalhe. Os pontos são somados por identidade, incluindo quem mudou de time; jogadores sem pontos continuam nas barras e erros adversários permanecem separados do Top 3.
+
+Para testar, entre em Matches, abra View match, confira as barras e expanda Set history. A navegação de volta conserva temporada, página e quantidade de partidas. Validação: 161 testes aprovados, build público aprovado e testes Chrome mobile tanto do site quanto do app aprovados. A mudança ainda está local; não houve publicação nem novo envio ao TestFlight.
