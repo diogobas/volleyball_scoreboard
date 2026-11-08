@@ -132,4 +132,6 @@ Para testar, entre em Matches, abra View match, confira as barras e expanda Set 
 
 Cada cartão mostra os três maiores pontuadores **daquela partida**, somando todos os seus sets, com nome, time e pontos. Erros adversários e jogadores sem pontos ficam fora do ranking; quando há menos de três pontuadores, são exibidos apenas os existentes. São usados os detalhes públicos já disponíveis, sem nova migração.
 
+Em telas maiores, o resumo e **View match** ficam à esquerda e os pontuadores à direita, mantendo o cartão compacto. No celular, os blocos se empilham. O teste de navegador também verifica a disposição lateral no desktop e ausência de rolagem horizontal em desktop, tablet e celular.
+
 Para conferir, abra Matches e compare os pontos de cada cartão com seu detalhe. Uma partida pontuada apenas por erros adversários mostra **No player points recorded**. Se a consulta de pontuadores falhar, o cartão continua disponível e oferece **Retry scorers**. O teste mobile cobre soma entre sets, limite de três, pontos distintos por partida, exclusão de erros, ranking vazio e recuperação de falha. Validação: 161 testes e build público aprovados, além do teste Chrome mobile. Alteração local, sem publicação.

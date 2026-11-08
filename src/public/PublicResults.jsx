@@ -126,13 +126,16 @@ function GroupSeason({ data, route, loading, refresh }) {
           </TextField>
         </Stack>
         <Stack spacing={2}>
-          {data.matches.map(match => <Paper key={match.id} variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{playedTime(match, data.group.time_zone)}{!match.started_at && ' · Closing date'}</Typography>
-            <Typography component="h3" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{match.team_a_name} {match.sets_a} × {match.sets_b} {match.team_b_name}</Typography>
-            <Typography variant="body2">{resultText(match)}</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>Sets: {match.sets.map(set => `${set.score_a} × ${set.score_b}`).join(' · ')}</Typography>
+          {data.matches.map(match => <Paper key={match.id} variant="outlined" sx={{ p: { xs: 2, sm: 3 }, display: 'grid',
+            gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'minmax(0, 1fr) minmax(0, 1.4fr)' }, alignItems: 'center', gap: { xs: 2, sm: 3 } }}>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{playedTime(match, data.group.time_zone)}{!match.started_at && ' · Closing date'}</Typography>
+              <Typography component="h3" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{match.team_a_name} {match.sets_a} × {match.sets_b} {match.team_b_name}</Typography>
+              <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>{resultText(match)}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>Sets: {match.sets.map(set => `${set.score_a} × ${set.score_b}`).join(' · ')}</Typography>
+              <Button component="a" href={publicGroupHref(route.groupId, { season: data.season, page: data.page, pageSize: data.page_size, matchId: match.id })}>View match</Button>
+            </Box>
             <MatchTopScorers groupId={route.groupId} match={match} />
-            <Button component="a" href={publicGroupHref(route.groupId, { season: data.season, page: data.page, pageSize: data.page_size, matchId: match.id })}>View match</Button>
           </Paper>)}
         </Stack>
         <Stack component="nav" aria-label="Match pages" sx={{ alignItems: 'center', mt: 3, gap: 1 }}>
@@ -160,7 +163,7 @@ function MatchTopScorers({ groupId, match }) {
     return () => { active = false; };
   }, [groupId, match, attempt]);
 
-  return <Box sx={{ my: 2 }}>
+  return <Box sx={{ minWidth: 0 }}>
     <Typography component="h4" variant="subtitle2" sx={{ mb: 1 }}>Top scorers</Typography>
     {failed ? <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
       <Typography variant="body2" color="text.secondary">Scorers could not be loaded.</Typography>
@@ -168,7 +171,7 @@ function MatchTopScorers({ groupId, match }) {
     </Stack> : players === null ? <Typography variant="body2" color="text.secondary" role="status">Loading scorers…</Typography>
       : players.length === 0 ? <Typography variant="body2" color="text.secondary">No player points recorded.</Typography>
         : <Box component="ol" aria-label={`Top scorers for ${match.team_a_name} vs ${match.team_b_name}`}
-          sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' }, gap: 1, listStyle: 'none', p: 0, m: 0 }}>
+          sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }, gap: 1, listStyle: 'none', p: 0, m: 0 }}>
           {players.map(player => <Box component="li" key={player.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.25,
             bgcolor: 'action.hover', borderRadius: 1, minWidth: 0 }}>
             <Typography variant="body2" color="text.secondary">{players.findIndex(item => item.points === player.points) + 1}.</Typography>

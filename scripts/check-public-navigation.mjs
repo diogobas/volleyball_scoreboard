@@ -78,6 +78,17 @@ try {
   assert.match((await thirdScorers.getByRole('listitem').allTextContents())[0], /Alex.*3 pts/);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await page.screenshot({ path: 'artifacts/public-navigation/match-card-scorers-mobile.png', fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const summaryBounds = await firstCard.getByRole('heading', { level: 3 }).boundingBox();
+  const scorerBounds = await firstScorers.boundingBox();
+  assert.ok(scorerBounds.x > summaryBounds.x + summaryBounds.width, 'Desktop scorers should occupy the right side of the card');
+  const cardBounds = await firstCard.boundingBox();
+  assert.ok(cardBounds.height < 240, 'Desktop match card should stay compact');
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  await page.screenshot({ path: 'artifacts/public-navigation/match-card-scorers-desktop.png', fullPage: true });
+  await page.setViewportSize({ width: 768, height: 1024 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  await page.setViewportSize({ width: 390, height: 844 });
   await nav().getByRole('tab', { name: 'Overview', exact: true }).click();
   await page.getByRole('link', { name: 'View players', exact: true }).click();
   await page.getByRole('table', { name: 'Player statistics for season 2026' }).waitFor();
