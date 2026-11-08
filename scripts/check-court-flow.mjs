@@ -47,6 +47,12 @@ try {
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   await page.goto(`${baseUrl}/#/app`);
   const saved=()=>page.getByText('Saved on this device',{exact:true}).waitFor();await saved();
+  const actionLabels = async () => (await page.locator('.actions button').allTextContents()).map(text=>text.trim());
+  assert.deepEqual(await actionLabels(),['Undo','Close set','Edit names','Switch sides']);
+  await page.getByRole('tab',{name:'Statistics',exact:true}).click();
+  assert.deepEqual(await actionLabels(),['Save match','Saved matches (0)']);
+  assert.equal(await page.getByRole('button',{name:'Save match',exact:true}).isDisabled(),true);
+  await page.getByRole('tab',{name:'Game',exact:true}).click();
   for(const old of ['Account & groups','Players & sync','Public results'])assert.equal(await page.getByRole('button',{name:old,exact:true}).count(),0);
   await page.getByRole('button',{name:'Edit names',exact:true}).click();
   const edit=page.getByRole('dialog',{name:'Edit teams and players'});
@@ -86,10 +92,13 @@ try {
   await page.getByRole('button',{name:'Edit names',exact:true}).click();assert.equal(await edit.getByRole('button',{name:'Load lineup',exact:true}).isDisabled(),true);await edit.getByLabel('Player 1',{exact:true}).first().fill('Substitute');await edit.getByRole('button',{name:'Save',exact:true}).click();await saved();
   await page.getByRole('button',{name:'Add point to Substitute — Home',exact:true}).click();await saved();
   await page.getByRole('button',{name:'Close set',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Close set',exact:true}).click();await saved();
+  await page.getByRole('tab',{name:'Statistics',exact:true}).click();
   await page.evaluate(() => { localStorage.setItem('qaOffline','true'); window.dispatchEvent(new Event('offline')); });await page.getByRole('button',{name:'Save match',exact:true}).click();const save=page.getByRole('dialog',{name:'Save match?',exact:true});assert.equal(await save.getByRole('button',{name:'Save & sync',exact:true}).count(),0);await save.getByRole('button',{name:'Save locally',exact:true}).click();await saved();assert.equal(uploads,0);
-  await page.reload();await saved();await page.getByRole('button',{name:'Saved matches (1)',exact:true}).click();await page.getByRole('dialog',{name:'Saved matches · 1 pending',exact:true}).waitFor();await page.screenshot({path:'artifacts/court-browser/saved-mobile.png'});
+  await page.reload();await saved();await page.getByRole('tab',{name:'Statistics',exact:true}).click();await page.getByRole('button',{name:'Saved matches (1)',exact:true}).click();await page.getByRole('dialog',{name:'Saved matches · 1 pending',exact:true}).waitFor();await page.screenshot({path:'artifacts/court-browser/saved-mobile.png'});
   await page.evaluate(() => { localStorage.setItem('qaOffline','false'); window.dispatchEvent(new Event('online')); });await page.getByRole('button',{name:'Sync',exact:true}).click();await page.getByText('Received for administrator review. Local copy removed.',{exact:true}).waitFor();assert.equal(uploads,1);assert.equal(receipts[0].submission.sets[0].segments.length,2);
   await page.getByRole('button',{name:'Done',exact:true}).click();await page.getByRole('button',{name:'Saved matches (0)',exact:true}).waitFor();
+  await page.getByRole('tab',{name:'Game',exact:true}).click();
+  assert.deepEqual(await actionLabels(),['Undo','Close set','Edit names','Switch sides']);
   await page.screenshot({path:'artifacts/court-browser/app-mobile.png'});
   await page.goto(`${baseUrl}/#/admin`);await page.getByLabel(/^Email/).fill('admin@test.local');await page.getByLabel(/^Password/).fill('test-password');await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.getByRole('button',{name:'Manage group',exact:true}).click();await page.getByRole('button',{name:'Open day',exact:true}).click();
   const inbox=page.getByRole('button',{name:/Home × Away.*pending/});await inbox.click();

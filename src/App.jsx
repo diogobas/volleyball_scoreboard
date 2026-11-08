@@ -188,21 +188,24 @@ function MatchApp({ database, initialState }) {
         {tab === 1 && <Statistics state={state} teamOrder={teamOrder} />}
       </Box>
     </Box>
-    <Box className="actions">
-      <Button variant="outlined" color="inherit" size="small" startIcon={<UndoRounded />} disabled={!last}
-        aria-label={last?.type === 'set' ? 'Undo last set' : last?.type === 'roster' ? 'Undo last roster change' : 'Undo last point'} onClick={() => dispatch({ type: 'undo' })}>
-        Undo
-      </Button>
-      <Button variant="outlined" color="inherit" size="small" startIcon={<CheckRounded />} disabled={scoreA + scoreB === 0}
-        onClick={() => setConfirmation('closeSet')}>Close set</Button>
-      <Button variant="outlined" color="inherit" size="small" startIcon={<CheckRounded />} disabled={!canCloseMatch(state) || !saved}
-        onClick={() => { setCloseError(''); setCloseSuccess(false); setConfirmation('closeMatch'); }}>Save match</Button>
-      <Button color="inherit" size="small" onClick={() => setPendingOpen(true)}>Saved matches ({pendingCount})</Button>
-      <Button variant="outlined" color="inherit" size="small" startIcon={<EditOutlined />} onClick={() => setEditing(true)}>Edit names</Button>
-      <Button variant="outlined" color="inherit" size="small" startIcon={<SwapHorizRounded />} aria-pressed={state.sidesSwapped}
-        onClick={() => dispatch({ type: 'switchSides' })}>Switch sides</Button>
+    <Box className={`actions${tab === 1 ? ' actions--stats' : ''}`}>
+      {tab === 0 ? <>
+        <Button variant="outlined" color="inherit" size="small" startIcon={<UndoRounded />} disabled={!last}
+          aria-label={last?.type === 'set' ? 'Undo last set' : last?.type === 'roster' ? 'Undo last roster change' : 'Undo last point'} onClick={() => dispatch({ type: 'undo' })}>
+          Undo
+        </Button>
+        <Button variant="outlined" color="inherit" size="small" startIcon={<CheckRounded />} disabled={scoreA + scoreB === 0}
+          onClick={() => setConfirmation('closeSet')}>Close set</Button>
+        <Button variant="outlined" color="inherit" size="small" startIcon={<EditOutlined />} onClick={() => setEditing(true)}>Edit names</Button>
+        <Button variant="outlined" color="inherit" size="small" startIcon={<SwapHorizRounded />} aria-pressed={state.sidesSwapped}
+          onClick={() => dispatch({ type: 'switchSides' })}>Switch sides</Button>
+      </> : <>
+        <Button variant="outlined" color="inherit" size="small" startIcon={<CheckRounded />} disabled={!canCloseMatch(state) || !saved}
+          onClick={() => { setCloseError(''); setCloseSuccess(false); setConfirmation('closeMatch'); }}>Save match</Button>
+        <Button color="inherit" size="small" onClick={() => setPendingOpen(true)}>Saved matches ({pendingCount})</Button>
+      </>}
     </Box>
-    {scoreA + scoreB > 0 && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', px: 2 }}>Close the current set before closing the match.</Typography>}
+    {tab === 1 && scoreA + scoreB > 0 && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', px: 2 }}>Close the current set in Game before saving the match.</Typography>}
     <Tabs value={tab} onChange={changeTab} variant="fullWidth" className="tabs" aria-label="Match view">
       <Tab id="game-tab" aria-controls="game-panel" label="Game" />
       <Tab id="stats-tab" aria-controls="stats-panel" label="Statistics" />
