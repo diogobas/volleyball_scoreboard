@@ -202,7 +202,7 @@ function MatchApp({ database, initialState }) {
       </> : <>
         <Button variant="outlined" color="inherit" size="small" startIcon={<CheckRounded />} disabled={!canCloseMatch(state) || !saved}
           onClick={() => { setCloseError(''); setCloseSuccess(false); setConfirmation('closeMatch'); }}>Save match</Button>
-        <Button color="inherit" size="small" onClick={() => setPendingOpen(true)}>Saved matches ({pendingCount})</Button>
+        <Button color="inherit" size="small" disabled={pendingCount === 0} onClick={() => setPendingOpen(true)}>Saved matches ({pendingCount})</Button>
       </>}
     </Box>
     {tab === 1 && scoreA + scoreB > 0 && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', px: 2 }}>Close the current set in Game before saving the match.</Typography>}
