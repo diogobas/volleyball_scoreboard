@@ -35,7 +35,11 @@ try {
   assert.equal(await page.getByRole('table').count(), 0);
   assert.equal(await page.getByRole('link', { name: 'View match', exact: true }).count(), 0);
   const initialRequests = requests;
-  await nav().getByRole('tab', { name: 'Players', exact: true }).click();
+  await page.getByRole('link', { name: 'View matches', exact: true }).click();
+  await page.getByRole('heading', { name: 'Matches · 2026', exact: true }).waitFor(); await selected('Matches');
+  assert.equal(requests, initialRequests);
+  await nav().getByRole('tab', { name: 'Overview', exact: true }).click();
+  await page.getByRole('link', { name: 'View players', exact: true }).click();
   await page.getByRole('table', { name: 'Player statistics for season 2026' }).waitFor();
   await selected('Players'); assert.equal(requests, initialRequests);
   assert.equal(await page.getByRole('link', { name: 'View match', exact: true }).count(), 0);

@@ -87,7 +87,12 @@ function GroupSeason({ data, route, loading, refresh }) {
       {view === 'overview' && <>
         <Typography component="h2" variant="h5" sx={{ mb: 2 }}>Season overview · {data.season}</Typography>
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: { xs: 1, sm: 2 }, mb: 4 }}>
-          {[[data.match_count, 'Matches'], [data.participant_count, 'Players'], [data.point_count, 'Points played']].map(([value, label]) => <Paper key={label} variant="outlined" sx={{ p: { xs: 1.5, sm: 2.5 } }}>
+          {[[data.match_count, 'Matches', 'matches'], [data.participant_count, 'Players', 'players'], [data.point_count, 'Points played', null]].map(([value, label, section]) => <Paper key={label} variant="outlined"
+            component={section ? 'a' : 'div'} href={section ? publicGroupHref(route.groupId, { season: route.season, page: route.page, view: section }) : undefined}
+            aria-label={section ? `View ${label.toLowerCase()}` : undefined}
+            sx={{ p: { xs: 1.5, sm: 2.5 }, display: 'block', color: 'inherit', textDecoration: 'none', ...(section && {
+              '&:hover': { borderColor: 'primary.main' }, '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+            }) }}>
             <Typography sx={{ font: '700 2.5rem/1 "Barlow Condensed", sans-serif', mb: 1 }}>{value}</Typography><Typography variant="body2" color="text.secondary">{label}</Typography>
           </Paper>)}
         </Box>
