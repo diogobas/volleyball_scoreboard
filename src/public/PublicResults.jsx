@@ -32,7 +32,7 @@ export default function PublicResults({ route }) {
       <Stack component="a" href="#/groups" direction="row" spacing={1} sx={{ alignItems: 'center', color: 'text.primary', textDecoration: 'none' }}>
         <SportsVolleyballRounded color="primary" /><Typography variant="overline" sx={{ lineHeight: 1.3 }}>Volleyball<br />Public results</Typography>
       </Stack>
-      <Stack direction="row" spacing={1}><Button component="a" href="#/admin" variant="outlined" size="small">Administration</Button><Button component="a" href="#/app" size="small">Open scoreboard</Button></Stack>
+      <Button component="a" href="#/admin" variant="outlined" size="small">Administration</Button>
     </Stack>
     {route.kind === 'missing' ? <><Typography component="h1" variant="h3">Page not found</Typography><Button component="a" href="#/groups">Browse groups</Button></> : <>
       {route.kind !== 'groups' && <Button component="a" href={route.kind === 'match' ? publicGroupHref(route.groupId, { season: route.season, page: route.page }) : '#/groups'} sx={{ mb: 2 }}>

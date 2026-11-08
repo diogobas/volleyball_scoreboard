@@ -7,7 +7,7 @@ const Administration = lazy(() => import('./public/Administration'));
 const PublicResults = lazy(() => import('./public/PublicResults').catch(() => ({ default: PublicLoadFailure })));
 function PublicLoadFailure() {
   return <Box sx={{ p: 3 }}><Alert severity="warning">Public results could not be loaded. Reconnect and reload this page.</Alert>
-    <Button onClick={() => location.reload()}>Reload</Button><Button component="a" href="#/app">Open scoreboard</Button></Box>;
+    <Button onClick={() => location.reload()}>Reload</Button>{import.meta.env.VITE_DEFAULT_VIEW !== 'public' && <Button component="a" href="#/app">Open scoreboard</Button>}</Box>;
 }
 export default function Root() {
   const [hash, setHash] = useState(() => window.location.hash);
