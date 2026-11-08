@@ -11,9 +11,12 @@ test('hash routes preserve season and page, support deep links and leave the sco
   assert.deepEqual(readRoute('#/app','public'), { kind: 'app' });
   assert.deepEqual(readRoute('#/groups'), { kind: 'groups' });
   const href = publicGroupHref(groupId, { season: 2025, page: 2, matchId });
-  assert.deepEqual(readRoute(href), { kind: 'match', groupId, matchId, season: 2025, page: 2, view: 'matches' });
+  assert.deepEqual(readRoute(href), { kind: 'match', groupId, matchId, season: 2025, page: 2, view: 'matches', pageSize: 5 });
   assert.equal(readRoute(publicGroupHref(groupId)).season, null);
   assert.equal(readRoute(publicGroupHref(groupId)).view, 'overview');
+  for (const pageSize of [5,10,25]) assert.equal(readRoute(publicGroupHref(groupId,{view:'matches',pageSize})).pageSize,pageSize);
+  assert.equal(readRoute(`#/groups/${groupId}?size=0`).kind,'missing');
+  assert.equal(readRoute(`#/groups/${groupId}?size=100`).kind,'missing');
   for (const view of ['overview','players','matches']) {
     const route = readRoute(publicGroupHref(groupId, { season: 2025, page: 2, view }));
     assert.equal(route.view, view); assert.equal(route.season, 2025); assert.equal(route.page, 2);
@@ -67,4 +70,19 @@ test('public read errors propagate instead of presenting a failed request as an 
   await assert.rejects(publicGroupSummary(groupId,2026,1,{ rpc: async () => ({ error: failure }) }), /Network unavailable/);
   await assert.rejects(publicMatchDetails(groupId,matchId,{ rpc: async () => ({ error: failure }) }), /Network unavailable/);
   await assert.rejects(listPublicGroups({ from: () => ({ select: () => ({ order: () => ({ range: async () => ({ error: failure }) }) }) }) }), /Network unavailable/);
+});
+
+
+test('display pagination spans server batches without losing matches or changing season totals',async()=>{
+  const all=Array.from({length:56},(_,i)=>({id:`match-${i}`})); const calls=[];
+  const client={rpc:async(_name,args)=>{calls.push(args);return {data:{group:{id:groupId},season:args.p_season??2026,page:args.p_page,page_size:25,match_count:all.length,
+    seasons:[2026],players:[],point_count:1234,matches:all.slice((args.p_page-1)*25,args.p_page*25)}};}};
+  const boundary=await publicGroupSummary(groupId,null,3,client,10);
+  assert.deepEqual(boundary.matches,all.slice(20,30));assert.equal(boundary.page,3);assert.equal(boundary.page_size,10);assert.equal(boundary.point_count,1234);assert.equal(boundary.match_count,56);
+  assert.deepEqual(calls.map(c=>[c.p_page,c.p_season]),[[1,null],[2,2026]]);
+  const ids=[];for(let page=1;page<=12;page++)ids.push(...(await publicGroupSummary(groupId,2026,page,client,5)).matches.map(m=>m.id));
+  assert.deepEqual(ids,all.map(m=>m.id));assert.equal(new Set(ids).size,56);
+  assert.equal((await publicGroupSummary(groupId,2026,13,client,5)).matches.length,0);
+  await assert.rejects(publicGroupSummary(groupId,2026,0,client,5),/Invalid/);
+  await assert.rejects(publicGroupSummary(groupId,2026,1,client,100),/Invalid/);
 });

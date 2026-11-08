@@ -17,16 +17,32 @@ export async function listPublicGroups(suppliedClient) {
   return groups.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function publicGroupSummary(groupId, season = null, page = 1, suppliedClient) {
+export async function publicGroupSummary(groupId, season = null, page = 1, suppliedClient, pageSize = 25) {
+  if (!Number.isInteger(page) || page < 1 || page > 100000 || ![5,10,25].includes(pageSize)) throw new Error('Invalid match page or page size.');
   const client = await clientFor(suppliedClient);
-  const { data, error } = await client.rpc('public_group_summary', { p_group_id: groupId, p_season: season, p_page: page });
-  if (error) throw error;
-  if (data?.group?.id !== groupId || !Array.isArray(data.players) || !Array.isArray(data.matches) || !Array.isArray(data.seasons) ||
-      !Number.isInteger(data.season) || (season !== null && data.season !== season) || data.page !== page || data.page_size !== 25 || !Number.isInteger(data.match_count)) {
-    throw new Error('The public results response was incomplete. Refresh to try again.');
+  async function read(serverPage, selectedSeason) {
+    const { data, error } = await client.rpc('public_group_summary', { p_group_id: groupId, p_season: selectedSeason, p_page: serverPage });
+    if (error) throw error;
+    if (data?.group?.id !== groupId || !Array.isArray(data.players) || !Array.isArray(data.matches) || !Array.isArray(data.seasons) ||
+        !Number.isInteger(data.season) || (selectedSeason !== null && data.season !== selectedSeason) || data.page !== serverPage || data.page_size !== 25 || !Number.isInteger(data.match_count)) {
+      throw new Error('The public results response was incomplete. Refresh to try again.');
+    }
+    return data;
+  }
+  // The existing RPC returns batches of 25. Read only the one or two batches
+  // needed for the selected display page, keeping the deployed database unchanged.
+  const offset = (page - 1) * pageSize;
+  const serverPage = Math.floor(offset / 25) + 1;
+  const start = offset % 25;
+  const data = await read(serverPage, season);
+  let matches = data.matches;
+  if (start + pageSize > 25 && offset + (25 - start) < data.match_count) {
+    const following = await read(serverPage + 1, data.season);
+    if (following.match_count !== data.match_count) throw new Error('Published matches changed while loading. Refresh to try again.');
+    matches = [...matches, ...following.matches];
   }
   data.players.sort((a, b) => b.points - a.points || b.wins - a.wins || a.name.localeCompare(b.name, 'pt', { sensitivity: 'base' }) || a.id.localeCompare(b.id));
-  return data;
+  return { ...data, page, page_size: pageSize, matches: matches.slice(start, start + pageSize) };
 }
 
 export async function publicMatchDetails(groupId, matchId, suppliedClient) {

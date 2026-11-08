@@ -115,3 +115,9 @@ Validação: **157 testes aprovados**, build web aprovado e fluxo Chrome mobile 
 A página pública do grupo foi dividida em **Overview**, **Players** e **Matches**, exibindo apenas a seção selecionada. Overview mostra os totais da temporada; Players contém a tabela individual; Matches contém a lista paginada e os links para detalhes. Temporada e página são preservadas na navegação, inclusive ao voltar dos detalhes, recarregar e usar Voltar no navegador. Trocar apenas a seção reutiliza os dados carregados.
 
 Para conferir localmente, abra um grupo em `/#/groups`, navegue pelas três seções, troque a temporada, abra uma partida e use **Back to matches**. O teste automatizado fica em `npm run test:public:browser`, com as mesmas variáveis `BASE_URL` e `PLAYWRIGHT_MODULE` do teste mobile anterior. Foram aprovados os 157 testes, o build público e a navegação Chrome mobile com respostas simuladas. Esta alteração ainda não foi publicada no site.
+
+### Paginação de Matches
+
+Matches agora mostra **5 partidas por página** por padrão, com seleção de **10 ou 25**, intervalo de resultados e navegação numerada. A temporada, a página e o tamanho selecionado permanecem nos links e são recuperados ao voltar dos detalhes ou recarregar. Trocar a temporada ou o tamanho da página retorna à primeira página. Os totais do Overview e de Players continuam considerando toda a temporada. Não é necessária migração adicional no Supabase.
+
+Validação: 158 testes aprovados, build público e Chrome mobile aprovados, incluindo páginas que cruzam os lotes de 25 do servidor, última página parcial e temporada vazia. Alteração ainda local.

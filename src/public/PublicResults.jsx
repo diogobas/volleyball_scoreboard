@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, Container, Divider, Paper, Stack, Tab, Tabs, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, Container, Divider, Pagination, PaginationItem, Paper, Stack, Tab, Tabs, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
 import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
 import SportsVolleyballRounded from '@mui/icons-material/SportsVolleyballRounded';
 import { listPublicGroups, publicGroupSummary, publicMatchDetails } from '../remote/publicStats';
@@ -19,12 +19,12 @@ export default function PublicResults({ route }) {
     setLoading(true); setError('');
     if (route.kind === 'missing') { setLoading(false); return; }
     const request = route.kind === 'groups' ? listPublicGroups() : route.kind === 'match'
-      ? publicMatchDetails(route.groupId, route.matchId) : publicGroupSummary(route.groupId, route.season, route.page);
+      ? publicMatchDetails(route.groupId, route.matchId) : publicGroupSummary(route.groupId, route.season, route.page, undefined, route.pageSize);
     request.then(result => { if (active) setData(result); }).catch(failure => {
       if (active) setError(failure.message || 'Public results could not be loaded. Check your connection and retry.');
     }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [route.kind, route.groupId, route.matchId, route.season, route.page, attempt]);
+  }, [route.kind, route.groupId, route.matchId, route.season, route.page, route.pageSize, attempt]);
 
   const group = route.kind === 'groups' ? null : data?.group;
   return <Container component="main" maxWidth="lg" sx={{ py: { xs: 2, sm: 4 }, pb: 6 }}>
@@ -35,7 +35,7 @@ export default function PublicResults({ route }) {
       <Button component="a" href="#/admin" variant="outlined" size="small">Administration</Button>
     </Stack>
     {route.kind === 'missing' ? <><Typography component="h1" variant="h3">Page not found</Typography><Button component="a" href="#/groups">Browse groups</Button></> : <>
-      {route.kind !== 'groups' && <Button component="a" href={route.kind === 'match' ? publicGroupHref(route.groupId, { season: route.season, page: route.page, view: 'matches' }) : '#/groups'} sx={{ mb: 2 }}>
+      {route.kind !== 'groups' && <Button component="a" href={route.kind === 'match' ? publicGroupHref(route.groupId, { season: route.season, page: route.page, pageSize: route.pageSize, view: 'matches' }) : '#/groups'} sx={{ mb: 2 }}>
         {route.kind === 'match' ? '← Back to matches' : '← All groups'}
       </Button>}
       {route.kind === 'groups' && <><Typography component="h1" variant="h3" sx={{ mb: 1 }}>Results &amp; seasons</Typography>
@@ -69,7 +69,7 @@ function GroupSeason({ data, route, loading, refresh }) {
   const view = route.view ?? 'overview';
   return <>
     <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-      <TextField select label="Season" value={data.season} onChange={event => { window.location.hash = publicGroupHref(route.groupId, { season: Number(event.target.value), view }).slice(1); }}
+      <TextField select label="Season" value={data.season} onChange={event => { window.location.hash = publicGroupHref(route.groupId, { season: Number(event.target.value), view, pageSize: route.pageSize }).slice(1); }}
         slotProps={{ select: { native: true }, inputLabel: { shrink: true } }} size="small" sx={{ minWidth: 120 }}>
         {data.seasons.map(year => <option key={year} value={year}>{year}</option>)}
       </TextField>
@@ -80,7 +80,7 @@ function GroupSeason({ data, route, loading, refresh }) {
         {['overview', 'players', 'matches'].map(section => <Tab key={section} component="a" value={section}
           id={`group-tab-${section}`} aria-controls={`group-section-${section}`}
           label={section === 'overview' ? 'Overview' : section === 'players' ? 'Players' : 'Matches'}
-          href={publicGroupHref(route.groupId, { season: route.season, page: route.page, view: section })} />)}
+          href={publicGroupHref(route.groupId, { season: route.season, page: route.page, pageSize: route.pageSize, view: section })} />)}
       </Tabs>
     </Box>
     <Box role="tabpanel" id={`group-section-${view}`} aria-labelledby={`group-tab-${view}`}>
@@ -88,7 +88,7 @@ function GroupSeason({ data, route, loading, refresh }) {
         <Typography component="h2" variant="h5" sx={{ mb: 2 }}>Season overview · {data.season}</Typography>
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: { xs: 1, sm: 2 }, mb: 4 }}>
           {[[data.match_count, 'Matches', 'matches'], [data.participant_count, 'Players', 'players'], [data.point_count, 'Points played', null]].map(([value, label, section]) => <Paper key={label} variant="outlined"
-            component={section ? 'a' : 'div'} href={section ? publicGroupHref(route.groupId, { season: route.season, page: route.page, view: section }) : undefined}
+            component={section ? 'a' : 'div'} href={section ? publicGroupHref(route.groupId, { season: route.season, page: route.page, pageSize: route.pageSize, view: section }) : undefined}
             aria-label={section ? `View ${label.toLowerCase()}` : undefined}
             sx={{ p: { xs: 1.5, sm: 2.5 }, display: 'block', color: 'inherit', textDecoration: 'none', ...(section && {
               '&:hover': { borderColor: 'primary.main' }, '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
@@ -116,21 +116,32 @@ function GroupSeason({ data, route, loading, refresh }) {
       </>}
       {view === 'matches' && <>
         <Typography component="h2" variant="h5" sx={{ mb: 2 }}>Matches · {data.season}</Typography>
-        {data.matches.length === 0 && <Alert severity="info" action={data.match_count ? <Button component="a" href={publicGroupHref(route.groupId, { season: data.season, view: 'matches' })}>First page</Button> : undefined}>{data.match_count ? 'No matches on this page.' : 'No confirmed matches in this season.'}</Alert>}
+        {data.matches.length === 0 && <Alert severity="info" action={data.match_count ? <Button component="a" href={publicGroupHref(route.groupId, { season: data.season, pageSize: data.page_size, view: 'matches' })}>First page</Button> : undefined}>{data.match_count ? 'No matches on this page.' : 'No confirmed matches in this season.'}</Alert>}
+        <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+          <Typography variant="body2" color="text.secondary">{data.matches.length ? (data.page - 1) * data.page_size + 1 : 0}–{data.matches.length ? (data.page - 1) * data.page_size + data.matches.length : 0} of {data.match_count} matches</Typography>
+          <TextField select label="Matches per page" value={data.page_size} size="small" sx={{ minWidth: 155 }}
+            slotProps={{ select: { native: true }, inputLabel: { shrink: true } }} onChange={event => {
+              window.location.hash = publicGroupHref(route.groupId, { season: data.season, view: 'matches', pageSize: Number(event.target.value) }).slice(1);
+            }}>
+            {[5,10,25].map(size => <option key={size} value={size}>{size}</option>)}
+          </TextField>
+        </Stack>
         <Stack spacing={2}>
           {data.matches.map(match => <Paper key={match.id} variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{playedTime(match, data.group.time_zone)}{!match.started_at && ' · Closing date'}</Typography>
             <Typography component="h3" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{match.team_a_name} {match.sets_a} × {match.sets_b} {match.team_b_name}</Typography>
             <Typography variant="body2">{resultText(match)}</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>Sets: {match.sets.map(set => `${set.score_a} × ${set.score_b}`).join(' · ')}</Typography>
-            <Button component="a" href={publicGroupHref(route.groupId, { season: data.season, page: data.page, matchId: match.id })}>View match</Button>
+            <Button component="a" href={publicGroupHref(route.groupId, { season: data.season, page: data.page, pageSize: data.page_size, matchId: match.id })}>View match</Button>
           </Paper>)}
         </Stack>
-        {(pages > 1 || data.page > 1) && <Stack component="nav" aria-label="Match pages" direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mt: 3, gap: 1 }}>
-          <Button component="a" disabled={data.page <= 1} href={publicGroupHref(route.groupId, { season: data.season, page: Math.max(1, data.page - 1), view: 'matches' })}>Previous</Button>
-          <Typography variant="body2">Page {data.page} of {pages}</Typography>
-          <Button component="a" disabled={data.page >= pages} href={publicGroupHref(route.groupId, { season: data.season, page: data.page + 1, view: 'matches' })}>Next</Button>
-        </Stack>}
+        <Stack component="nav" aria-label="Match pages" sx={{ alignItems: 'center', mt: 3, gap: 1 }}>
+          <Pagination count={pages} page={data.page} size="small" siblingCount={0} boundaryCount={1}
+            renderItem={item => <PaginationItem {...item} component="a" href={publicGroupHref(route.groupId, {
+              season: data.season, page: Math.max(1, item.page ?? 1), pageSize: data.page_size, view: 'matches',
+            })} />} />
+          <Typography variant="body2" color="text.secondary">Page {data.page} of {pages}</Typography>
+        </Stack>
       </>}
     </Box>
   </>;
