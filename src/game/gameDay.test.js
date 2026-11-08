@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { IDBFactory } from 'fake-indexeddb';
 import { createMatch, enableCourtMode, matchReducer, restoreMatch } from './match.js';
-import { applyDayLineup, bindSavedMatch, receivedMatchPayload } from './gameDay.js';
+import { applyDayLineup, startIndependentMatch, bindSavedMatch, receivedMatchPayload } from './gameDay.js';
 import { CLOSED_STORE, closeStoredMatch, listStoredMatches, loadStoredMatch, openMatchDatabase, saveStoredMatch } from './storage.js';
 import { matchPayload } from '../remote/matchPayload.js';
 import { closeDayDatabaseWhenUploadsFinish, uploadReceivedMatch } from '../remote/gameDays.js';
@@ -123,4 +123,17 @@ test('old registered archives retain the original version-one upload contract af
   state=close(point(state)); const saved={...archive(state),dayContext:context};
   assert.deepEqual(receivedMatchPayload(saved),matchPayload(saved));
   assert.equal(receivedMatchPayload(saved).format_version,1);
+});
+
+
+test('choosing an independent match removes the day link offline while keeping editable names and sides',async t=>{
+  const db=await database(t); const loaded=applyDayLineup(enableCourtMode(createMatch()),context);
+  loaded.sidesSwapped=true;
+  const independent=startIndependentMatch(loaded);
+  assert.equal(independent.dayContext,undefined); assert.equal(independent.groupId,undefined);
+  assert.equal(independent.sidesSwapped,true); assert.equal(independent.teams.A.name,'Home');
+  assert.equal(independent.teams.A.players[0].name,players[0].name);
+  await saveStoredMatch(db,independent); assert.deepEqual(await loadStoredMatch(db),independent);
+  assert.throws(()=>startIndependentMatch(point(loaded)),/Save or reset/);
+  assert.equal(loaded.dayContext.day_id,context.day_id);
 });

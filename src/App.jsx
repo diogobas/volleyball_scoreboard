@@ -10,8 +10,9 @@ import { closeStoredMatch, createLocalId, listStoredMatches, loadStoredMatch, op
 import { Roster, ScorePanel } from './components/TeamPanel';
 import EditTeamsDialog from './components/EditTeamsDialog';
 import Statistics from './components/Statistics';
+import DayCodeDialog from './components/DayCodeDialog';
 import CloseMatchDialog from './components/CloseMatchDialog';
-import { applyDayLineup } from './game/gameDay';
+import { applyDayLineup, startIndependentMatch } from './game/gameDay';
 import SavedMatchesDialog from './components/SavedMatchesDialog';
 import { closeDayDatabaseWhenUploadsFinish, uploadReceivedMatch } from './remote/gameDays';
 
@@ -57,6 +58,7 @@ function MatchApp({ database, initialState }) {
   const [closeSuccess, setCloseSuccess] = useState(false);
   const [storageWarning, setStorageWarning] = useState('');
   const [tab, setTab] = useState(0);
+  const [lineupOpen, setLineupOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [pendingOpen, setPendingOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
@@ -144,12 +146,26 @@ function MatchApp({ database, initialState }) {
     requestAnimationFrame(() => courtRef.current?.scrollIntoView({ block: 'start' }));
   }
 
+  const matchStarted = state.log.some(entry => entry.type === 'point');
   const last = state.log.at(-1);
   const closing = confirmation === 'closeSet';
   return <Box component="main" className="app" aria-label="Volleyball Scoreboard">
     {closeSuccess && <Alert severity="success" onClose={() => setCloseSuccess(false)} sx={{ mx: 2, mb: 2 }}>Match saved on this device, awaiting upload. A new match has started.</Alert>}
     {syncNotice && <Alert severity="info" onClose={() => setSyncNotice('')} sx={{ mx: 2, mb: 2 }}>{syncNotice}</Alert>}
     {storageWarning && <Alert severity="warning" action={<Button color="inherit" size="small" onClick={retrySave}>Retry saving</Button>} sx={{ mx: 2, mb: 2 }}>{storageWarning}</Alert>}
+    {tab === 0 && !matchStarted && <Paper variant="outlined" sx={{ mx: 1.5, mb: 1.5, p: 1.5 }} aria-label="Match setup">
+      <Typography variant="subtitle2">{state.dayContext ? `${state.dayContext.group_name} · ${state.dayContext.play_date}` : 'Before the match'}</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+        {state.dayContext ? 'Game-day lineup loaded. You can start playing offline.' : 'Load the teams prepared by your administrator, or play without a code.'}
+      </Typography>
+      <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
+        <Button variant="outlined" size="small" onClick={() => setLineupOpen(true)}>{state.dayContext ? 'Change game-day code' : 'Use game-day code'}</Button>
+        <Button size="small" onClick={() => {
+          try { setState(startIndependentMatch(state)); setSyncNotice('Independent match. Edit names or start scoring whenever you are ready.'); }
+          catch (error) { setSyncNotice(error.message); }
+        }}>Play independently</Button>
+      </Stack>
+    </Paper>}
     <Box ref={courtRef} className={`court${tab !== 0 ? ' court--stats' : ''}`}>
       {tab === 0 && <Box className="scoreboard">
         <Stack className="set-bar" direction="row" sx={{ alignItems: 'center', justifyContent: 'center', gap: 2 }}>
@@ -202,6 +218,11 @@ function MatchApp({ database, initialState }) {
       <Button color="inherit" size="small" startIcon={<RestartAltRounded />} onClick={() => setConfirmation('reset')}>Reset match</Button>
       <Typography variant="caption" color="text.secondary">{saved ? 'Saved on this device' : storageWarning ? 'Local saving unavailable' : 'Saving…'}</Typography>
     </Box>
+    {lineupOpen && <DayCodeDialog confirmLabel="Load lineup" onClose={() => setLineupOpen(false)} onConfirm={async context => {
+      const next = applyDayLineup(state, context);
+      const persisted = await saveStoredMatch(database, next);
+      setState(persisted); setSavedState(persisted); setStorageWarning(''); setSyncNotice(''); setLineupOpen(false);
+    }} />}
     {pendingOpen && <SavedMatchesDialog database={database} onChanged={refreshPending} onClose={() => setPendingOpen(false)} />}
     {editing && <EditTeamsDialog state={state} teamOrder={teamOrder} onClose={() => setEditing(false)}
       onSave={(teams, dayContext, imported) => {

@@ -32,7 +32,7 @@ Esperado: preservação dos dados existentes, edição simples e nenhuma depend�
 1. Entre no site em **Administration** com uma conta administrativa existente. Abra **Manage group**. Cadastro de jogadores e permissões ficam nessa página.
 2. Se necessário, abra **Registered players** e cadastre os participantes. Nomes semelhantes não são unidos automaticamente; use um nome completo distinto para outra pessoa.
 3. Crie um dia com data no fuso do grupo, nomes dos dois times e seis jogadores diferentes em cada lado. **Create day & code** mostra um código copiável. Copie antes de sair: o servidor guarda apenas o hash.
-4. No app, sem pontos registrados, abra **Edit names → Load lineup**, informe o código, confira grupo/data/times e confirme. Depois salve a edição. Coloque em modo avião e reinicie: escalação e vínculo permanecem.
+4. No app, sem pontos registrados, toque em **Use game-day code** na tela principal, informe o código, confira grupo/data/times e confirme em **Load lineup**. A escalação é aplicada e salva diretamente, sem uma segunda confirmação em Edit names. Coloque em modo avião e reinicie: escalação e vínculo permanecem.
 5. Comece a pontuar e abra Edit names. A edição livre continua disponível; **Load lineup** fica bloqueado para evitar sobrescrever o jogo em andamento.
 6. Encerre um set e, online, escolha **Save & sync**. Sem vínculo prévio, essa ação pede um código para associar somente a partida salva; não altera seus nomes. Com vínculo, envia diretamente.
 7. Confira o recebimento em **Administration → Manage group → Open day → Private inbox**. A partida deixa o celular após confirmação, mas ainda não aparece na consulta pública.
@@ -101,3 +101,11 @@ A versão **1.2.0 (4)** foi arquivada, assinada, exportada e enviada ao App Stor
 - IPA de distribuição: `artifacts/ios/TestFlight-1.2.0-4/App.ipa`.
 - Testes repetidos antes da geração: 156 aprovados; `npm run ios:sync` concluído.
 - Após o processamento, conferir App Store Connect → Volleyball Scoreboard → TestFlight e adicionar o build ao grupo existente, se necessário. Atualizar pelo TestFlight preservando a instalação; validar o roteiro offline em aparelho físico.
+
+## Ajuste de preparação da partida — 8 de novembro de 2026
+
+Antes do primeiro ponto, a tela principal oferece **Use game-day code** e **Play independently**. O código baixa os times previamente definidos pelo administrador; a confirmação aplica a escalação e aguarda a gravação local antes de fechar o diálogo. O app mostra grupo/data e mantém a escalação ao reabrir offline. O uso sem código continua disponível desde a abertura, sem exigir nenhuma seleção.
+
+**Play independently** remove o vínculo do jogo atual com o dia/grupo, conservando os nomes editáveis e os lados. As partidas arquivadas não são alteradas. Após o primeiro ponto, as opções de preparação saem da tela para proteger a partida em andamento; a edição livre de nomes permanece disponível.
+
+Validação: **157 testes aprovados**, build web aprovado e fluxo Chrome mobile aprovado para cancelamento do código, carregamento direto, escolha independente e retorno offline. A captura está em `artifacts/court-browser/pregame-mobile.png`. Este ajuste é posterior ao TestFlight 1.2.0 (4); nenhum novo build foi enviado nesta etapa.

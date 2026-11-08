@@ -2,12 +2,19 @@ import { useState } from 'react';
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material';
 import { redeemDayCode } from '../remote/gameDays';
 
-export default function DayCodeDialog({ onClose, onConfirm }) {
+export default function DayCodeDialog({ onClose, onConfirm, confirmLabel = 'Use this day' }) {
   const [code, setCode] = useState(''); const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   async function load(event) {
     event.preventDefault(); setBusy(true); setError('');
     try { setPreview(await redeemDayCode(code)); } catch (failure) { setError(failure.message); }
+    finally { setBusy(false); }
+  }
+  async function confirm() {
+    if (busy || !preview) return;
+    setBusy(true); setError('');
+    try { await onConfirm(preview); }
+    catch (failure) { setError(failure.message || 'The lineup could not be saved. Please retry.'); }
     finally { setBusy(false); }
   }
   return <Dialog open fullWidth maxWidth="sm" onClose={() => { if (!busy) onClose(); }} aria-labelledby="day-code-title">
@@ -21,6 +28,6 @@ export default function DayCodeDialog({ onClose, onConfirm }) {
         {['A','B'].map(team => <Typography key={team}>{preview.lineup[team].name}: {preview.lineup[team].players.map(p => p.name).join(', ')}</Typography>)}
         <Typography variant="caption">Lineup version {preview.lineup_version}</Typography></>}
     </Stack></DialogContent>
-    <DialogActions><Button disabled={busy} onClick={onClose}>Cancel</Button><Button variant="contained" disabled={busy || !preview} onClick={() => onConfirm(preview)}>Use this day</Button></DialogActions>
+    <DialogActions><Button disabled={busy} onClick={onClose}>Cancel</Button><Button variant="contained" disabled={busy || !preview} onClick={confirm}>{busy ? 'Please wait…' : confirmLabel}</Button></DialogActions>
   </Dialog>;
 }

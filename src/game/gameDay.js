@@ -1,16 +1,22 @@
-import { canCloseMatch, restoreMatch, TEAM_IDS } from './match.js';
+import { canCloseMatch, matchReducer, restoreMatch, TEAM_IDS } from './match.js';
 import { matchPayload } from '../remote/matchPayload.js';
 import { CLOSED_STORE, SETTINGS_STORE, transactionDone } from './storage.js';
 
+export function startIndependentMatch(state) {
+  if (state.log.some(entry => entry.type === 'point')) throw new Error('Save or reset the current match before changing its setup.');
+  const next = matchReducer(state, { type: 'reset' });
+  delete next.groupId; delete next.initialRoster; delete next.dayContext;
+  for (const team of TEAM_IDS) for (const player of next.teams[team].players) delete player.personId;
+  next.court = { initial: structuredClone(next.teams), changes: [] };
+  return restoreMatch(JSON.stringify(next));
+}
+
 export function applyDayLineup(state, context) {
   if (state.log.some(entry => entry.type === 'point')) throw new Error('Save or reset the current match before loading a lineup.');
-  const next = structuredClone(state);
-  // Day identity is separate from the former mandatory player registry.
-  delete next.groupId; delete next.initialRoster;
+  const next = startIndependentMatch(state);
   for (const team of TEAM_IDS) {
     next.teams[team].name = context.lineup[team].name;
     next.teams[team].players.forEach((player, i) => {
-      delete player.personId;
       if (!player.isError) player.name = context.lineup[team].players[i].name;
     });
   }

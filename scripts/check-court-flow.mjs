@@ -52,9 +52,31 @@ try {
   const edit=page.getByRole('dialog',{name:'Edit teams and players'});
   await edit.getByLabel('Player 1',{exact:true}).first().fill('Operator edit');
   await edit.getByRole('button',{name:'Save',exact:true}).click();await saved();
-  await page.getByRole('button',{name:'Edit names',exact:true}).click();await edit.getByRole('button',{name:'Load lineup',exact:true}).click();
-  const link=page.getByRole('dialog',{name:'Game-day code',exact:true});await link.getByLabel(/^Code/).fill(code);await link.getByRole('button',{name:'Check code',exact:true}).click();await link.getByText('Court test · 2026-11-07',{exact:true}).waitFor();await link.getByRole('button',{name:'Use this day',exact:true}).click();await edit.getByRole('button',{name:'Save',exact:true}).click();await saved();
+  await page.getByRole('button',{name:'Use game-day code',exact:true}).click();
+  const link=page.getByRole('dialog',{name:'Game-day code',exact:true});
+  await link.getByRole('button',{name:'Cancel',exact:true}).click();
+  await page.getByRole('button',{name:'Add point to Operator edit — Team 1',exact:true}).waitFor();
+  async function loadPregameLineup() {
+    await page.getByRole('button',{name:'Use game-day code',exact:true}).click();
+    await link.getByLabel(/^Code/).fill(code);await link.getByRole('button',{name:'Check code',exact:true}).click();
+    await link.getByText('Court test · 2026-11-07',{exact:true}).waitFor();
+    await link.getByRole('button',{name:'Load lineup',exact:true}).click();
+    await page.getByRole('button',{name:'Change game-day code',exact:true}).waitFor();await saved();
+    assert.equal(await edit.count(),0);
+  }
+  await loadPregameLineup();
+  await page.getByRole('button',{name:'Play independently',exact:true}).click();await saved();
+  await page.getByRole('button',{name:'Use game-day code',exact:true}).waitFor();
+  assert.equal(await page.evaluate(()=>new Promise(resolve=>{const request=indexedDB.open('volleyball-scoreboard');request.onsuccess=()=>{const db=request.result;const tx=db.transaction('activeMatches');const stored=tx.objectStore('activeMatches').get('current');tx.oncomplete=()=>{db.close();resolve(Boolean(stored.result.state.dayContext));};};})),false);
+  await loadPregameLineup();
+  await page.evaluate(()=>localStorage.setItem('qaOffline','true'));await page.reload();await saved();
+  await page.getByRole('button',{name:'Change game-day code',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Add point to Person 1 — Home',exact:true}).waitFor();
+  await page.screenshot({path:'artifacts/court-browser/pregame-mobile.png'});
+  await page.evaluate(()=>localStorage.setItem('qaOffline','false'));
   await page.getByRole('button',{name:'Add point to Person 1 — Home',exact:true}).click();await saved();
+  assert.equal(await page.getByRole('button',{name:'Change game-day code',exact:true}).count(),0);
+  assert.equal(await page.getByRole('button',{name:'Play independently',exact:true}).count(),0);
   await page.getByRole('button',{name:'Edit names',exact:true}).click();assert.equal(await edit.getByRole('button',{name:'Load lineup',exact:true}).isDisabled(),true);await edit.getByLabel('Player 1',{exact:true}).first().fill('Substitute');await edit.getByRole('button',{name:'Save',exact:true}).click();await saved();
   await page.getByRole('button',{name:'Add point to Substitute — Home',exact:true}).click();await saved();
   await page.getByRole('button',{name:'Close set',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Close set',exact:true}).click();await saved();
