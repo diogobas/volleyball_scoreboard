@@ -5,6 +5,10 @@ import { listPublicGroups, publicGroupSummary, publicMatchDetails } from '../rem
 import StatisticsView from '../components/StatisticsView';
 import { publicMatchStatistics } from './matchStatistics';
 import { publicGroupHref } from './routes';
+import { teamColors } from '../theme';
+
+// Match cards use Team 1 in red and Team 2 in blue.
+const scorerTeamColors = { A: teamColors.B, B: teamColors.A };
 
 function playedTime(match, timeZone) {
   return new Intl.DateTimeFormat('en', { timeZone, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(match.started_at ?? match.closed_at));
@@ -173,7 +177,7 @@ function MatchTopScorers({ groupId, match }) {
         : <Box component="ol" aria-label={`Top scorers for ${match.team_a_name} vs ${match.team_b_name}`}
           sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }, gap: 1, listStyle: 'none', p: 0, m: 0 }}>
           {players.map(player => <Box component="li" key={player.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.25,
-            bgcolor: 'action.hover', borderRadius: 1, minWidth: 0 }}>
+            bgcolor: 'action.hover', borderRadius: 1, minWidth: 0, borderTop: '4px solid', borderTopColor: scorerTeamColors[player.teamId] }}>
             <Typography variant="body2" color="text.secondary">{players.findIndex(item => item.points === player.points) + 1}.</Typography>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="body2" sx={{ fontWeight: 700, overflowWrap: 'anywhere' }}>{player.name}</Typography>
