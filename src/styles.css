@@ -31,6 +31,7 @@ button, input { touch-action: manipulation; }
 .player-button.Mui-focusVisible { outline: 3px solid white; outline-offset: -3px; }
 .player-button.error-button { border-style: dashed; background: #ffffff0a; }
 .player-name { min-width: 0; font-size: .875rem; overflow-wrap: anywhere; }
+.player-button:not(.error-button) .player-name { font-weight: 700; }
 .error-button .player-name { font-size: .75rem; font-style: italic; opacity: .9; }
 .player-points.MuiChip-root { min-width: 36px; max-width: 50%; height: 34px; border-radius: 8px; background: #ffffff24; color: white; font: 700 clamp(24px, 3dvh, 28px)/1 'Barlow Condensed', sans-serif; flex-shrink: 0; }
 .player-points .MuiChip-label { padding: 0 8px; }
