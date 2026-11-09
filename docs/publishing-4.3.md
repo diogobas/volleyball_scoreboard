@@ -1,4 +1,4 @@
-# Publicação — 1.1.0 (3)
+# Publicação — 1.2.0 (5)
 
 O código consolidado fica em `master`. A publicação web principal continua sendo o projeto Direct Upload da Cloudflare Pages descrito abaixo; a branch de produção `public` é uma configuração desse projeto, não uma branch de desenvolvimento Git.
 
@@ -51,28 +51,30 @@ Referências: [GitHub Pages](https://docs.github.com/en/pages/getting-started-wi
 
 ## iOS / TestFlight
 
-Identificador: `ca.itelligent.volleyballscoreboard`. Versão **1.1.0**, build **3**. Archive, exportação e upload ao App Store Connect concluídos nesta entrega. O log local `artifacts/ios/upload-1.1.0-3.log` contém “Upload succeeded”; isto não confirma que a Apple já terminou o processamento ou liberou testadores.
+Identificador: `ca.itelligent.volleyballscoreboard`. Versão **1.2.0**, build **5**. Archive, exportação e upload ao App Store Connect concluídos. O log `artifacts/ios/upload-1.2.0-5.log` confirma “Upload succeeded” e o início do processamento. A disponibilidade para testadores depende da conclusão desse processamento pela Apple e da seleção do build no grupo.
 
 1. Abra [App Store Connect](https://appstoreconnect.apple.com/) → Volleyball Scoreboard → TestFlight.
-2. Aguarde **1.1.0 (3)** terminar o processamento. Confira eventuais pendências de conformidade exibidas pela Apple.
-3. Em **Internal Testing**, selecione/crie um grupo e adicione o build 3. Adicione seu usuário da equipe como testador.
+2. Aguarde **1.2.0 (5)** terminar o processamento. Confira eventuais pendências de conformidade exibidas pela Apple.
+3. Em **Internal Testing**, selecione/crie um grupo e adicione o build 5. Adicione seu usuário da equipe como testador.
 4. No iPhone, abra o TestFlight com a conta convidada e instale/atualize o aplicativo. Execute o roteiro 4.3 antes de ampliar o grupo.
 5. Para pessoas que não pertencem à equipe App Store Connect, use **External Testing**; o primeiro build externo depende da Beta App Review. Preencha as informações de teste solicitadas pela Apple e selecione os testadores.
 
-Para novos builds, aumente CURRENT_PROJECT_VERSION nas duas configurações do Xcode, execute `npm run ios:sync`, gere Archive e envie pelo Organizer. Há opções de exportação em `release/ios/`. Não reenvie o mesmo número de build. O IPA desta entrega está em `artifacts/ios/TestFlight-1.1.0-3/App.ipa`.
+Para novos builds, aumente CURRENT_PROJECT_VERSION nas duas configurações do Xcode, execute `npm run ios:sync`, gere Archive e envie pelo Organizer. Há opções de exportação em `release/ios/`. Não reenvie o mesmo número de build. O IPA desta entrega está em `artifacts/ios/TestFlight-1.2.0-5/App.ipa`.
 
 Referência: [testadores internos](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-internal-testers), [TestFlight externo](https://developer.apple.com/testflight/).
 
 ## Android / teste interno Google Play
 
-Identificador: `com.diogobastos.volleyballscoreboard`. Versão **1.1.0**, versionCode **3**, mínimo Android 7/API24, destino API36. O pacote assinado está pronto, mas **não foi enviado ao Play Console**:
+Roteiro para amanhã, **9 de novembro de 2026**: [passo a passo do teste interno](google-play-teste-interno-2026-11-09.md). O AAB foi gerado com a chave existente, verificado com jarsigner e comparado ao certificado do pacote anterior.
 
-`artifacts/android/VolleyballScoreboard-1.1.0-3.aab`
+Identificador: `com.diogobastos.volleyballscoreboard`. Versão **1.2.0**, versionCode **5**, mínimo Android 7/API24, destino API36. O pacote assinado está pronto, mas **não foi enviado ao Play Console**:
+
+`artifacts/android/VolleyballScoreboard-1.2.0-5.aab`
 
 1. Abra [Play Console](https://play.google.com/console) e escolha **Criar app**. Nome sugerido: Volleyball Scoreboard; idioma inglês; tipo App; gratuito. Preencha as declarações da sua conta.
 2. Abra **Testar e lançar → Teste → Teste interno** e crie uma versão.
 3. Configure **Play App Signing**, permitindo que o Google gere a chave de assinatura do app. O arquivo fornecido usa sua chave de **upload**, que tem função distinta.
-4. Envie o AAB acima. Confira pacote, versão 1.1.0 e código 3. Use as notas em `release/WhatToTest.txt` como base.
+4. Envie o AAB acima. Confira pacote, versão 1.2.0 e código 5. Use as notas em `release/GooglePlayReleaseNotes-1.2.0-5.txt` como base.
 5. Salve, revise e resolva as pendências indicadas pelo Console; inicie o lançamento para teste interno.
 6. Em **Testadores**, crie/selecione a lista com as Contas Google dos participantes, salve e copie o link de participação.
 7. Abra o link com uma conta dessa lista, aceite o teste e instale pela Play Store. O teste interno comporta até 100 testadores; o aplicativo não precisa aparecer na busca pública.
@@ -81,7 +83,7 @@ Identificador: `com.diogobastos.volleyballscoreboard`. Versão **1.1.0**, versio
 
 Para novos bundles: aumente versionCode, mantenha a chave existente, execute `npm run android:bundle`. O resultado fica em `android/app/build/outputs/bundle/release/app-release.aab`. O build release falha com instrução explícita quando a assinatura local não está configurada.
 
-Uma instalação antiga feita pelo APK debug pode ter assinatura diferente da Play Store. Antes de qualquer desinstalação exigida para trocar de assinatura, envie todas as partidas pendentes e confira os resultados no site; desinstalar apaga dados locais. O APK `artifacts/android/VolleyballScoreboard-1.1.0-3-debug.apk` é apenas para instalação direta e não substitui o AAB do Console.
+Uma instalação antiga feita pelo APK debug pode ter assinatura diferente da Play Store. Antes de qualquer desinstalação exigida para trocar de assinatura, envie todas as partidas pendentes e confira os resultados no site; desinstalar apaga dados locais. Para a publicação no Google Play, use o AAB assinado indicado acima.
 
 Referência: [teste interno Google Play](https://support.google.com/googleplay/android-developer/answer/9845334).
 

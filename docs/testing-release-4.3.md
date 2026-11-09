@@ -1,34 +1,18 @@
-# Aprovação da subfase 4.3
+# Validação da versão móvel 1.2.0 (5)
 
-Branch: `feat/public-stats-admin`. Versões nativas 1.1.0 (3).
+O roteiro acompanha o novo TestFlight e o AAB Android para teste interno. Os testes físicos abaixo devem ser feitos após instalar o build 5; os builds e a validação de assinatura não substituem essa conferência.
 
-## Verificações executadas
+1. Atualize pelo TestFlight ou Google Play preservando os dados existentes. Confira versão 1.2.0 (5), partida atual e partidas salvas.
+2. Abra o app: o placar é a tela inicial. Carregue uma escalação usando o código de cinco caracteres fornecido pelo administrador de um grupo de teste.
+3. Fique offline, marque pontos de jogadores e erros adversários, use Undo e feche os sets. A primeira equipe com três vitórias continua vencedora mesmo após sets extras de treino.
+4. Salve uma partida, encerre e reabra o app offline. Confira os placares e pontos preservados em Saved matches.
+5. Cancele a exclusão de uma partida e confira que ela permanece. Confirme a exclusão de outra partida de teste descartável e reinicie para verificar que não voltou.
+6. Com internet, vincule uma partida salva a um dia de teste e sincronize manualmente. Ela aparece diretamente como finalizada no site, sem revisão pendente; repetir a tentativa não duplica o resultado.
+7. Faça outra partida online e use Save & sync. Confira no site os sets, os pontos e o vencedor. Atualize o site em outro aparelho.
+8. Na administração web, confira Players, Matches, Game days e Access. Em uma partida histórica de teste, escolha jogadores pelos dropdowns e crie um Sub pelo item Add player; os dados já preenchidos devem permanecer.
+9. Confira Win rate e Attendance na temporada: vitória dividida por partidas jogadas e dias presentes divididos pelos dias com jogadores registrados. Várias partidas na mesma data representam uma presença.
+10. Troque jogadores de time apenas em sets de treino. Os pontos continuam entrando nas estatísticas; a vitória conquistada antes da troca é preservada.
 
-- 139 testes automatizados de regras, persistência, sincronização, API e permissões SQL.
-- Builds web do placar e da página pública; navegação pública de produção em desktop e viewport de celular sem overflow.
-- Publicações Cloudflare e GitHub Pages concluídas; navegação e recarga de detalhes verificadas no endereço público.
-- Consulta real somente leitura: grupos, oito partidas de 2026, detalhes e recusa de acesso administrativo anônimo.
-- Build Android debug e release AAB assinado, verificado com jarsigner.
-- Archive iOS, exportação e upload App Store Connect concluídos; build de simulador compilado.
-- Simuladores apresentaram falhas de sistema/gráficos; o fluxo completo em aparelhos físicos ainda precisa da aprovação abaixo. Não foram criadas partidas artificiais no banco real nem alterados dados do telefone pessoal.
+Use dados de teste e registre aparelho, versão do sistema e o passo de qualquer divergência. A instalação/execução no aparelho e a liberação dos grupos de testadores ainda precisam dessa validação.
 
-## Preparação
-
-Siga [publicação e instalação](publishing-4.3.md) para selecionar o build TestFlight e enviar o AAB ao teste interno Google Play. Use uma conta de administrador de um grupo de teste. Não altere partidas oficiais para validar correções. Se preferir, crie um grupo separado para estes testes.
-
-## Passo a passo
-
-1. Abra https://volleyball-scoreboard-results.pages.dev/ sem login. **Esperado:** lista de grupos; o placar não é a tela inicial do site.
-2. Abra o grupo, escolha a temporada e uma partida. Recarregue e copie o link para outro navegador/celular. **Esperado:** mesmos sets, participantes, placares e totais; acesso sem conta.
-3. Autentique um administrador e abra as ferramentas de uma partida de teste. Confira a lista Points. **Esperado:** mais espaço entre o título de cada ponto, campos Team/Scorer e a linha seguinte, inclusive no celular.
-4. Corrija um ponto com motivo, salve e consulte sem login no outro aparelho. **Esperado:** placar/estatísticas recalculados; motivo e autoria administrativa continuam privados. Cancele um rascunho e confirme que nada foi salvo.
-5. Instale/atualize o iOS pelo TestFlight e Android pelo link de teste interno. **Esperado:** ambos abrem o placar, sem aba History; ações de jogo e Statistics continuam disponíveis.
-6. Online, entre na conta, abra Players & sync, selecione o grupo de teste e atualize jogadores. **Esperado:** cadastro fica disponível no aparelho.
-7. Ative modo avião, escale os times, marque pontos (inclusive erro adversário), teste Undo, encerre o set e use Close match. **Esperado:** nova partida começa com escalação/lados preservados e uma pendência aparece em Players & sync → Pending uploads.
-8. Feche completamente e reabra o aplicativo, ainda offline. **Esperado:** partida atual e pendência persistem; jogadores podem ser selecionados sem internet.
-9. Recupere a internet. **Esperado:** pendência antiga permanece até ação manual. Toque Sync pending matches. **Esperado:** somente após confirmação ela é removida do aparelho e fica acessível no site do outro dispositivo.
-10. Jogue e encerre outra partida online. **Esperado:** envio automático; resultado público atualizado, sem duplicação ao atualizar páginas.
-11. Volte a ficar offline, crie outra pendência e tente enviar. **Esperado:** erro claro sem perda; após recuperar conexão, tentativa manual conclui normalmente.
-12. Confira temporada, frequência (um dia mesmo com várias partidas), participantes sem pontos e pessoa que atuou nos dois times (sem vitória individual). **Esperado:** regras do plano preservadas. Corrija e compare novamente caso necessário, somente no grupo de teste.
-
-Registre aparelho/versão do sistema e qualquer passo divergente. A validação física e a liberação dos grupos de testadores permanecem pendentes até estes passos; não é necessário fazer merge na master para aprovar.
+Publicação: [TestFlight e Google Play](publishing-4.3.md).
