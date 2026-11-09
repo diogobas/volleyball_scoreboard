@@ -1,4 +1,4 @@
-# Publicação — 1.2.0 (5)
+# Publicação — iOS 1.2.0 (5) e Android 1.2.0 (6)
 
 O código consolidado fica em `master`. A publicação web principal continua sendo o projeto Direct Upload da Cloudflare Pages descrito abaixo; a branch de produção `public` é uma configuração desse projeto, não uma branch de desenvolvimento Git.
 
@@ -67,14 +67,14 @@ Referência: [testadores internos](https://developer.apple.com/help/app-store-co
 
 Roteiro para amanhã, **9 de novembro de 2026**: [passo a passo do teste interno](google-play-teste-interno-2026-11-09.md). O AAB foi gerado com a chave existente, verificado com jarsigner e comparado ao certificado do pacote anterior.
 
-Identificador: `com.diogobastos.volleyballscoreboard`. Versão **1.2.0**, versionCode **5**, mínimo Android 7/API24, destino API36. O pacote assinado está pronto, mas **não foi enviado ao Play Console**:
+Identificador: `com.diogobastos.volleyballscoreboard`. Versão **1.2.0**, versionCode **6**, mínimo Android 7/API24, destino API36. O pacote assinado está pronto, mas **não foi enviado ao Play Console**:
 
-`artifacts/android/VolleyballScoreboard-1.2.0-5.aab`
+`artifacts/android/VolleyballScoreboard-1.2.0-6.aab`
 
 1. Abra [Play Console](https://play.google.com/console) e escolha **Criar app**. Nome sugerido: Volleyball Scoreboard; idioma inglês; tipo App; gratuito. Preencha as declarações da sua conta.
 2. Abra **Testar e lançar → Teste → Teste interno** e crie uma versão.
 3. Configure **Play App Signing**, permitindo que o Google gere a chave de assinatura do app. O arquivo fornecido usa sua chave de **upload**, que tem função distinta.
-4. Envie o AAB acima. Confira pacote, versão 1.2.0 e código 5. Use as notas em `release/GooglePlayReleaseNotes-1.2.0-5.txt` como base.
+4. Envie o AAB acima. Confira pacote, versão 1.2.0 e código 6. Use as notas em `release/GooglePlayReleaseNotes-1.2.0-6.txt` como base.
 5. Salve, revise e resolva as pendências indicadas pelo Console; inicie o lançamento para teste interno.
 6. Em **Testadores**, crie/selecione a lista com as Contas Google dos participantes, salve e copie o link de participação.
 7. Abra o link com uma conta dessa lista, aceite o teste e instale pela Play Store. O teste interno comporta até 100 testadores; o aplicativo não precisa aparecer na busca pública.
@@ -99,3 +99,14 @@ Esta atualização reúne a navegação por seções no grupo, administração d
 O banco requer as migrações até `20261108001200_player_attendance_statistics.sql`. O verificador remoto é somente leitura e confere consulta pública/detalhes e restrição da edição anônima antes do upload. Builds web usam o endpoint público existente do Supabase, sem credenciais administrativas. Esta publicação web não é um novo envio de binários à Apple ou ao Google Play.
 
 As branches de desenvolvimento já contidas no histórico consolidado podem ser removidas após a integração. Preserve `gh-pages`, que contém o histórico da hospedagem alternativa; ela não deve ser incorporada a `master`. A limpeza não deve excluir branches com commits exclusivos.
+
+
+## Política de privacidade e Android build 6
+
+URL para o Play Console: https://volleyball-scoreboard-results.pages.dev/privacy.html
+
+A página estática identifica o app e o desenvolvedor, descreve dados locais, sincronização e resultados públicos, provedores, retenção/auditoria e pedidos de correção/exclusão pelo contato autorizado `diogovvb@gmail.com`. O texto foi elaborado a partir do comportamento atual do código; não afirma que todas as exigências legais ou todos os formulários do Google estejam concluídos.
+
+O build Android **1.2.0 (6)** acrescenta **Privacy policy** ao final da tela, com uma cópia HTML incluída no próprio pacote, acessível offline. A mesma página é vinculada nos resultados públicos e na administração web. O build 5 já distribuído não recebe esse link automaticamente; envie o novo AAB para a faixa Internal testing para atualizar o app. O TestFlight permanece no build 5 nesta entrega.
+
+O pacote é `artifacts/android/VolleyballScoreboard-1.2.0-6.aab`, assinado com a chave existente. A política também está em `base/assets/public/privacy.html` dentro do AAB. Os testes de navegador cobrem os links e o conteúdo público, sem exigir conta, inclusive o acesso pelo app.

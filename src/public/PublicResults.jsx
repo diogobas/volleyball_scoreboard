@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Button, Container, Divider, Paper, Stack, Typography } from '@mui/material';
 import SportsVolleyballRounded from '@mui/icons-material/SportsVolleyballRounded';
 import { listPublicGroups, publicGroupSummary, publicMatchDetails } from '../remote/publicStats';
+import PrivacyLink from '../components/PrivacyLink';
 import { publicGroupHref } from './routes';
 import { GroupSeason, MatchDetails } from '../components/GroupResults';
 
@@ -55,5 +56,6 @@ export default function PublicResults({ route }) {
     </>}
     <Divider sx={{ mt: 5, mb: 2 }} />
     <Typography component="footer" variant="caption" color="text.secondary">Matches appear here as soon as they are saved and synced.</Typography>
+    <Stack component="footer" sx={{ mt: 4, alignItems: 'center' }}><PrivacyLink /></Stack>
   </Container>;
 }
