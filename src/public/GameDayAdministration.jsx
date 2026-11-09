@@ -1,18 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
-import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Paper, Stack, TextField, Typography } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material';
+import MatchManager from '../components/MatchManager';
+import GameDayList from '../components/GameDayList';
+import PlayerRegistry from '../components/PlayerRegistry';
+import SectionNavigation from '../components/SectionNavigation';
 import { dayRpc } from '../remote/gameDays';
-import { createLocalId } from '../game/storage';
-import { recordedParticipants, reconcileSubmission } from './reconciliation';
-import { correctionErrors } from './corrections';
-import { SetEditor, SnapshotComparison } from './MatchAdministration';
 
 const emptyLineup = () => ({ A: { name: 'Team 1', players: Array(6).fill(null) }, B: { name: 'Team 2', players: Array(6).fill(null) } });
 const todayIn = zone => new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
-export default function GameDayAdministration({ client, group }) {
+export default function GameDayAdministration({ client, group, view = 'days', onRegistryChanged }) {
+  const [creating, setCreating] = useState(false);
+  const [dayView, setDayView] = useState('inbox');
+  const [editDate, setEditDate] = useState('');
+  const [deleting, setDeleting] = useState(null); const [deleteReason, setDeleteReason] = useState('');
   const [players, setPlayers] = useState([]); const [days, setDays] = useState([]); const [context, setContext] = useState(null);
   const [lineup, setLineup] = useState(emptyLineup); const [date, setDate] = useState(() => todayIn(group.time_zone));
-  const [name, setName] = useState(''); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const [registryLoading, setRegistryLoading] = useState(true);
+  const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   const [reason, setReason] = useState(''); const [code, setCode] = useState(''); const [message, setMessage] = useState('');
   const rpc = (name, args) => dayRpc(name, args, client);
   async function refresh(dayId = context?.day.id) {
@@ -20,10 +25,10 @@ export default function GameDayAdministration({ client, group }) {
     setPlayers(registry.players); setDays(list);
     if (dayId) {
       const next = await rpc('get_game_day', { p_day_id: dayId }); setContext(next);
-      setLineup(next.lineup ?? emptyLineup());
+      setLineup(next.lineup ?? emptyLineup()); setEditDate(next.day.play_date);
     }
   }
-  useEffect(() => { let active = true; Promise.all([rpc('get_group_registry', { p_group_id: group.id }), rpc('list_game_days', { p_group_id: group.id })]).then(([registry, list]) => { if (active) { setPlayers(registry.players); setDays(list); } }).catch(f => { if (active) setError(f.message); }); return () => { active = false; }; }, [client, group.id]);
+  useEffect(() => { let active = true; Promise.all([rpc('get_group_registry', { p_group_id: group.id }), rpc('list_game_days', { p_group_id: group.id })]).then(([registry, list]) => { if (active) { setPlayers(registry.players); setDays(list); } }).catch(f => { if (active) setError(f.message); }).finally(() => { if (active) setRegistryLoading(false); }); return () => { active = false; }; }, [client, group.id]);
   async function run(action) {
     if (busy) return; setBusy(true); setError(''); setMessage('');
     try { await action(); } catch (failure) { setError(failure.message || 'Request failed. Refresh before trying again.'); }
@@ -33,103 +38,112 @@ export default function GameDayAdministration({ client, group }) {
     await run(async () => {
       const result = await rpc('change_game_day', { p_day_id: context.day.id, p_expected_version: context.day.version, p_action: action, p_lineup: action === 'lineup' ? lineup : null, p_reason: reason });
       setCode(result.code ?? ''); setReason(''); await refresh(context.day.id);
-      setMessage(action === 'close' ? 'Day closed. Results published together.' : 'Change saved. Public results change only when the day is closed.');
+      onRegistryChanged?.(); setMessage(action === 'close' ? 'Day closed.' : 'Changes saved.');
     });
   }
-  return <Stack spacing={2} sx={{ pt: 3 }}>
-    <Typography component="h3" variant="h5">Players &amp; game days</Typography>
+  function openDay(day, section) {
+    setDayView(section); setReason(''); setCode('');
+    void run(() => refresh(day.id));
+  }
+  function askDelete(day) { setError(''); setDeleting(day); setDeleteReason(''); }
+  return <Box hidden={!['players', 'days'].includes(view)}><Stack spacing={2}>
+    {view === 'days' && <Typography component="h3" variant="h5">Game days</Typography>}
     {error && <Alert severity="warning">{error}</Alert>}{message && <Alert severity="success">{message}</Alert>}
-    {code && <Alert severity="info"><Typography>Copy this code now and share it only with the scoreboard operator. It is not stored in readable form on the server.</Typography><TextField label="Game-day code" fullWidth value={code} slotProps={{ input: { readOnly: true } }} onFocus={event => event.target.select()} sx={{ mt: 1 }} /><Button onClick={() => { navigator.clipboard?.writeText(code).catch(() => setError('Select the code and copy it manually.')); }}>Copy code</Button></Alert>}
-    <Accordion><AccordionSummary><Typography>Registered players ({players.length})</Typography></AccordionSummary><AccordionDetails><Stack spacing={2}>
-      <Typography>{players.map(p => p.name).join(', ') || 'No registered players yet.'}</Typography>
-      <Stack component="form" onSubmit={event => { event.preventDefault(); const id = createLocalId(); void run(async () => {
-        const result = await rpc('sync_group_player', { p_group_id: group.id, p_player_id: id, p_name: name });
-        if (result.status !== 'saved') throw new Error('A similar name exists. Use that player or enter a distinct full name.');
-        setName(''); await refresh();
-      }); }} spacing={1}>
-        <TextField required label="New player name" value={name} disabled={busy} onChange={e => setName(e.target.value)} slotProps={{ htmlInput: { maxLength: 60 } }} />
-        <Button type="submit" disabled={busy || !name.trim()}>Register player</Button>
-      </Stack>
-    </Stack></AccordionDetails></Accordion>
-    <Button disabled={busy} onClick={() => run(() => refresh())}>Refresh game days</Button>
+    {code && view === 'days' && dayView === 'publish' && <Alert severity="info"><Typography>Share this code with the scoreboard operator. Copy it now; it is shown only once.</Typography><TextField label="Game-day code" fullWidth value={code} slotProps={{ input: { readOnly: true }, htmlInput: { style: { fontFamily: 'monospace', letterSpacing: '0.12em', fontSize: '1.2rem' } } }} onFocus={event => event.target.select()} sx={{ mt: 1 }} /><Button onClick={() => { navigator.clipboard?.writeText(code).catch(() => setError('Select the code and copy it manually.')); }}>Copy code</Button></Alert>}
+    <Box hidden={view !== 'players'}><PlayerRegistry client={client} groupId={group.id} players={players} loading={registryLoading}
+      onChanged={async () => {
+        const registry = await rpc('get_group_registry', { p_group_id: group.id });
+        setPlayers(registry.players);
+        if (context?.day.state !== 'closed') setLineup(previous => Object.fromEntries(['A', 'B'].map(team => [team, {
+          ...previous[team], players: previous[team].players.map(person => {
+            const current = registry.players.find(player => player.id === person?.id);
+            return current ? { id: current.id, name: current.name } : null;
+          }),
+        }])));
+        onRegistryChanged?.();
+      }} /></Box>
+    <Box hidden={view !== 'days'}><Stack spacing={2}>
+    {context && <Button disabled={busy} onClick={() => run(() => refresh())}>Refresh game days</Button>}
+    <Box hidden={Boolean(context) || creating}>
+      <GameDayList days={days} busy={busy} loading={registryLoading}
+        onCreate={() => { setCreating(true); setLineup(emptyLineup()); setError(''); setMessage(''); }}
+        onRefresh={() => run(() => refresh(null))} onOpen={day => openDay(day, 'inbox')} onEdit={day => openDay(day, 'details')} onDelete={askDelete} />
+    </Box>
     {context ? <>
-      <Button disabled={busy} onClick={() => { setContext(null); setLineup(emptyLineup()); setCode(''); }}>Back to game days</Button>
+      <Button disabled={busy} onClick={() => { setContext(null); setCreating(false); setLineup(emptyLineup()); setCode(''); }}>Back to game days</Button>
+      <Button color="warning" sx={{ alignSelf: 'start' }} disabled={busy} onClick={() => askDelete(context.day)}>Delete game day</Button>
       <Typography component="h4" variant="h6">{context.day.play_date} · {context.day.state} · Version {context.day.version}</Typography>
-      <Alert severity="info">Review all received matches before closing. Reopening keeps the previous public results visible until you close the day again. Late uploads remain private.</Alert>
+      <SectionNavigation value={dayView} onChange={setDayView} disabled={busy} label="Game day sections" sections={[
+        { id: 'details', label: 'Details' },
+        { id: 'inbox', label: 'Matches' },
+        { id: 'lineup', label: 'Lineup' }, { id: 'publish', label: 'Code & status' }, { id: 'history', label: 'History' },
+      ]} />
     </> : <>
-      {days.map(day => <Paper key={day.id} variant="outlined" sx={{ p: 2 }}><Typography>{day.play_date} · {day.state} · {day.pending} pending</Typography><Button disabled={busy} onClick={() => run(() => refresh(day.id))}>Open day</Button></Paper>)}
+      {creating && <><Button disabled={busy} onClick={() => setCreating(false)}>Cancel creation</Button>
       <Typography component="h4" variant="h6">Create game day</Typography>
-      <TextField type="date" label={`Date · ${group.time_zone}`} value={date} disabled={busy} onChange={e => setDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+      <TextField type="date" label={`Date · ${group.time_zone}`} value={date} disabled={busy} onChange={e => setDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} /></>}
     </>}
-    {(!context || context.day.state === 'open') && <>
-      <LineupEditor lineup={lineup} players={players} disabled={busy} onChange={setLineup} />
+    {((!context && creating) || (context && dayView === 'lineup')) && <>
+      <LineupEditor lineup={lineup} players={players} disabled={busy || context?.day.state === 'closed'} onChange={setLineup} />
       {!context && <Button variant="contained" disabled={busy} onClick={() => run(async () => {
-        const result = await rpc('create_game_day', { p_group_id: group.id, p_date: date, p_lineup: lineup }); setCode(result.code); await refresh(result.day.id);
+        const result = await rpc('create_game_day', { p_group_id: group.id, p_date: date, p_lineup: lineup }); setCode(result.code); setCreating(false); setDayView('publish'); await refresh(result.day.id);
       })}>Create day &amp; code</Button>}
     </>}
     {context && <>
+      <Box hidden={dayView !== 'details'}><Stack component="form" spacing={2} onSubmit={event => { event.preventDefault(); void run(async () => {
+        await rpc('edit_game_day', { p_day_id: context.day.id, p_expected_version: context.day.version, p_date: editDate, p_reason: reason });
+        await refresh(context.day.id); setReason(''); setMessage('Game day updated.');
+      }); }}>
+        <Typography component="h4" variant="h6">Edit game day</Typography>
+        <TextField type="date" required label={`Date · ${group.time_zone}`} value={editDate} disabled={busy} onChange={event => setEditDate(event.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+        <Typography variant="body2" color="text.secondary">This is the scheduled date. Recorded match dates and season statistics stay unchanged. Use Lineup to edit teams and players; reopen a closed day before changing its lineup.</Typography>
+        <TextField required label="Reason for date change" value={reason} disabled={busy} onChange={event => setReason(event.target.value)} slotProps={{ htmlInput: { maxLength: 500 } }} />
+        <Button type="submit" variant="contained" disabled={busy || !editDate || !reason.trim() || editDate === context.day.play_date}>Save game day</Button>
+      </Stack></Box>
+      <Box hidden={!['lineup', 'publish'].includes(dayView)}><Stack spacing={2}>
+      {dayView === 'publish' && <Alert severity="info">Synced matches are finalized automatically. Closing or reopening the day does not change results.</Alert>}
       <TextField label="Reason for day change" value={reason} disabled={busy} onChange={e => setReason(e.target.value)} slotProps={{ htmlInput: { maxLength: 500 } }} />
       <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
-        {context.day.state === 'open' && <Button disabled={busy || !reason.trim()} onClick={() => change('lineup')}>Save lineup version</Button>}
-        <Button disabled={busy || !reason.trim() || context.day.lineup_version === 0} onClick={() => change('rotate_code')}>Generate new code</Button>
+        {dayView === 'lineup' && context.day.state === 'open' && <Button disabled={busy || !reason.trim()} onClick={() => change('lineup')}>Save lineup version</Button>}
+        {dayView === 'publish' && <><Button disabled={busy || !reason.trim() || context.day.lineup_version === 0} onClick={() => change('rotate_code')}>Generate new code</Button>
         <Button color="warning" disabled={busy || !reason.trim()} onClick={() => change('revoke_code')}>Revoke code</Button>
-        <Button variant="contained" disabled={busy || !reason.trim() || (context.day.state === 'open' && (!context.receipts.length || context.receipts.some(r => r.decision === 'pending')))} onClick={() => change(context.day.state === 'open' ? 'close' : 'reopen')}>{context.day.state === 'open' ? 'Close day & publish' : 'Reopen day'}</Button>
+        <Button variant="contained" disabled={busy || !reason.trim()} onClick={() => change(context.day.state === 'open' ? 'close' : 'reopen')}>{context.day.state === 'open' ? 'Close day' : 'Reopen day'}</Button></>}
       </Stack>
-      <Typography component="h4" variant="h6">Private inbox ({context.receipts.length})</Typography>
-      {context.receipts.map(receipt => <ReceiptEditor key={`${receipt.id}-${receipt.version}`} receipt={receipt} players={players} disabled={busy || context.day.state !== 'open'} onReview={(decision, draft, note, reviewId) => run(async () => {
-        await rpc('review_day_match', { p_match_id: receipt.id, p_expected_version: receipt.version, p_decision: decision, p_draft: draft, p_reason: note, p_review_id: reviewId }); await refresh(context.day.id); setMessage('Review saved privately. Close the day to publish.');
-      })} />)}
-      <Accordion><AccordionSummary><Typography>Private day history &amp; lineup versions</Typography></AccordionSummary><AccordionDetails>
+      </Stack></Box>
+      <Box hidden={dayView !== 'inbox'}><MatchManager client={client} group={group} dayId={context.day.id} initialDate={context.day.play_date} active={view === 'days' && dayView === 'inbox'}
+        onChanged={() => { void run(async () => { setContext(await rpc('get_game_day', { p_day_id: context.day.id })); onRegistryChanged?.(); }); }} /></Box>
+      <Box hidden={dayView !== 'history'}>
+      <Typography component="h4" variant="h6">Private day history &amp; lineup versions</Typography>
         {context.lineups.map(l => <Typography key={l.version}>Lineup {l.version} · {new Date(l.created_at).toLocaleString()}: {['A','B'].map(t => `${l.lineup[t].name}: ${l.lineup[t].players.map(p => p.name).join(', ')}`).join(' / ')}</Typography>)}
         {context.history.map(h => <Box key={h.version} sx={{ mb: 2 }}><Typography>Version {h.version} · {h.author_id} · {new Date(h.created_at).toLocaleString()} · {h.reason}</Typography><Typography variant="body2">{h.previous_state.state} → {h.new_state.state} · {h.new_state.action}</Typography></Box>)}
-      </AccordionDetails></Accordion>
+      </Box>
     </>}
-  </Stack>;
+    </Stack></Box>
+    <Dialog open={Boolean(deleting)} onClose={() => { if (!busy) setDeleting(null); }} aria-labelledby="delete-game-day-title" fullWidth maxWidth="xs">
+      <DialogTitle id="delete-game-day-title">Delete game day {deleting?.play_date}?</DialogTitle>
+      <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
+        <Typography>This permanently deletes the day, its received matches, lineups and published results. Its access code will stop working. Players remain registered.</Typography>
+        {error && <Alert severity="warning">{error}</Alert>}
+        <TextField required label="Reason for deleting day" value={deleteReason} disabled={busy} onChange={event => setDeleteReason(event.target.value)} slotProps={{ htmlInput: { maxLength: 500 } }} />
+      </Stack></DialogContent>
+      <DialogActions><Button disabled={busy} onClick={() => setDeleting(null)}>Cancel</Button>
+        <Button color="warning" disabled={busy || !deleteReason.trim()} onClick={() => run(async () => {
+          await rpc('delete_game_day', { p_group_id: group.id, p_day_id: deleting.id, p_expected_version: deleting.version, p_reason: deleteReason });
+          setDeleting(null); setContext(null); setCode(''); setReason(''); setLineup(emptyLineup());
+          await refresh(null); onRegistryChanged?.(); setMessage('Game day and its results deleted.');
+        })}>Delete day and results</Button></DialogActions>
+    </Dialog>
+  </Stack></Box>;
 }
 
 function LineupEditor({ lineup, players, disabled, onChange }) {
+  const selectedIds = new Set(['A', 'B'].flatMap(team => lineup[team].players.map(player => player?.id).filter(Boolean)));
   return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>{['A','B'].map(team => <Stack key={team} spacing={1}>
     <TextField label={`Team ${team} name`} value={lineup[team].name} disabled={disabled} onChange={e => onChange({ ...lineup, [team]: { ...lineup[team], name: e.target.value } })} slotProps={{ htmlInput: { maxLength: 16 } }} />
     {lineup[team].players.map((person, position) => <TextField key={position} select label={`Team ${team} · Player ${position+1}`} value={person?.id ?? ''} disabled={disabled} slotProps={{ select: { native: true }, inputLabel: { shrink: true } }} onChange={e => {
-      const selected = players.find(p => p.id === e.target.value); onChange({ ...lineup, [team]: { ...lineup[team], players: lineup[team].players.map((p, i) => i === position ? selected ? { id: selected.id, name: selected.name } : null : p) } });
-    }}><option value="">Select player</option>{players.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</TextField>)}
+      const selected = players.find(p => p.id === e.target.value);
+      if (selected && selected.id !== person?.id && selectedIds.has(selected.id)) return;
+      onChange({ ...lineup, [team]: { ...lineup[team], players: lineup[team].players.map((p, i) => i === position ? selected ? { id: selected.id, name: selected.name } : null : p) } });
+    }}><option value="">Select player</option>{players.filter(p => p.id === person?.id || !selectedIds.has(p.id)).map(p => <option key={p.id} value={p.id}>{p.name}{p.category === 'fixed' ? ' · Fixed' : ' · Sub'}</option>)}</TextField>)}
   </Stack>)}</Box>;
-}
-
-function ReceiptEditor({ receipt, players, disabled, onReview }) {
-  const reviewAttempt = useRef(null);
-  const source = receipt.submission; const participants = recordedParticipants(source);
-  const [mapping, setMapping] = useState(() => Object.fromEntries(participants.map(p => [p.key, players.some(known => known.id === p.hint_id && known.name === p.name) ? p.hint_id : ''])));
-  const [mappingDirty, setMappingDirty] = useState(false);
-  const [draft, setDraft] = useState(receipt.draft); const [note, setNote] = useState(''); const [error, setError] = useState(''); const [review, setReview] = useState(false);
-  const change = action => { try { setDraft(previous => action(previous)); setReview(false); setError(''); } catch (failure) { setError(failure.message); } };
-  const saveReview = decision => {
-    const body = { decision, draft: decision === 'approved' ? draft : null, note };
-    const signature = JSON.stringify(body);
-    if (reviewAttempt.current?.signature !== signature) reviewAttempt.current = { signature, id: createLocalId() };
-    return onReview(decision, body.draft, note, reviewAttempt.current.id);
-  };
-  const errors = draft ? correctionErrors(draft, players) : [];
-  return <Accordion disableGutters><AccordionSummary><Typography>{source.team_a_name} × {source.team_b_name} · {new Date(source.closed_at).toLocaleString()} · {receipt.decision}</Typography></AccordionSummary><AccordionDetails><Stack spacing={2}>
-    <Typography variant="caption">Receipt {receipt.id} · Version {receipt.version} · Original submission is preserved.</Typography>
-    <Box component="fieldset" disabled={disabled} sx={{ m: 0, p: 0, border: 0, minWidth: 0 }}>
-      {participants.length > 0 && <><Typography>Associate each recorded name. Matching names are suggestions only. Known identities from downloaded lineups are preselected; confirm them before approval.</Typography>
-        {participants.map(p => <TextField key={p.key} select fullWidth label={`Team ${p.team} · ${p.slot} · Sets ${p.sets.join(', ')}`} value={mapping[p.key] ?? ''} helperText={`Recorded: ${p.name}${players.some(known => known.name.toLowerCase() === p.name.toLowerCase()) ? ' · Similar registered name available' : ''}`} sx={{ my: 1 }} slotProps={{ select: { native: true }, inputLabel: { shrink: true } }} onChange={e => { setMapping({ ...mapping, [p.key]: e.target.value }); setMappingDirty(true); setReview(false); }}>
-          <option value="">Select identity</option>{players.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
-        </TextField>)}
-        <Button onClick={() => { try { setDraft(reconcileSubmission(source, mapping, players)); setMappingDirty(false); setReview(false); setError(''); } catch (failure) { setError(failure.message); } }}>Build draft from associations (replaces draft edits)</Button>
-      </>}
-      {mappingDirty && <Alert severity="info">Build the draft to apply the changed associations before approving.</Alert>}
-      {draft && <><Typography sx={{ my: 2 }}>Review participants and points. Substitutes appear as additional participants in the set.</Typography>{draft.sets.map((set, index) => <SetEditor key={`${index}-${draft.sets.length}`} set={set} index={index} payload={draft} players={players} change={change} />)}</>}
-      <TextField fullWidth multiline label="Reason for review" value={note} onChange={e => setNote(e.target.value)} slotProps={{ htmlInput: { maxLength: 500 } }} sx={{ my: 2 }} />
-      {error && <Alert severity="warning">{error}</Alert>}{errors.length > 0 && <Alert severity="warning">{errors.join(' ')}</Alert>}
-      <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}><Button disabled={mappingDirty || !draft || errors.length > 0 || !note.trim()} onClick={() => setReview(true)}>Review approval</Button>
-        <Button color="warning" disabled={!note.trim()} onClick={() => saveReview('excluded')}>Disregard match</Button>
-        <Button disabled={!note.trim()} onClick={() => saveReview('pending')}>Mark pending</Button></Stack>
-      {review && draft && <><SnapshotComparison before={receipt.draft ?? draft} after={draft} /><Button variant="contained" onClick={() => saveReview('approved')}>Confirm private approval</Button></>}
-    </Box>
-    <Accordion><AccordionSummary><Typography>Original &amp; private review history</Typography></AccordionSummary><AccordionDetails>
-      <Box component="pre" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: 420, overflow: 'auto', fontSize: 12 }}>{JSON.stringify({ original: source, history: receipt.audit }, null, 2)}</Box>
-    </AccordionDetails></Accordion>
-  </Stack></AccordionDetails></Accordion>;
 }

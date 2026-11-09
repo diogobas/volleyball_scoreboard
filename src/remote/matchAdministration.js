@@ -63,3 +63,14 @@ export async function matchRevisionHistory(groupId, matchId, page = 1, supplied)
   }
   return data;
 }
+
+export async function listGroupMatches(groupId, { season = null, dayId = null, query = '', page = 1, pageSize = 5 } = {}, supplied) {
+  const data = await rpc('list_group_matches', { p_group_id: groupId, p_season: season, p_day_id: dayId, p_query: query, p_page: page, p_page_size: pageSize }, supplied);
+  if (data?.group?.id !== groupId || !Array.isArray(data.matches) || !Array.isArray(data.seasons) || !Number.isInteger(data.total) || !Number.isInteger(data.page) || data.page_size !== pageSize) throw new Error('Matches could not be loaded. Refresh and try again.');
+  return data;
+}
+
+export async function deleteFinalMatch(groupId, match, reason, supplied) {
+  if (!reason.trim()) throw new Error('Provide a reason for deleting the match.');
+  await rpc('delete_final_match', { p_group_id: groupId, p_match_id: match.id, p_expected_version: match.version, p_reason: reason.trim() }, supplied);
+}

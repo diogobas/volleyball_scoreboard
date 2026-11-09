@@ -385,3 +385,27 @@ Página pública: https://volleyball-scoreboard-results.pages.dev/
 Consulte [publicação web, TestFlight e Google Play](docs/publishing-4.3.md) e o [roteiro de aprovação em dispositivos](docs/testing-release-4.3.md). O iOS 1.1.0 (3) foi enviado ao App Store Connect; o AAB Android assinado está pronto para upload ao teste interno. Os testes físicos e a liberação dos grupos de testadores ainda precisam ser concluídos.
 
 Referências: [Material UI](https://mui.com/material-ui/getting-started/installation/), [Vite](https://vite.dev/guide/) e [Capacitor Android](https://capacitorjs.com/docs/android).
+
+### Partidas finalizadas ao sincronizar
+
+A migração [20261108000700_completed_match_sync_and_management.sql](supabase/migrations/20261108000700_completed_match_sync_and_management.sql) substitui o fluxo de revisão pendente: **Save & sync** já finaliza a partida e atualiza os resultados. Fechar o dia não é mais uma etapa de publicação. Partidas offline continuam no aparelho até a confirmação do servidor.
+
+No admin, **Matches** e as partidas de cada **Game day** compartilham pesquisa por data/time/jogador, paginação, estatísticas, edição e exclusão. Nomes novos entram como **Sub**. Correções são imediatas e versionadas; exclusões impedem que uma repetição de sync restaure a partida. Aplicação e verificações: [fluxo de partidas finalizadas](docs/testing-completed-match-sync.md).
+
+### Partidas antigas e sets de treino
+
+Em **Matches → Register historical match**, o administrador pode lançar a data, os placares dos sets e, opcionalmente, os totais por jogador/erros adversários, sem inventar pontos individuais por set. O formato oficial usa o quinto set a 15; o recreativo usa 25 ou encerramento antecipado explícito.
+
+A primeira equipe a vencer três sets é a vencedora. Os sets seguintes são treino e entram nos pontos/estatísticas, sem alterar esse resultado. A [migração 008](supabase/migrations/20261108000800_historical_matches_and_match_winner.sql) aplica o cálculo também aos resultados existentes. Detalhes e validações: [partidas históricas](docs/testing-historical-matches.md).
+
+
+O cadastro histórico abre apenas com data, times e placares. **Include player totals (optional)** permite acrescentar os pontos gerais; deixar a opção desmarcada não cria jogadores, pontos individuais nem presenças fictícias. Aplique a [migração 009](supabase/migrations/20261108000900_optional_historical_player_totals.sql) após a 008. A [importação de 03/11/2026](supabase/maintenance/import-tuesday-2026-11-03.sql) está pronta para execução no SQL Editor, com os seis placares dos prints e sem atribuições ambíguas de jogadores.
+
+
+Para corrigir `column groups.display_id does not exist` e completar os pontos da partida de 03/11 já importada, execute integralmente [repair-tuesday-2026-11-03.sql](supabase/maintenance/repair-tuesday-2026-11-03.sql) no SQL Editor. Ele reúne os reparos 010/011 e os totais dos 12 jogadores, usando Felipe C., João Paulo e Phillip já cadastrados. Chicó fica com 12 pontos e com a vitória conquistada no Team 2 antes da troca. O arquivo verifica a versão/placares, mantém a mesma partida e não sobrescreve edições posteriores. [Dados e validações](docs/testing-historical-matches.md).
+
+
+Na edição/cadastro de partidas históricas, os jogadores agora são escolhidos em dropdowns. A última opção, **＋ Add player…**, abre o mesmo cadastro usado em Players e seleciona o novo jogador sem perder os dados da partida. Os nomes não são digitados diretamente nas escalações; as opções impedem repetição dentro do mesmo time. Essa mudança de interface não exige migração adicional.
+
+
+**Player statistics** mostra o aproveitamento (**Win rate**: vitórias ÷ partidas jogadas) e a presença (**Attendance**: dias jogados ÷ dias com participantes registrados na temporada). Cada data conta uma vez, mesmo com várias partidas; datas sem identificação de jogadores ficam fora da base. A [migração 012](supabase/migrations/20261108001200_player_attendance_statistics.sql) fornece o total de dias da temporada completa, sem depender da paginação e sem alterar resultados existentes.

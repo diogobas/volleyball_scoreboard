@@ -126,7 +126,7 @@ function CorrectionEditor({ client, groupId, matchId, busy, setBusy, onDirty, on
     if (submission.current?.signature !== signature) submission.current = { signature, id: createLocalId() };
     try {
       const result = await correctMatch({ groupId, matchId, version: context.version, payload: draft, reason, revisionId: submission.current.id }, client);
-      setSuccess(`Correction confirmed online as version ${result.version}. The review is private until an administrator closes the game day.`);
+      setSuccess(`Correction confirmed online as version ${result.version}. Results and statistics are updated.`);
       setReview(false); setBlocked(true); onSaved(); onDirty(false);
       try {
         const latest = await getMatchForEdit(groupId, matchId, client);
@@ -149,6 +149,10 @@ function CorrectionEditor({ client, groupId, matchId, busy, setBusy, onDirty, on
       <Typography component="h2" variant="h5">Correct match · Version {context.version}</Typography>
       <Typography variant="body2">Replace participants, edit point authors and adjust set boundaries. Replacing a participant reassigns their points in that set. Review all changes before saving.</Typography>
       <Box component="fieldset" disabled={busy || blocked} sx={{ p: 0, m: 0, border: 0, minWidth: 0 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+          {['team_a_name', 'team_b_name'].map((key, index) => <TextField key={key} label={`Team ${index + 1} name`} value={draft[key]} fullWidth slotProps={{ htmlInput: { maxLength: 16 } }}
+            onChange={event => change(payload => ({ ...payload, [key]: event.target.value, sets: payload.sets.map(set => ({ ...set, [key]: event.target.value })) }))} />)}
+        </Stack>
         {draft.sets.map((set, index) => <SetEditor key={`${index}-${draft.sets.length}`} set={set} index={index} payload={draft} players={context.players} change={change} />)}
         <TextField label="Reason for correction" required multiline minRows={2} fullWidth value={reason} onChange={event => setReason(event.target.value)} slotProps={{ htmlInput: { maxLength: 500 } }} sx={{ mt: 2 }} />
       </Box>

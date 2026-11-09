@@ -1,8 +1,9 @@
+import { normalizeName } from './playerNames.js';
 import { canChangeRoster, matchReducer, matchRoster, restoreMatch, TEAM_IDS } from './match.js';
 import { ACTIVE_STORE, CLOSED_STORE, GROUP_STORE, PLAYER_STORE, SETTINGS_STORE, createLocalId, transactionDone } from './storage.js';
 
 export const DEVELOPMENT_GROUP_ID = '00000000-0000-4000-8000-000000000001';
-export const normalizeName = name => name.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('en').trim().replace(/\s+/g, ' ');
+export { normalizeName } from './playerNames.js';
 
 export async function loadDevelopmentGroup(database) {
   const transaction = database.transaction(GROUP_STORE, 'readwrite');

@@ -24,7 +24,7 @@ export default function Administration() {
       if (!result.data.session) setMessage('Confirm your email, then return to sign in.');
     } catch (failure) { setError(failure.message); } finally { setBusy(false); }
   }
-  return <Container component="main" maxWidth="md" sx={{ py: 3, pb: 6 }}><Stack spacing={2}>
+  return <Container component="main" maxWidth="lg" sx={{ py: 3, pb: 6 }}><Stack spacing={2}>
     <Button component="a" href="#/groups" sx={{ alignSelf: 'start' }}>← Public results</Button>
     <Typography component="h1" variant="h4">Administration</Typography>
     {!client && <Alert severity="warning">Online administration is not configured for this build.</Alert>}

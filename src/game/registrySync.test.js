@@ -286,3 +286,18 @@ test('a response arriving after the account changed cannot authorize a cache for
   assert.match(prepared.error, /account changed/);
   assert.equal(prepared.cache.groups.some(group => group.id === online.id), false);
 });
+
+test('registry refresh carries category and removes deleted identities without affecting other groups', async t => {
+  const database = await device(t);
+  await cacheAuthorizedGroups(database, owner, [online]);
+  const oldId = createLocalId(); const activeId = createLocalId();
+  const snapshot = { group: online, players: [
+    { id: oldId, group_id: online.id, name: 'Removed player', category: 'fixed' },
+    { id: activeId, group_id: online.id, name: 'Current player', category: 'sub' },
+  ] };
+  await cacheRemoteRegistry(database, owner, snapshot);
+  assert.equal((await listPlayers(database, online.id)).find(player => player.id === oldId).category, 'fixed');
+  await cacheRemoteRegistry(database, owner, { ...snapshot, players: [{ ...snapshot.players[1], name: 'Renamed player', category: 'fixed' }], deleted_player_ids: [oldId] });
+  const players = await listPlayers(database, online.id);
+  assert.equal(players.length, 1); assert.equal(players[0].name, 'Renamed player'); assert.equal(players[0].category, 'fixed');
+});

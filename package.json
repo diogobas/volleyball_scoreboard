@@ -10,6 +10,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test:admin:browser": "node scripts/check-admin-navigation.mjs",
     "test:public:browser": "node scripts/check-public-navigation.mjs",
     "test:court:browser": "node scripts/check-court-flow.mjs",
     "test": "node --test src/game/*.test.js src/remote/*.test.js supabase/*.test.js",

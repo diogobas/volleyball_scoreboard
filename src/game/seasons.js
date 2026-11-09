@@ -1,3 +1,4 @@
+import { matchResult } from './matchResult.js';
 import { canCloseMatch, matchPlayerStats } from './match.js';
 
 export function groupDate(timestamp, timeZone) {
@@ -36,8 +37,9 @@ export function seasonStatistics(matches, group, players, season) {
     if (date.slice(0, 4) !== String(season)) continue;
     includedMatches++;
     if (!state.startedAt) fallbackDates++;
-    const { A, B } = state.teams;
-    const winner = A.setsWon === B.setsWon ? null : A.setsWon > B.setsWon ? 'A' : 'B';
+    const { winner, decidedAt } = matchResult(state.log.filter(entry => entry.type === 'set'));
+    const decidedIndex = state.log.findIndex(entry => entry.type === 'set' && entry.setNumber === decidedAt);
+    const competitivePlayers = new Map(winner ? matchPlayerStats({ ...state, log: state.log.slice(0, decidedIndex + 1) }).map(p => [p.personId, p.teamIds]) : []);
     for (const player of matchPlayerStats(state)) {
       const row = rows.get(player.personId) ?? {
         personId: player.personId, name: player.name, points: 0, matches: 0, wins: 0, dates: new Set(),
@@ -45,7 +47,8 @@ export function seasonStatistics(matches, group, players, season) {
       row.points += player.matchPoints;
       row.matches++;
       row.dates.add(date);
-      if (winner && player.teamIds.length === 1 && player.teamIds[0] === winner) row.wins++;
+      const competitiveTeams = competitivePlayers.get(player.personId) ?? [];
+      if (winner && competitiveTeams.length === 1 && competitiveTeams[0] === winner) row.wins++;
       rows.set(player.personId, row);
     }
   }

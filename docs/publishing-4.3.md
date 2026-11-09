@@ -1,6 +1,6 @@
 # Publicação — 1.1.0 (3)
 
-A implementação está em `feat/public-stats-admin`. Nenhum merge na master é necessário para testar/publicar estes artefatos.
+O código consolidado fica em `master`. A publicação web principal continua sendo o projeto Direct Upload da Cloudflare Pages descrito abaixo; a branch de produção `public` é uma configuração desse projeto, não uma branch de desenvolvimento Git.
 
 ## Página pública
 
@@ -88,3 +88,12 @@ Referência: [teste interno Google Play](https://support.google.com/googleplay/a
 ## Armazenamento e atualização
 
 Dados locais pertencem ao aplicativo/aparelho ou à origem do navegador (protocolo, domínio e porta). Trocar de hospedagem não transfere a partida atual nem pendências. Desinstalação, limpeza de dados e eventual remoção de armazenamento pelo navegador podem apagar conteúdo que ainda não foi confirmado pelo servidor. Atualize mantendo identificador e assinatura; envie pendências antes de migrar instalações. As partidas confirmadas e seus resultados permanecem no Supabase.
+
+
+## Atualização web — 08/11/2026
+
+Esta atualização reúne a navegação por seções no grupo, administração de jogadores/dias/partidas, registro histórico por placares e pontos opcionais, seleção de jogadores cadastrados com cadastro no próprio dropdown, sincronização direta de partidas finalizadas e descarte de partidas locais pendentes. As estatísticas mostram aproveitamento de vitórias e presença por data da temporada, preservando o resultado competitivo antes dos sets de treino.
+
+O banco requer as migrações até `20261108001200_player_attendance_statistics.sql`. O verificador remoto é somente leitura e confere consulta pública/detalhes e restrição da edição anônima antes do upload. Builds web usam o endpoint público existente do Supabase, sem credenciais administrativas. Esta publicação web não é um novo envio de binários à Apple ou ao Google Play.
+
+As branches de desenvolvimento já contidas no histórico consolidado podem ser removidas após a integração. Preserve `gh-pages`, que contém o histórico da hospedagem alternativa; ela não deve ser incorporada a `master`. A limpeza não deve excluir branches com commits exclusivos.

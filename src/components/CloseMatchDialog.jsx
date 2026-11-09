@@ -12,7 +12,7 @@ export default function CloseMatchDialog({ state, saving, error, onClose, onConf
     <DialogTitle id="close-match-title">Save match?</DialogTitle>
     <DialogContent aria-busy={saving}>
       <DialogContentText id="close-match-description" sx={{ mb: 2 }}>
-        Review the result. Saving locally works offline. Sync sends this match for administrator review; its local copy is removed only after receipt is confirmed.
+        Review the result. Saving locally works offline. Sync finalizes this match and updates results; its local copy is removed only after receipt is confirmed.
         A new match will start with the same players and sides. You cannot undo this closure.
       </DialogContentText>
       {online && !state.dayContext && <Alert severity="info" sx={{ mb: 2 }}>Save & sync will ask for a game-day code. You can also save locally and link a code later.</Alert>}

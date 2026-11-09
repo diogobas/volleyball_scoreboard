@@ -135,3 +135,11 @@ Cada cartão mostra os três maiores pontuadores **daquela partida**, somando to
 Em telas maiores, o resumo e **View match** ficam à esquerda e os pontuadores à direita, mantendo o cartão compacto. No celular, os blocos se empilham. O teste de navegador também verifica a disposição lateral no desktop e ausência de rolagem horizontal em desktop, tablet e celular.
 
 Para conferir, abra Matches e compare os pontos de cada cartão com seu detalhe. Uma partida pontuada apenas por erros adversários mostra **No player points recorded**. Se a consulta de pontuadores falhar, o cartão continua disponível e oferece **Retry scorers**. O teste mobile cobre soma entre sets, limite de três, pontos distintos por partida, exclusão de erros, ranking vazio e recuperação de falha. Validação: 161 testes e build público aprovados, além do teste Chrome mobile. Alteração local, sem publicação.
+
+### Exclusão de partidas locais pendentes
+
+Em **Saved matches**, cada partida tem **Delete local match**, seguido de confirmação com **Keep match** ou **Delete match**. Funciona offline e também permite remover arquivos ilegíveis. Exclui apenas a partida escolhida e o estado de sua sincronização, em uma transação; mantém a partida em andamento, outros arquivos e registros do servidor. O contador é atualizado após a exclusão.
+
+A exclusão compartilha o mesmo Web Lock dos envios e verifica a trava no IndexedDB, protegendo uploads em outras abas/conexões. Partidas em envio não podem ser apagadas; estados de falha ou envio interrompido podem ser descartados. Nenhuma requisição remota ou migração do Supabase é necessária.
+
+Validação: 180 testes automatizados, incluindo exclusão de arquivo ilegível, limpeza do status, preservação da partida ativa e de outros arquivos, bloqueio durante envio concorrente, recuperação de trava expirada e rollback em falha. O cenário de navegador verifica cancelamento/exclusão offline, persistência após recarregar, contador e envio posterior apenas da partida mantida. Builds do app e site público aprovados. Alteração local, sem publicação ou novo binário nativo.

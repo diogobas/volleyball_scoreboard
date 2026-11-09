@@ -14,7 +14,7 @@ test('game-day receipts, private reviews, atomic publication and legacy migratio
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     grant usage on schema public,auth to anon,authenticated; grant execute on function auth.uid() to anon,authenticated;
     revoke all on auth.users from public,anon,authenticated;`);
-  const files = (await readdir(new URL('./migrations/', import.meta.url))).filter(f => f.endsWith('.sql')).sort();
+  const files = (await readdir(new URL('./migrations/', import.meta.url))).filter(f => f.endsWith('.sql') && f <= '20261107000100_game_days_and_private_review.sql').sort();
   for (const file of files.slice(0,-1)) await db.exec(await readFile(new URL(`./migrations/${file}`,import.meta.url),'utf8'));
   const q = (sql,args=[]) => db.query(sql,args);
   const owner = randomUUID(), other = randomUUID();

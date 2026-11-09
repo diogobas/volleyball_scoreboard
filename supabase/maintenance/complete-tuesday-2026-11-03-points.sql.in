@@ -1,0 +1,76 @@
+-- Requires migrations 010 and 011. Updates only the original, unedited score-only import.
+begin;
+create table if not exists private.maintenance_corrections (
+  match_id uuid not null references public.matches(id) on delete cascade,
+  correction_key text not null,
+  previous_snapshot jsonb not null,
+  new_snapshot jsonb not null,
+  executed_at timestamptz not null default now(),
+  primary key(match_id,correction_key)
+);
+alter table private.maintenance_corrections enable row level security;
+revoke all on private.maintenance_corrections from public,anon,authenticated;
+
+do $$
+#variable_conflict use_variable
+declare
+  target uuid := '653c2c8d-9903-4410-b109-c66320f7300c';
+  match_id uuid := '8deb93c2-b213-4a36-9026-e56117c03113';
+  correction constant text := '2026-11-03-screenshot-player-points-v1';
+  g public.groups; m public.matches; person jsonb; known public.players;
+  source jsonb := '__SCREENSHOT_SOURCE__'::jsonb;
+  totals jsonb := '[]'; row_data jsonb; payload jsonb; snapshot jsonb;
+  team text; points integer; score_a integer; score_b integer; attributed_a integer; attributed_b integer;
+begin
+  select * into strict g from public.groups where id=target for update;
+  if g.name is distinct from 'Tuesday Volleyball ‐ 7:30PM-10PM' then raise exception 'Expected Tuesday Volleyball group was not found.'; end if;
+  select * into strict m from public.matches where id=match_id and group_id=target for update;
+  -- Re-running the correction never overwrites a subsequent edit or revives a deletion.
+  if exists(select 1 from private.maintenance_corrections c where c.match_id=m.id and c.correction_key=correction) then
+    raise notice 'The player-points correction was already applied. Nothing was changed.';
+    return;
+  end if;
+  if not m.published or m.entry_mode<>'summary' or m.played_on is distinct from date '2026-11-03' or m.version<>1 or m.player_totals_recorded
+    or exists(select 1 from public.match_player_totals t where t.match_id=m.id)
+    or (select jsonb_agg(jsonb_build_array(s.score_a,s.score_b) order by s.set_number) from public.match_sets s where s.match_id=m.id) is distinct from source->'scores' then
+    raise exception 'The imported match has changed. No existing scores or player statistics were overwritten.';
+  end if;
+  for person in select value from jsonb_array_elements(source->'players') loop
+    -- Resolve confirmed aliases against ACTIVE registrations, preserving their UUIDs/categories.
+    select * into strict known from public.players p where p.group_id=target and p.deleted_at is null
+      and p.normalized_name=private.normalize_player_name(person->>'registered_name');
+    foreach team in array array['A','B'] loop
+      if exists(select 1 from jsonb_array_elements_text(person->'teams') t where t=team) then
+        select coalesce(sum((x.p)::int),0) into points from jsonb_array_elements_text(person->'points') with ordinality x(p,n)
+          where person->'teams'->>(x.n::int-1)=team;
+        row_data:=jsonb_build_object('team',team,'player_id',known.id,'name',known.name,'points',points,'result_team',person->>'result_team');
+        totals:=totals||jsonb_build_array(row_data);
+      end if;
+    end loop;
+  end loop;
+  select sum(s.score_a),sum(s.score_b) into score_a,score_b from public.match_sets s where s.match_id=m.id;
+  select sum((p->>'points')::int) filter(where p->>'team'='A'),sum((p->>'points')::int) filter(where p->>'team'='B')
+    into attributed_a,attributed_b from jsonb_array_elements(totals) p;
+  if score_a<>122 or score_b<>121 or attributed_a<>72 or attributed_b<>80 then raise exception 'Screenshot totals do not balance. Nothing was changed.'; end if;
+  payload:=(m.snapshot-'source')||jsonb_build_object('players',totals,'errors_a',50,'errors_b',41,'player_totals_recorded',true);
+  snapshot:=payload||jsonb_build_object('source',payload);
+  -- Keep the original import/submission and capture this owner-executed correction separately.
+  insert into private.maintenance_corrections values(m.id,correction,m.snapshot,snapshot,now());
+  insert into public.match_player_totals(match_id,group_id,team,player_id,player_name,points,result_team)
+    select m.id,target,p->>'team',(p->>'player_id')::uuid,p->>'name',(p->>'points')::int,p->>'result_team' from jsonb_array_elements(totals) p;
+  update public.matches set snapshot=snapshot,player_totals_recorded=true,version=version+1 where id=m.id;
+  update private.day_receipts set draft=snapshot,version=version+1 where id=m.id;
+  update private.game_days set version=version+1 where id=(select day_id from private.day_receipts where id=m.id);
+  -- Source transcription is private evidence, not fabricated chronological point events.
+  update private.maintenance_corrections set new_snapshot=new_snapshot||jsonb_build_object('screenshot_source',source)
+    where private.maintenance_corrections.match_id=m.id and correction_key=correction;
+end;
+$$;
+commit;
+
+select p.name,sum(t.points) as points,
+  string_agg(distinct t.team,', ' order by t.team) as teams,
+  min(t.result_team) as competitive_team
+from public.match_player_totals t join public.players p on p.id=t.player_id
+where t.match_id='8deb93c2-b213-4a36-9026-e56117c03113'
+group by p.id,p.name order by points desc,p.name;

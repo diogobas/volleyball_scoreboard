@@ -69,9 +69,10 @@ test('anonymous public statistics use confirmed relational data and match the ap
     const expected = seasonStatistics(matches, { id: group.id, timeZone: group.time_zone }, players, 2026);
     assert.equal(data.match_count, expected.includedMatches); assert.equal(data.match_count, 4);
     assert.equal(data.fallback_dates, 1); assert.equal(data.participant_count, 12);
+    // This suite pins migration 004. Current first-to-three win parity is covered by historicalMatches.test.js.
     for (const row of expected.rows) {
       const actual = data.players.find(player => player.id === row.personId);
-      for (const field of ['points','matches','wins','days']) assert.equal(actual[field], row[field], `${row.name} ${field}`);
+      for (const field of ['points','matches','days']) assert.equal(actual[field], row[field], `${row.name} ${field}`);
     }
     assert.equal(data.players.find(player => player.id === players[0].id).wins, 2);
     assert.equal(data.players.find(player => player.id === players[1].id).points, 0);

@@ -61,17 +61,17 @@ export async function cacheAuthorizedGroups(database, userId, rows) {
 
 export const cachedAdmin = (cache, group) => group?.localOnly || Boolean(cache.userId && group?.adminUserIds?.includes(cache.userId));
 export const fromRemotePlayer = row => ({ id: row.id, groupId: row.group_id, name: row.name,
-  normalizedName: normalizeName(row.name), syncStatus: 'synced' });
+  normalizedName: normalizeName(row.name), category: row.category ?? 'sub', syncStatus: 'synced' });
 
 export async function cacheRemoteRegistry(database, userId, response) {
-  const { group, players } = response;
-  if (!group?.id || !Array.isArray(players) || players.some(player => player.group_id !== group.id || !player.id || typeof player.name !== 'string')) {
+  const { group, players, deleted_player_ids = [] } = response;
+  if (!group?.id || !Array.isArray(players) || !Array.isArray(deleted_player_ids) || deleted_player_ids.some(id => typeof id !== 'string') || players.some(player => player.group_id !== group.id || !player.id || typeof player.name !== 'string')) {
     throw new Error('Invalid player registry response. Cached data has been kept.');
   }
-  await cacheAuthorizedGroupsForSnapshot(database, userId, group, players);
+  await cacheAuthorizedGroupsForSnapshot(database, userId, group, players, deleted_player_ids);
 }
 
-async function cacheAuthorizedGroupsForSnapshot(database, userId, group, remotePlayers) {
+async function cacheAuthorizedGroupsForSnapshot(database, userId, group, remotePlayers, deletedPlayerIds = []) {
   const transaction = database.transaction([GROUP_STORE, PLAYER_STORE, SETTINGS_STORE], 'readwrite');
   const done = transactionDone(transaction);
   let failure;
@@ -81,6 +81,8 @@ async function cacheAuthorizedGroupsForSnapshot(database, userId, group, remoteP
     try {
       const all = request.result;
       const local = all.filter(player => player.groupId === group.id);
+      const deleted = new Set(deletedPlayerIds);
+      for (const player of local) if (deleted.has(player.id)) store.delete(player.id);
       const remote = remotePlayers.map(fromRemotePlayer);
       for (const player of remote) {
         const previous = all.find(item => item.id === player.id);
@@ -90,7 +92,7 @@ async function cacheAuthorizedGroupsForSnapshot(database, userId, group, remoteP
           store.put({ ...previous, syncStatus: 'conflict', remotePlayer: player, conflictType: 'identity' });
         } else store.put(player);
       }
-      for (const player of local.filter(item => !item.canonicalId && item.syncStatus !== 'synced')) {
+      for (const player of local.filter(item => !item.canonicalId && !deleted.has(item.id) && item.syncStatus !== 'synced')) {
         if (remote.some(item => item.id === player.id)) continue;
         const conflict = remote.find(item => item.normalizedName === player.normalizedName ||
           (!player.normalizedName.includes(' ') && item.normalizedName.split(' ')[0] === player.normalizedName));

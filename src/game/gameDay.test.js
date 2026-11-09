@@ -40,7 +40,7 @@ test('binding an offline free-name match preserves history; code updates never c
 test('lost remote response keeps the archive, and retry removes it only after an exact durable receipt',async t=>{
   const db=await database(t); const item=archive(close(point(applyDayLineup(enableCourtMode(createMatch()),context)))); await saveArchive(db,item);
   let stored; let first=true;
-  const client={ rpc(name,args) { assert.equal(name,'receive_day_match'); stored ??=args.p_match; assert.deepEqual(stored,args.p_match); if(first){first=false; return Promise.resolve({error:new Error('Response lost')});} return Promise.resolve({data:{status:'already_received',match_id:item.id,day_id:context.day_id,submission:stored}}); } };
+  const client={ rpc(name,args) { assert.equal(name,'receive_day_match'); stored ??=args.p_match; assert.deepEqual(stored,args.p_match); if(first){first=false; return Promise.resolve({error:new Error('Response lost')});} return Promise.resolve({data:{status:'already_received',published:true,match_id:item.id,day_id:context.day_id,submission:stored}}); } };
   await assert.rejects(uploadReceivedMatch(db,item.id,client),/Response lost/); assert.equal((await listStoredMatches(db)).length,1);
   await bindSavedMatch(db,item.id,{...context,code:'new-code',lineup_version:2});
   await uploadReceivedMatch(db,item.id,client); assert.equal((await listStoredMatches(db)).length,0); assert.equal((await loadStoredMatch(db)).log.length,0);
@@ -48,10 +48,10 @@ test('lost remote response keeps the archive, and retry removes it only after an
 
 test('mismatched receipts and interrupted or concurrent uploads keep original local data',async t=>{
   const db=await database(t); const item=archive(close(point(applyDayLineup(enableCourtMode(createMatch()),context)))); await saveArchive(db,item);
-  await assert.rejects(uploadReceivedMatch(db,item.id,{rpc:()=>Promise.resolve({data:{status:'received',match_id:item.id,day_id:context.day_id,submission:{}}})}),/did not match/);
+  await assert.rejects(uploadReceivedMatch(db,item.id,{rpc:()=>Promise.resolve({data:{status:'received',published:true,match_id:item.id,day_id:context.day_id,submission:{}}})}),/did not match/);
   assert.equal((await listStoredMatches(db)).length,1);
   let release; const held=new Promise(resolve=>{release=resolve;}); let started; const ready=new Promise(resolve=>{started=resolve;});
-  const client={rpc:(_name,args)=>{started(); return held.then(()=>({data:{status:'received',match_id:item.id,day_id:context.day_id,submission:args.p_match}}));}};
+  const client={rpc:(_name,args)=>{started(); return held.then(()=>({data:{status:'received',published:true,match_id:item.id,day_id:context.day_id,submission:args.p_match}}));}};
   const first=uploadReceivedMatch(db,item.id,client); await ready;
   await assert.rejects(uploadReceivedMatch(db,item.id,client),/already uploading/);
   await assert.rejects(bindSavedMatch(db,item.id,context),/Wait for the upload/);
@@ -88,7 +88,7 @@ test('leaving the app waits for in-flight receipt confirmation before closing In
   const db=await database(t); const item=archive(close(point(applyDayLineup(enableCourtMode(createMatch()),context)))); await saveArchive(db,item);
   let finish, started;
   const held=new Promise(resolve=>{finish=resolve;}); const ready=new Promise(resolve=>{started=resolve;});
-  const pending=uploadReceivedMatch(db,item.id,{rpc:(_name,args)=>{started();return held.then(()=>({data:{status:'received',match_id:item.id,day_id:context.day_id,submission:args.p_match}}));}});
+  const pending=uploadReceivedMatch(db,item.id,{rpc:(_name,args)=>{started();return held.then(()=>({data:{status:'received',published:true,match_id:item.id,day_id:context.day_id,submission:args.p_match}}));}});
   await ready;
   const shutdown=closeDayDatabaseWhenUploadsFinish(db);
   assert.equal((await listStoredMatches(db)).length,1);
@@ -136,4 +136,18 @@ test('choosing an independent match removes the day link offline while keeping e
   await saveStoredMatch(db,independent); assert.deepEqual(await loadStoredMatch(db),independent);
   assert.throws(()=>startIndependentMatch(point(loaded)),/Save or reset/);
   assert.equal(loaded.dayContext.day_id,context.day_id);
+});
+
+test('an old server receipt without completed status keeps the local match for retry',async t=>{
+  const db=await database(t); const item=archive(close(point(applyDayLineup(enableCourtMode(createMatch()),context)))); await saveArchive(db,item);
+  const client={rpc:(_name,args)=>Promise.resolve({data:{status:'received',match_id:item.id,day_id:context.day_id,submission:args.p_match}})};
+  await assert.rejects(uploadReceivedMatch(db,item.id,client),/not confirmed this match as completed/);
+  assert.equal((await listStoredMatches(db)).length,1);
+});
+
+test('a retry of a match deleted by the admin clears only the local queue without republishing',async t=>{
+  const db=await database(t); const item=archive(close(point(applyDayLineup(enableCourtMode(createMatch()),context)))); await saveArchive(db,item);
+  const client={rpc:(_name,args)=>Promise.resolve({data:{status:'already_received',published:false,deleted:true,match_id:item.id,day_id:context.day_id,submission:args.p_match}})};
+  const receipt=await uploadReceivedMatch(db,item.id,client);
+  assert.equal(receipt.deleted,true); assert.equal((await listStoredMatches(db)).length,0);
 });

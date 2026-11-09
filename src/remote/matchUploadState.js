@@ -95,13 +95,38 @@ async function attempt(database, id, action) {
   }
 }
 
-export function withMatchUploadAttempt(database, id, action) {
-  // Web Locks survive background timer throttling. IndexedDB also protects platforms
-  // without Web Locks and independent connections; expired leases recover after a crash.
+function withMatchUploadLock(database, id, action) {
+  // Share the upload lock so another tab cannot send a match while it is deleted.
   const locks = globalThis.navigator?.locks;
   if (locks?.request) return locks.request(`${database.name}:${uploadStateKey(id)}`, { ifAvailable: true }, lock => {
     if (!lock) throw uploadBusyError();
-    return attempt(database, id, action);
+    return action();
   });
-  return attempt(database, id, action);
+  return action();
+}
+
+export function withMatchUploadAttempt(database, id, action) {
+  // Web Locks survive background timer throttling; IndexedDB leases also protect
+  // independent connections on platforms without Web Locks.
+  return withMatchUploadLock(database, id, () => attempt(database, id, action));
+}
+
+export function deleteSavedMatch(database, id) {
+  return withMatchUploadLock(database, id, async () => {
+    const transaction = database.transaction([CLOSED_STORE, SETTINGS_STORE], 'readwrite');
+    const done = transactionDone(transaction);
+    const settings = transaction.objectStore(SETTINGS_STORE);
+    const lease = settings.get(uploadStateKey(id));
+    let failure;
+    lease.onsuccess = () => {
+      const state = lease.result;
+      if (state?.state === 'sending' && state.owner && state.expiresAt > Date.now()) {
+        failure = uploadBusyError(); return;
+      }
+      transaction.objectStore(CLOSED_STORE).delete(id);
+      settings.delete(uploadStateKey(id));
+    };
+    await done;
+    if (failure) throw failure;
+  });
 }

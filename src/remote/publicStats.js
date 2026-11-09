@@ -4,11 +4,20 @@ async function clientFor(supplied) {
   return client;
 }
 
+
+async function resolveGroupId(groupId, client) {
+  if (!/^G-[1-9][0-9]{0,18}$/i.test(groupId)) return groupId;
+  const { data, error } = await client.from('groups').select('id').eq('display_id', groupId.toUpperCase()).maybeSingle();
+  if (error) throw error;
+  if (!data?.id) throw new Error('Group not found.');
+  return data.id;
+}
+
 export async function listPublicGroups(suppliedClient) {
   const client = await clientFor(suppliedClient);
   const groups = [];
   for (let offset = 0; ; offset += 100) {
-    const { data, error } = await client.from('groups').select('id,name,time_zone').order('id').range(offset, offset + 99);
+    const { data, error } = await client.from('groups').select('id,name,time_zone,display_id').order('id').range(offset, offset + 99);
     if (error) throw error;
     if (!Array.isArray(data)) throw new Error('The public group list could not be read.');
     groups.push(...data);
@@ -20,6 +29,7 @@ export async function listPublicGroups(suppliedClient) {
 export async function publicGroupSummary(groupId, season = null, page = 1, suppliedClient, pageSize = 25) {
   if (!Number.isInteger(page) || page < 1 || page > 100000 || ![5,10,25].includes(pageSize)) throw new Error('Invalid match page or page size.');
   const client = await clientFor(suppliedClient);
+  groupId = await resolveGroupId(groupId, client);
   async function read(serverPage, selectedSeason) {
     const { data, error } = await client.rpc('public_group_summary', { p_group_id: groupId, p_season: selectedSeason, p_page: serverPage });
     if (error) throw error;
@@ -47,6 +57,7 @@ export async function publicGroupSummary(groupId, season = null, page = 1, suppl
 
 export async function publicMatchDetails(groupId, matchId, suppliedClient) {
   const client = await clientFor(suppliedClient);
+  groupId = await resolveGroupId(groupId, client);
   const { data, error } = await client.rpc('public_match_details', { p_group_id: groupId, p_match_id: matchId });
   if (error) throw error;
   if (data?.id !== matchId || data.group_id !== groupId || data.group?.id !== groupId || !Array.isArray(data.sets)) {

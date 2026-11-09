@@ -19,11 +19,12 @@ function start() {
 const point = (state, team = 'A', playerId = 'p1', startedAt = '2026-11-06T18:00:00.000Z') =>
   matchReducer(state, { type: 'point', team, playerId, startedAt });
 const close = state => matchReducer(state, { type: 'closeSet' });
+const finish = (state, team = 'A') => { while (state.teams[team].setsWon < 3) state = close(point(state, team, 'err')); return state; };
 const archive = (state, id = 'match', closedAt = '2026-11-06T20:00:00.000Z') => ({ id, state, closedAt, syncStatus: 'pending' });
 const row = (totals, index) => totals.rows.find(player => player.personId === players[index].id);
 
 test('season totals include zero-point participants and award wins only to the winning team', () => {
-  const state = close(point(point(point(start()), 'B'), 'A', 'err'));
+  const state = finish(close(point(point(point(start()), 'B'), 'A', 'err')));
   const totals = seasonStatistics([archive(state)], group, players, '2026');
   assert.equal(totals.includedMatches, 1);
   assert.deepEqual(row(totals, 0), { personId: players[0].id, name: 'Player 1', points: 1, matches: 1, wins: 1, days: 1 });
@@ -36,9 +37,9 @@ test('season totals include zero-point participants and award wins only to the w
 });
 
 test('several matches on the same group date count one attendance, with another day counting separately', () => {
-  const first = archive(close(point(start())), 'first');
-  const second = archive(close(point(start(), 'A', 'p1', '2026-11-07T03:00:00.000Z')), 'second', '2026-11-07T03:30:00.000Z');
-  const third = archive(close(point(start(), 'A', 'p1', '2026-11-07T18:00:00.000Z')), 'third', '2026-11-07T20:00:00.000Z');
+  const first = archive(finish(close(point(start()))), 'first');
+  const second = archive(finish(close(point(start(), 'A', 'p1', '2026-11-07T03:00:00.000Z'))), 'second', '2026-11-07T03:30:00.000Z');
+  const third = archive(finish(close(point(start(), 'A', 'p1', '2026-11-07T18:00:00.000Z'))), 'third', '2026-11-07T20:00:00.000Z');
   assert.equal(row(seasonStatistics([first, second], group, players, 2026), 0).days, 1);
   const totals = seasonStatistics([first, second, third], group, players, 2026);
   assert.equal(row(totals, 0).matches, 3);
@@ -63,7 +64,7 @@ test('both-team players get one match and no win; exclusive winners retain their
   const teams = structuredClone(state.teams);
   [teams.A.players[0].personId, teams.B.players[0].personId] = [teams.B.players[0].personId, teams.A.players[0].personId];
   state = assignMatchPlayers(state, group.id, teams, players);
-  state = close(point(point(point(state), 'B')));
+  state = finish(close(point(point(point(state), 'B'))));
   const totals = seasonStatistics([archive(state)], group, players, 2026);
   assert.equal(row(totals, 0).points, 3);
   assert.equal(row(totals, 0).matches, 1);
@@ -108,13 +109,13 @@ test('unassociated, unreadable and other-group matches do not contaminate group 
 });
 
 test('stable IDs keep namesakes separate and recomputing from changed results does not double-count', () => {
-  const state = close(point(start()));
+  const state = finish(close(point(start())));
   const namesakes = players.map(player => ({ ...player, name: 'Same name' }));
   const first = seasonStatistics([archive(state)], group, namesakes, 2026);
   assert.equal(first.rows.length, 14);
   assert.equal(row(first, 0).points, 1);
   assert.equal(row(first, 1).points, 0);
-  const changed = close(point(start(), 'B'));
+  const changed = finish(close(point(start(), 'B')), 'B');
   const second = seasonStatistics([archive(changed)], group, namesakes, 2026);
   assert.equal(row(second, 0).points, 0);
   assert.equal(row(second, 0).wins, 0);
@@ -167,4 +168,15 @@ test('persistence and archive association retain timestamps and immediately incl
   assert.equal(archives[0].state.startedAt, state.startedAt);
   assert.equal(seasonStatistics(archives, localGroup, registered, 2026).includedMatches, 1);
   assert.deepEqual(await loadStoredMatch(database), next);
+});
+
+test('a team change during training preserves the victory earned in competitive sets', () => {
+  let state=finish(point(start()));
+  const teams=structuredClone(state.teams);
+  [teams.A.players[0].personId,teams.B.players[0].personId]=[teams.B.players[0].personId,teams.A.players[0].personId];
+  state=assignMatchPlayers(state,group.id,teams,players);
+  state=close(point(state,'B'));
+  const totals=seasonStatistics([archive(state)],group,players,2026);
+  assert.equal(row(totals,0).points,2);assert.equal(row(totals,0).matches,1);assert.equal(row(totals,0).wins,1);
+  assert.equal(row(totals,6).wins,0);
 });

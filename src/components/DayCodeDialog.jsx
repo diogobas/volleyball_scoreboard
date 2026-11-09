@@ -21,7 +21,7 @@ export default function DayCodeDialog({ onClose, onConfirm, confirmLabel = 'Use 
     <DialogTitle id="day-code-title">Game-day code</DialogTitle>
     <DialogContent><Stack spacing={2} component="form" onSubmit={load} sx={{ pt: 1 }}>
       <Typography>Ask the group administrator for the code. Connecting requires internet; playing and saving work offline.</Typography>
-      <TextField label="Code" required value={code} disabled={busy} onChange={event => { setCode(event.target.value); setPreview(null); }} autoComplete="off" />
+      <TextField label="Code" placeholder="AB7K9" helperText="Letters can be uppercase or lowercase." required value={code} disabled={busy} onChange={event => { setCode(event.target.value); setPreview(null); }} autoComplete="off" slotProps={{ htmlInput: { autoCapitalize: 'characters', spellCheck: false } }} />
       <Button type="submit" disabled={busy || !code.trim()}>Check code</Button>
       {error && <Alert severity="warning">{error}</Alert>}
       {preview && <><Typography variant="h6">{preview.group_name} · {preview.play_date}</Typography>

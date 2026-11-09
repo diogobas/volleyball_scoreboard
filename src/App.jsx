@@ -1,3 +1,4 @@
+import { matchResult } from './game/matchResult';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper, Stack, Tab, Tabs, Typography } from '@mui/material';
 import UndoRounded from '@mui/icons-material/UndoRounded';
@@ -71,6 +72,7 @@ function MatchApp({ database, initialState }) {
   const scoreB = teamScore(state.teams.B);
   const teamOrder = state.sidesSwapped ? ['B', 'A'] : TEAM_IDS;
   const [leftTeam, rightTeam] = teamOrder.map(id => state.teams[id]);
+  const decided = matchResult(state.log.filter(entry => entry.type === 'set'));
 
   function dispatch(action) {
     const timedAction = action.type === 'point' ? { ...action, startedAt: new Date().toISOString() } : action;
@@ -88,10 +90,10 @@ function MatchApp({ database, initialState }) {
 
   async function sendClosedMatch(id) {
     try {
-      setSyncNotice('Sending for administrator review. Local copy is kept until receipt is confirmed.');
-      await uploadReceivedMatch(database, id);
+      setSyncNotice('Finalizing match online. Local copy is kept until confirmation.');
+      const receipt = await uploadReceivedMatch(database, id);
       setCloseSuccess(false);
-      setSyncNotice('Received for administrator review. Local copy removed.');
+      setSyncNotice(receipt?.deleted ? 'This match was already removed by an administrator. Local copy removed.' : 'Match finalized and synced. Local copy removed.');
     } catch (error) {
       setSyncNotice(`Sync was not confirmed. Your match is kept on this device. ${error.message || ''} Open Saved matches to retry.`);
     } finally { void refreshPending(); }
@@ -175,7 +177,7 @@ function MatchApp({ database, initialState }) {
       {tab === 0 && <Box className="scoreboard">
         <Stack className="set-bar" direction="row" sx={{ alignItems: 'center', justifyContent: 'center', gap: 2 }}>
           <Typography className="sets-won" variant="body2" aria-label={`Sets won by ${leftTeam.name}`}>{leftTeam.setsWon}</Typography>
-          <Chip size="small" variant="outlined" label={`Set ${state.currentSet}`} />
+          <Chip size="small" variant="outlined" label={`${decided.winner ? 'Training · ' : ''}Set ${state.currentSet}`} />
           <Typography className="sets-won" variant="body2" aria-label={`Sets won by ${rightTeam.name}`}>{rightTeam.setsWon}</Typography>
         </Stack>
         <Box className="score-panels">{teamOrder.map(id => <ScorePanel key={id} id={id} team={state.teams[id]} />)}</Box>

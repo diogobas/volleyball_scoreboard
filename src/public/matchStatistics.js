@@ -17,22 +17,23 @@ function playerTotals(rows, teamNames) {
 // Build the same display model as the app without reconstructing a playable match.
 export function publicMatchStatistics(match) {
   const names = { A: match.team_a_name, B: match.team_b_name };
-  const rows = match.sets.flatMap(set => set.players);
+  const showPlayerTotals = match.player_totals_recorded !== false;
+  const rows = match.entry_mode === 'summary' ? match.players : match.sets.flatMap(set => set.players);
   const topPlayers = playerTotals(rows, names).filter(player => player.points > 0)
     .sort((a, b) => b.points - a.points).slice(0, 3);
   const teams = teamIds.map(team => {
     const people = playerTotals(rows.filter(row => row.team === team), names);
-    const errors = match.sets.reduce((sum, set) => sum + (team === 'A' ? set.errors_a : set.errors_b), 0);
+    const errors = match.entry_mode === 'summary' ? (team === 'A' ? match.errors_a : match.errors_b) : match.sets.reduce((sum, set) => sum + (team === 'A' ? set.errors_a : set.errors_b), 0);
     return { id: team, name: names[team], players: [...people,
       { id: 'err', name: 'Opponent’s error', points: errors, isError: true },
     ] };
   });
   const sets = match.sets.map(set => {
     const teamNames = { A: set.team_a_name, B: set.team_b_name };
-    return { setNumber: set.number, teamAName: teamNames.A, teamBName: teamNames.B, scoreA: set.score_a, scoreB: set.score_b,
+    return { statisticsAvailable: set.statistics_available, training: set.training ?? (match.decided_at != null && set.number > match.decided_at), early_finish: set.early_finish, setNumber: set.number, teamAName: teamNames.A, teamBName: teamNames.B, scoreA: set.score_a, scoreB: set.score_b,
       rosters: Object.fromEntries(teamIds.map(team => [team, set.players.filter(player => player.team === team)])),
       ranking: playerTotals(set.players, teamNames).filter(player => player.points > 0).sort((a, b) => b.points - a.points),
     };
   });
-  return { topPlayers, teams, sets };
+  return { topPlayers: showPlayerTotals ? topPlayers : [], teams: showPlayerTotals ? teams : [], sets, showPlayerTotals };
 }

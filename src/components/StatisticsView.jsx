@@ -2,8 +2,9 @@ import { Accordion, AccordionDetails, AccordionSummary, Box, LinearProgress, Pap
 import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
 import { teamColors } from '../theme';
 
-export default function StatisticsView({ topPlayers, teams, sets }) {
+export default function StatisticsView({ topPlayers, teams, sets, showPlayerTotals = true }) {
   return <Box className="statistics">
+    {showPlayerTotals ? <>
     <Box component="section" className="top-three" aria-labelledby="top-three-title">
       <Typography component="h2" variant="h5" id="top-three-title">Top 3</Typography>
       <Typography variant="body2" color="text.secondary">Match points</Typography>
@@ -40,21 +41,23 @@ export default function StatisticsView({ topPlayers, teams, sets }) {
         </Box>;
       })}
     </Box>
+    </> : <Typography color="text.secondary">Player totals were not recorded.</Typography>}
     {sets.length > 0 && <Box sx={{ mt: 3 }}><Typography variant="overline">Set history</Typography>
       {sets.map(entry => {
         const ranking = entry.ranking;
         return <Accordion key={entry.setNumber} disableGutters elevation={0} sx={{ mt: 1, bgcolor: '#ffffff08', backgroundImage: 'none' }}>
           <AccordionSummary expandIcon={<ExpandMoreRounded />} id={`set-${entry.setNumber}-summary`} aria-controls={`set-${entry.setNumber}-ranking`}>
             <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
-              <Typography variant="body2">Set {entry.setNumber}</Typography>
+              <Typography variant="body2">Set {entry.setNumber}{entry.training ? ' · Training' : ''}{entry.early_finish ? ' · Ended early' : ''}</Typography>
               <Typography variant="body2" color="text.secondary">{entry.teamAName} {entry.scoreA} × {entry.scoreB} {entry.teamBName}</Typography>
             </Box>
           </AccordionSummary>
           <AccordionDetails>
+            {entry.statisticsAvailable === false ? <Typography variant="body2" color="text.secondary">{showPlayerTotals ? 'Only match totals were recorded. Player points per set are unavailable.' : 'Player points per set were not recorded.'}</Typography> : <>
             {entry.rosters && ['A','B'].map(id => <Typography key={id} variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               {id === 'A' ? entry.teamAName : entry.teamBName}: {entry.rosters[id].map(player => player.name).join(', ')}
             </Typography>)}
-            <Typography component="h3" variant="subtitle2" sx={{ mb: 1 }}>Player ranking · Set {entry.setNumber}</Typography>
+            <Typography component="h3" variant="subtitle2" sx={{ mb: 1 }}>Player ranking · Set {entry.setNumber}{entry.training ? ' · Training' : ''}{entry.early_finish ? ' · Ended early' : ''}</Typography>
             {ranking.length === 0
               ? <Typography variant="body2" color="text.secondary">No player points in this set.</Typography>
               : <Box component="ol" aria-label={`Player ranking for set ${entry.setNumber}`} sx={{ listStyle: 'none', p: 0, m: 0 }}>
@@ -67,6 +70,7 @@ export default function StatisticsView({ topPlayers, teams, sets }) {
                   <Typography variant="body2">{player.points} {player.points === 1 ? 'point' : 'points'}</Typography>
                 </Box>)}
               </Box>}
+            </>}
           </AccordionDetails>
         </Accordion>;
       })}

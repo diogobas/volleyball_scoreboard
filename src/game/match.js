@@ -1,3 +1,4 @@
+import { matchResult } from './matchResult.js';
 export const STORAGE_KEY = 'volleyball-scoreboard:v1';
 export const TEAM_IDS = ['A', 'B'];
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -170,7 +171,7 @@ function reduceMatch(state, action) {
       return { ...state, currentSet: state.currentSet + 1, sidesSwapped: !state.sidesSwapped, log: [...state.log, entry],
         teams: Object.fromEntries(TEAM_IDS.map(id => [id, {
           ...state.teams[id],
-          setsWon: state.teams[id].setsWon + Number(id === 'A' ? scoreA > scoreB : scoreB > scoreA),
+          setsWon: matchResult([...state.log.filter(entry => entry.type === 'set'), entry])[id === 'A' ? 'setsA' : 'setsB'],
           players: state.teams[id].players.map(p => ({ ...p, setPoints: 0 })),
         }])),
       };

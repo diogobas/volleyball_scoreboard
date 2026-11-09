@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { listPublicGroups, publicGroupSummary, publicMatchDetails } from './publicStats.js';
+import { publicMatchStatistics } from '../public/matchStatistics.js';
 import { publicGroupHref, readRoute } from '../public/routes.js';
 
 const groupId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -37,7 +38,7 @@ test('public group discovery paginates beyond one response and requests only pub
   const client = { from: table => {
     assert.equal(table, 'groups');
     return { select: fields => {
-      assert.equal(fields, 'id,name,time_zone');
+      assert.equal(fields, 'id,name,time_zone,display_id');
       return { order: order => { assert.equal(order, 'id'); return { range: async (start, end) => {
         calls.push([start,end]); return { data: groups.slice(start, end + 1) };
       } }; } };
@@ -85,4 +86,40 @@ test('display pagination spans server batches without losing matches or changing
   assert.equal((await publicGroupSummary(groupId,2026,13,client,5)).matches.length,0);
   await assert.rejects(publicGroupSummary(groupId,2026,0,client,5),/Invalid/);
   await assert.rejects(publicGroupSummary(groupId,2026,1,client,100),/Invalid/);
+});
+
+test('short group references support public links and resolve to the existing UUID', async()=>{
+  const matchRoute=readRoute(publicGroupHref('G-1',{season:2026,matchId}));
+  assert.equal(matchRoute.kind,'match'); assert.equal(matchRoute.groupId,'G-1');
+  assert.equal(readRoute('#/groups/g-12').groupId,'G-12');
+  for(const value of ['G-0','G-01','G--1','P-1']) assert.equal(readRoute(`#/groups/${value}`).kind,'missing');
+  const calls=[];
+  const client={from:table=>({select:fields=>({eq:(field,value)=>({maybeSingle:async()=>{
+    assert.equal(table,'groups'); assert.equal(fields,'id'); assert.equal(field,'display_id'); assert.equal(value,'G-1');
+    return {data:{id:groupId}};
+  }})})}),rpc:async(name,args)=>{
+    calls.push([name,args]);
+    return {data:name==='public_group_summary'?{group:{id:groupId,display_id:'G-1'},season:2026,page:1,page_size:25,match_count:0,seasons:[2026],players:[],matches:[]}:
+      {id:matchId,group_id:groupId,group:{id:groupId,display_id:'G-1'},sets:[]}};
+  }};
+  assert.equal((await publicGroupSummary('G-1',null,1,client)).group.id,groupId);
+  assert.equal((await publicMatchDetails('g-1',matchId,client)).group_id,groupId);
+  assert.ok(calls.every(([,args])=>args.p_group_id===groupId));
+  const missing={from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:null})})})})};
+  await assert.rejects(publicGroupSummary('G-999',null,1,missing),/Group not found/);
+});
+
+test('score-only statistics retain set history while hiding unknown player totals and opponent errors', () => {
+  const summary={entry_mode:'summary',player_totals_recorded:false,team_a_name:'Team 1',team_b_name:'Team 2',players:[],errors_a:null,errors_b:null,decided_at:3,
+    sets:[[19,25],[22,25],[16,25],[25,17],[25,17],[15,12]].map(([score_a,score_b],i)=>({number:i+1,score_a,score_b,team_a_name:'Team 1',team_b_name:'Team 2',players:[],statistics_available:false}))};
+  const view=publicMatchStatistics(summary);assert.equal(view.showPlayerTotals,false);assert.deepEqual(view.teams,[]);assert.deepEqual(view.topPlayers,[]);assert.equal(view.sets.length,6);assert.equal(view.sets[3].training,true);assert.equal(view.sets[0].statisticsAvailable,false);
+  const recorded=publicMatchStatistics({...summary,player_totals_recorded:true,players:[{id:'p1',name:'Omer',team:'A',points:19}],errors_a:103,errors_b:121});
+  assert.equal(recorded.showPlayerTotals,true);assert.equal(recorded.topPlayers[0].points,19);assert.equal(recorded.teams[0].players.find(p=>p.isError).points,103);
+});
+
+test('historical points from both teams combine into one player ranking', () => {
+ const view=publicMatchStatistics({entry_mode:'summary',player_totals_recorded:true,team_a_name:'Team 1',team_b_name:'Team 2',errors_a:50,errors_b:41,sets:[],
+ players:[{id:'chico',name:'Chicó',team:'A',points:7},{id:'chico',name:'Chicó',team:'B',points:5},{id:'carlos',name:'Carlos',team:'B',points:0}]});
+ assert.equal(view.topPlayers.length,1);assert.equal(view.topPlayers[0].points,12);assert.deepEqual(view.topPlayers[0].teamIds,['A','B']);
+ assert.equal(view.teams[0].players.find(p=>p.id==='chico').points,7);assert.equal(view.teams[1].players.find(p=>p.id==='chico').points,5);
 });

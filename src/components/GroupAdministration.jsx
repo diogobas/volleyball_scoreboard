@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Alert, Box, Button, Paper, Stack, TextField, Typography } from '@mui/material';
 import GameDayAdministration from '../public/GameDayAdministration';
+import SectionNavigation from './SectionNavigation';
+import AdminGroupResults from './AdminGroupResults';
 import { remoteGroups } from '../remote/groups';
 
 export default function GroupAdministration({ client, userId, busy, setBusy }) {
+  const [view, setView] = useState('overview');
+  const [playersView, setPlayersView] = useState('registry');
+  const [registryVersion, setRegistryVersion] = useState(0);
   const [groups, setGroups] = useState(null);
   const [selected, setSelected] = useState(null);
   const [admins, setAdmins] = useState(null);
@@ -44,20 +49,32 @@ export default function GroupAdministration({ client, userId, busy, setBusy }) {
     run(async api => {
       const group = await api.create(name, timeZone);
       setGroups(previous => [...(previous ?? []), group]);
-      setName(''); setSelected(group); setMessage('Group created. You are its first administrator.');
+      setName(''); setView('overview'); setSelected(group); setMessage('Group created. You are its first administrator.');
     });
   }
 
   return <Stack spacing={2}>
-    <Alert severity="info">Manage group access, players, game days and private reviews here. Only closing a day publishes its results.</Alert>
     {error && <Alert severity="error">{error}</Alert>}
     {message && <Alert severity="success">{message}</Alert>}
-    <Button disabled={busy} onClick={() => setAttempt(value => value + 1)}>Refresh groups</Button>
+    {!selected && <Button disabled={busy} onClick={() => setAttempt(value => value + 1)}>Refresh groups</Button>}
     {selected ? <>
-      <Button disabled={busy} onClick={() => { setSelected(null); setError(''); setMessage(''); }}>Back to my groups</Button>
+      <Button sx={{ alignSelf: 'start' }} disabled={busy} onClick={() => { setSelected(null); setError(''); setMessage(''); }}>Back to my groups</Button>
       <Typography component="h3" variant="h6">{selected.name}</Typography>
-      <Typography variant="body2" color="text.secondary">Time zone: {selected.time_zone}</Typography>
-      <Typography component="h4" variant="subtitle1">Administrators</Typography>
+      <Typography variant="body2" color="text.secondary">{selected.display_id && `${selected.display_id} · `}Time zone: {selected.time_zone}</Typography>
+      <SectionNavigation value={view} onChange={setView} disabled={busy} label="Administration sections" sections={[
+        { id: 'overview', label: 'Overview' }, { id: 'players', label: 'Players' }, { id: 'matches', label: 'Matches' },
+        { id: 'days', label: 'Game days' }, { id: 'access', label: 'Access' },
+      ]} />
+      {view === 'players' && <SectionNavigation value={playersView} onChange={setPlayersView} label="Player sections" sections={[
+        { id: 'registry', label: 'Registry' }, { id: 'statistics', label: 'Statistics' },
+      ]} />}
+      <GameDayAdministration key={selected.id} client={client} group={selected} view={view === 'players' && playersView !== 'registry' ? 'hidden' : view} onRegistryChanged={() => setRegistryVersion(value => value + 1)} />
+      <Box hidden={!['overview', 'players', 'matches'].includes(view) || (view === 'players' && playersView === 'registry')}>
+        <AdminGroupResults key={selected.id} client={client} group={selected} view={view} refreshKey={registryVersion} onViewChange={next => { if (next === 'players') setPlayersView('statistics'); setView(next); }} />
+      </Box>
+      <Box hidden={view !== 'access'}><Stack spacing={2}>
+      <Typography component="h4" variant="h6">Administrators</Typography>
+      <Button disabled={busy} onClick={() => setAttempt(value => value + 1)}>Refresh access</Button>
       {!admins && !error && <Typography role="status">Loading administrators…</Typography>}
       {admins?.map(admin => <Paper key={admin.user_id} variant="outlined" sx={{ p: 1.5 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', gap: 1 }}>
@@ -78,15 +95,15 @@ export default function GroupAdministration({ client, userId, busy, setBusy }) {
           helperText="The person must create an account and confirm their email first." />
         <Button type="submit" variant="outlined" disabled={busy}>Add administrator</Button>
       </Stack>
-      <GameDayAdministration key={selected.id} client={client} group={selected} />
+      </Stack></Box>
     </> : <>
       <Typography component="h3" variant="h6">My groups</Typography>
       {groups === null && !error && <Typography role="status">Loading groups…</Typography>}
       {groups?.length === 0 && <Typography variant="body2">You do not administer a group yet. Create one or ask a group administrator to authorize your email.</Typography>}
       {groups?.map(group => <Paper key={group.id} variant="outlined" sx={{ p: 2 }}>
         <Typography sx={{ overflowWrap: 'anywhere' }}>{group.name}</Typography>
-        <Typography variant="body2" color="text.secondary">{group.time_zone}</Typography>
-        <Button disabled={busy} onClick={() => { setSelected(group); setError(''); setMessage(''); }}>Manage group</Button>
+        <Typography variant="body2" color="text.secondary">{group.display_id && `${group.display_id} · `}{group.time_zone}</Typography>
+        <Button disabled={busy} onClick={() => { setView('overview'); setSelected(group); setError(''); setMessage(''); }}>Manage group</Button>
       </Paper>)}
       <Box component="form" onSubmit={create}>
         <Typography component="h3" variant="h6" sx={{ mb: 2 }}>Create group</Typography>
