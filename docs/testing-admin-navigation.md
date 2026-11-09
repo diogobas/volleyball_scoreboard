@@ -2,6 +2,12 @@
 
 The admin group view now has Overview, Players, Matches, Game days and Access sections. Public and admin results share `GroupResults`, including overview links, player statistics, match cards, top scorers, winner/team colors and `StatisticsView`. Admin match details also open the existing correction tools.
 
+Workspace navigation (My groups / My communities) uses a vertical sidebar from the `md` breakpoint. On smaller screens it opens from an Administration button that displays the current workspace and collapses after selection. Group sections remain horizontal. Browser checks verify the mobile disclosure, vertical workspace orientation, desktop placement beside the content and absence of page overflow.
+
+Primary community and group tabs occupy the top of the content column, before context headings, links and alerts, and stick to the viewport top during scrolling. Opening a group inside a community replaces the community header and tabs; returning to the group list restores them. Checks cover matching community/group tab positions, sticky scrolling and return navigation.
+
+Administration page headers share the same title typography and spacing. Back actions appear above the title; public links and refresh actions align on the right on wider screens and wrap on mobile. The signed-in avatar in the upper-right opens an account menu with the email and Sign out. The admin browser check covers menu opening, email visibility, sign-out and public-link alignment.
+
 `SectionNavigation` and `ListPagination` are reused for public results, admin results and game-day navigation. Game days and private receipts show five items by default, with options for ten or twenty-five. Creation opens explicitly. Each selected day has Matches, Lineup, Code & publish and History sections; lineup state and mounted receipt editors survive section/page changes.
 
 Run the browser checks against a local dev server with Supabase configuration present:

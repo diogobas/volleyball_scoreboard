@@ -4,10 +4,12 @@ import { remoteCommunities } from '../remote/communities';
 import { publicCommunityHref } from '../public/routes';
 import GroupAdministration from './GroupAdministration';
 import SectionNavigation from './SectionNavigation';
+import AdministrationPageHeader from './AdministrationPageHeader';
 
 export default function CommunityAdministration({ client, userId, busy, setBusy, communities, onChanged }) {
   const [selected, setSelected] = useState(null);
   const [view, setView] = useState('groups');
+  const [groupSelected, setGroupSelected] = useState(false);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState(''); const [region, setRegion] = useState('');
   const [admins, setAdmins] = useState(null); const [email, setEmail] = useState('');
@@ -26,14 +28,13 @@ export default function CommunityAdministration({ client, userId, busy, setBusy,
     finally { setBusy(false); }
   }
   return <Stack spacing={2}>
-    {error && <Alert severity="warning">{error}</Alert>}{message && <Alert severity="success">{message}</Alert>}
+    {selected && !groupSelected && <SectionNavigation sticky value={view} onChange={setView} disabled={busy} label="Community sections" sections={[{ id: 'groups', label: 'Groups' }, { id: 'access', label: 'Community access' }]} />}
+    {!groupSelected && error && <Alert severity="warning">{error}</Alert>}{!groupSelected && message && <Alert severity="success">{message}</Alert>}
     {selected ? <>
-      <Button disabled={busy} sx={{ alignSelf: 'start' }} onClick={() => { setSelected(null); setError(''); }}>Back to my communities</Button>
-      <Typography component="h2" variant="h4">{selected.name}</Typography>
-      <Typography color="text.secondary">{selected.region} · {selected.display_id}</Typography>
-      <Button component="a" href={publicCommunityHref(selected.display_id ?? selected.id)} sx={{ alignSelf: 'start' }}>Public community page</Button>
-      <SectionNavigation value={view} onChange={setView} disabled={busy} label="Community sections" sections={[{ id: 'groups', label: 'Groups' }, { id: 'access', label: 'Community access' }]} />
-      {view === 'groups' ? <GroupAdministration key={selected.id} client={client} userId={userId} busy={busy} setBusy={setBusy} communities={communities} community={selected} /> : <Stack spacing={2}>
+      {!groupSelected && <AdministrationPageHeader title={selected.name} subtitle={`${selected.region} · ${selected.display_id}`}
+        backLabel="Back to my communities" disabled={busy} onBack={() => { setSelected(null); setError(''); }}
+        action={<Button component="a" href={publicCommunityHref(selected.display_id ?? selected.id)}>Public community page</Button>} />}
+      {view === 'groups' ? <GroupAdministration key={selected.id} client={client} userId={userId} busy={busy} setBusy={setBusy} communities={communities} community={selected} onSelectionChange={setGroupSelected} /> : <Stack spacing={2}>
         <Typography component="h3" variant="h6">Community administrators</Typography>
         <Typography color="text.secondary">Community administrators manage all groups and can add existing community players to a group. Group administrators keep access to their own groups.</Typography>
         {!admins && <Typography role="status">Loading administrators…</Typography>}
@@ -55,7 +56,7 @@ export default function CommunityAdministration({ client, userId, busy, setBusy,
         </Stack>
       </Stack>}
     </> : <>
-      <Typography component="h2" variant="h5">My communities</Typography>
+      <AdministrationPageHeader title="My communities" />
       {!communities.length && <Typography>You do not administer a community yet.</Typography>}
       {communities.map(community => <Paper key={community.id} variant="outlined" sx={{ p: 2 }}>
         <Typography variant="h6">{community.name}</Typography><Typography color="text.secondary">{community.region} · {community.display_id}</Typography>
