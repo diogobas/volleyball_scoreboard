@@ -1,0 +1,7 @@
+<en-US>
+Offline scoring with five-character game-day codes.
+Synced matches appear immediately as completed results.
+Discard unwanted locally saved matches.
+Training sets retain player points without changing the match winner.
+Improved group administration, historical matches, registered-player selection, win rates and attendance.
+</en-US>

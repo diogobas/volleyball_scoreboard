@@ -382,7 +382,7 @@ Referência: [envio de builds para o App Store Connect](https://developer.apple.
 
 Página pública: https://volleyball-scoreboard-results.pages.dev/
 
-Consulte [publicação web, TestFlight e Google Play](docs/publishing-4.3.md) e o [roteiro de aprovação em dispositivos](docs/testing-release-4.3.md). O iOS 1.1.0 (3) foi enviado ao App Store Connect; o AAB Android assinado está pronto para upload ao teste interno. Os testes físicos e a liberação dos grupos de testadores ainda precisam ser concluídos.
+Consulte [publicação web, TestFlight e Google Play](docs/publishing-4.3.md) e o [roteiro de aprovação em dispositivos](docs/testing-release-4.3.md). O iOS 1.2.0 (5) foi enviado ao App Store Connect; o AAB Android 1.2.0 (5) assinado está pronto para upload ao teste interno. Os testes físicos e a liberação dos grupos de testadores ainda precisam ser concluídos.
 
 Referências: [Material UI](https://mui.com/material-ui/getting-started/installation/), [Vite](https://vite.dev/guide/) e [Capacitor Android](https://capacitorjs.com/docs/android).
 
@@ -409,3 +409,6 @@ Na edição/cadastro de partidas históricas, os jogadores agora são escolhidos
 
 
 **Player statistics** mostra o aproveitamento (**Win rate**: vitórias ÷ partidas jogadas) e a presença (**Attendance**: dias jogados ÷ dias com participantes registrados na temporada). Cada data conta uma vez, mesmo com várias partidas; datas sem identificação de jogadores ficam fora da base. A [migração 012](supabase/migrations/20261108001200_player_attendance_statistics.sql) fornece o total de dias da temporada completa, sem depender da paginação e sem alterar resultados existentes.
+
+
+Para o próximo teste móvel, a versão nativa é **1.2.0 (5)**. O [roteiro do Google Play para 09/11/2026](docs/google-play-teste-interno-2026-11-09.md) indica o AAB assinado, os testadores e as etapas de envio. O [roteiro de validação em aparelhos](docs/testing-release-4.3.md) cobre atualização, modo offline, exclusão local, sincronização e estatísticas.
