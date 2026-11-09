@@ -1,0 +1,3 @@
+<en-US>
+Added an in-app privacy policy, available offline, with information about local storage, optional synchronization, public match results and data requests.
+</en-US>

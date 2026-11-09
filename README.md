@@ -412,3 +412,6 @@ Na edição/cadastro de partidas históricas, os jogadores agora são escolhidos
 
 
 Para o próximo teste móvel, a versão nativa é **1.2.0 (5)**. O [roteiro do Google Play para 09/11/2026](docs/google-play-teste-interno-2026-11-09.md) indica o AAB assinado, os testadores e as etapas de envio. O [roteiro de validação em aparelhos](docs/testing-release-4.3.md) cobre atualização, modo offline, exclusão local, sincronização e estatísticas.
+
+
+A [política de privacidade](https://volleyball-scoreboard-results.pages.dev/privacy.html) descreve os dados do app e do site e usa `diogovvb@gmail.com` como contato público autorizado. O Android **1.2.0 (6)** inclui a página no pacote e um link no app; use o novo AAB para atualizar o teste interno. O iOS distribuído continua em 1.2.0 (5).

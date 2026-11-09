@@ -10,6 +10,7 @@ import { canCloseMatch, enableCourtMode, matchReducer, TEAM_IDS, teamScore } fro
 import { closeStoredMatch, createLocalId, listStoredMatches, loadStoredMatch, openMatchDatabase, saveStoredMatch } from './game/storage';
 import { Roster, ScorePanel } from './components/TeamPanel';
 import EditTeamsDialog from './components/EditTeamsDialog';
+import PrivacyLink from './components/PrivacyLink';
 import Statistics from './components/Statistics';
 import DayCodeDialog from './components/DayCodeDialog';
 import CloseMatchDialog from './components/CloseMatchDialog';
@@ -228,6 +229,7 @@ function MatchApp({ database, initialState }) {
       <Button color="inherit" size="small" startIcon={<RestartAltRounded />} onClick={() => setConfirmation('reset')}>Reset match</Button>
       <Typography variant="caption" color="text.secondary">{saved ? 'Saved on this device' : storageWarning ? 'Local saving unavailable' : 'Saving…'}</Typography>
     </Box>
+    <Box sx={{ textAlign: 'center', pb: 2 }}><PrivacyLink /></Box>
     {lineupOpen && <DayCodeDialog confirmLabel="Load lineup" onClose={() => setLineupOpen(false)} onConfirm={async context => {
       const next = applyDayLineup(state, context);
       const persisted = await saveStoredMatch(database, next);

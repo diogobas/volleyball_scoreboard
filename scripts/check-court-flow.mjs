@@ -163,6 +163,13 @@ try {
   await page.screenshot({path:'artifacts/court-browser/admin-mobile.png'});
   await page.getByRole('button',{name:'Close day',exact:true}).click();
   await page.getByText('Day closed.',{exact:true}).waitFor(); assert.equal(day.state,'closed');
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  await page.goto(`${baseUrl}/#/app`);
+  await page.getByRole('link',{name:'Privacy policy',exact:true}).click();
+  await page.getByRole('heading',{name:'Privacy Policy',exact:true}).waitFor();
+  await page.getByRole('heading',{name:'6. Contact and privacy requests',exact:true}).waitFor();
+  assert.ok(await page.getByRole('link',{name:'diogovvb@gmail.com',exact:true}).count());
+  assert.equal(new URL(page.url()).pathname,'/privacy.html');
+  assert.deepEqual(errors,[]);
   console.log('PASS: mobile names, lineup download, offline restart/save, offline deletion/cancellation/restart, automatic match finalization and day closure; no browser exceptions.');
 } catch(error) { const p=browser.contexts()[0]?.pages()[0]; if(p){console.log('ERRORS',errors);console.log(await p.locator('body').innerText()); console.log(await p.locator('[role=dialog]').evaluateAll(nodes=>nodes.map(n=>({name:n.getAttribute('aria-labelledby'),label:document.getElementById(n.getAttribute('aria-labelledby'))?.innerText,html:n.outerHTML.slice(0,500)})))); await p.screenshot({path:'artifacts/court-browser/failure.png'});} throw error; } finally {await browser.close();}

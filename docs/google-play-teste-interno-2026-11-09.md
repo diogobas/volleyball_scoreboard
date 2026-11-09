@@ -1,16 +1,16 @@
 # Publicar o teste interno no Google Play — 9 de novembro de 2026
 
-O pacote desta entrega é **Volleyball Scoreboard 1.2.0 (5)**. O teste interno permite distribuir o app a até 100 pessoas, com acesso controlado pelas contas Google informadas. É possível começar antes de concluir toda a configuração da loja. [Guia oficial de testes](https://support.google.com/googleplay/android-developer/answer/9845334?hl=pt-BR).
+O pacote desta entrega é **Volleyball Scoreboard 1.2.0 (6)**. O teste interno permite distribuir o app a até 100 pessoas, com acesso controlado pelas contas Google informadas. É possível começar antes de concluir toda a configuração da loja. [Guia oficial de testes](https://support.google.com/googleplay/android-developer/answer/9845334?hl=pt-BR).
 
 ## Arquivos prontos neste Mac
 
-- Pacote para enviar: [VolleyballScoreboard-1.2.0-5.aab](../artifacts/android/VolleyballScoreboard-1.2.0-5.aab).
-- Notas para copiar no Console: [GooglePlayReleaseNotes-1.2.0-5.txt](../release/GooglePlayReleaseNotes-1.2.0-5.txt).
+- Pacote para enviar: [VolleyballScoreboard-1.2.0-6.aab](../artifacts/android/VolleyballScoreboard-1.2.0-6.aab).
+- Notas para copiar no Console: [GooglePlayReleaseNotes-1.2.0-6.txt](../release/GooglePlayReleaseNotes-1.2.0-6.txt).
 - Identificador: `com.diogobastos.volleyballscoreboard`.
-- Versão: `1.2.0`; código da versão: `5`.
+- Versão: `1.2.0`; código da versão: `6`.
 - Android mínimo: 7.0 / API 24; destino: API 36.
 
-O AAB usa a chave de upload já existente. A assinatura foi verificada; os arquivos de evidência ficam em `artifacts/android/verify-1.2.0-5.log` e `VolleyballScoreboard-1.2.0-5.aab.sha256`. Não é necessário compilar novamente amanhã.
+O AAB usa a chave de upload já existente. A assinatura foi verificada; os arquivos de evidência ficam em `artifacts/android/verify-1.2.0-6.log` e `VolleyballScoreboard-1.2.0-6.aab.sha256`. Não é necessário compilar novamente amanhã.
 
 ## Passo a passo
 
@@ -22,13 +22,13 @@ O AAB usa a chave de upload já existente. A assinatura foi verificada; os arqui
 
 4. Na área **Versões**, crie uma versão. Se já houver um rascunho dessa publicação, continue nele. Confira a configuração da **Assinatura de apps do Google Play** apresentada pelo Console. Para este projeto, mantenha o gerenciamento da assinatura final pelo Google e a chave de upload usada no AAB. [Assinatura de apps](https://support.google.com/googleplay/android-developer/answer/9842756?hl=pt-BR).
 
-5. Faça upload do arquivo **VolleyballScoreboard-1.2.0-5.aab** indicado acima. Aguarde a análise e confira no resumo: pacote `com.diogobastos.volleyballscoreboard`, versão `1.2.0`, código `5`. Se o código 5 já tiver sido usado por outro envio, será preciso gerar um código superior; renomear o arquivo não altera esse código. O identificador do pacote é permanente. [Pacotes e versões](https://support.google.com/googleplay/android-developer/answer/9859152?hl=pt-BR).
+5. Faça upload do arquivo **VolleyballScoreboard-1.2.0-6.aab** indicado acima. Aguarde a análise e confira no resumo: pacote `com.diogobastos.volleyballscoreboard`, versão `1.2.0`, código `6`. Se o código 6 já tiver sido usado por outro envio, será preciso gerar um código superior; renomear o arquivo não altera esse código. O identificador do pacote é permanente. [Pacotes e versões](https://support.google.com/googleplay/android-developer/answer/9859152?hl=pt-BR).
 
-6. Use **1.2.0 (5)** como nome da versão e copie as notas do arquivo fornecido, incluindo as tags `<en-US>` de idioma. Salve, revise e resolva os bloqueios que o Console indicar. Confirme a publicação **na faixa de teste interno**. Não há envio ao Google Play executado por este roteiro até você confirmar essa etapa. [Preparação e publicação da versão](https://support.google.com/googleplay/android-developer/answer/9859348?hl=pt-BR).
+6. Use **1.2.0 (6)** como nome da versão e copie as notas do arquivo fornecido, incluindo as tags `<en-US>` de idioma. Salve, revise e resolva os bloqueios que o Console indicar. Confirme a publicação **na faixa de teste interno**. Não há envio ao Google Play executado por este roteiro até você confirmar essa etapa. [Preparação e publicação da versão](https://support.google.com/googleplay/android-developer/answer/9859348?hl=pt-BR).
 
 7. Quando a versão estiver disponível, volte a **Testadores** e copie o link de participação. Compartilhe esse link com o grupo. A primeira disponibilização do link pode demorar; confira o estado da versão no Console. [Disponibilização do teste](https://support.google.com/googleplay/android-developer/answer/9845334?hl=pt-BR).
 
-8. No Android, abra o link usando uma conta cadastrada na lista, aceite participar e siga para a instalação pelo Google Play. Confira que a versão instalada é **1.2.0 (5)**.
+8. No Android, abra o link usando uma conta cadastrada na lista, aceite participar e siga para a instalação pelo Google Play. Confira que a versão instalada é **1.2.0 (6)**.
 
 ## Primeiro teste no aparelho
 

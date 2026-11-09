@@ -149,6 +149,12 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await mkdir('artifacts/public-navigation', { recursive: true });
   await page.screenshot({ path: 'artifacts/public-navigation/matches-mobile.png', fullPage: true });
+
+  await page.getByRole('link',{name:'Privacy policy',exact:true}).click();
+  await page.getByRole('heading',{name:'Privacy Policy',exact:true}).waitFor();
+  await page.getByRole('heading',{name:'6. Contact and privacy requests',exact:true}).waitFor();
+  assert.ok(await page.getByRole('link',{name:'diogovvb@gmail.com',exact:true}).count());
+  assert.equal(new URL(page.url()).pathname,'/privacy.html');
   assert.deepEqual(errors, []);
   console.log('PASS: per-match top scorers, error exclusion, empty ranking, retry, separate group sections, pagination, match statistics and mobile layout.');
 } finally { await browser.close(); }

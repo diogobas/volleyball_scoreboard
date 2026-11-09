@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Container, Stack, TextField, Typography } from '@mui/material';
 import { getAdminClient } from '../remote/client';
+import PrivacyLink from '../components/PrivacyLink';
 import GroupAdministration from '../components/GroupAdministration';
 
 export default function Administration() {
@@ -41,5 +42,6 @@ export default function Administration() {
       <Typography sx={{ overflowWrap: 'anywhere' }}>{session.user.email}</Typography>
       <Button disabled={busy} onClick={async () => { setBusy(true); try { const { error } = await client.auth.signOut({ scope: 'local' }); if (error) throw error; setSession(null); } catch (failure) { setError(failure.message); } finally { setBusy(false); } }}>Sign out</Button>
     </Stack><GroupAdministration key={session.user.id} client={client} userId={session.user.id} busy={busy} setBusy={setBusy} /></>}
+    <PrivacyLink />
   </Stack></Container>;
 }
