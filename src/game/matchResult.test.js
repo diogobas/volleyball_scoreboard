@@ -23,3 +23,17 @@ test('score-only historical entry validates scores and team names without requir
  assert.ok(historicalErrors({...body,team_a_name:''}).some(e=>e.includes('enter a name')));
  assert.ok(historicalErrors({...body,sets:[{score_a:25,score_b:24,early_finish:false}]}).length);
 });
+
+test('an interrupted historical match can explicitly finish as a draw without changing scores', () => {
+ const body={played_on:'2026-10-23',rules:'recreational',team_a_name:'Team 1',team_b_name:'Team 2',player_totals_recorded:false,ended_as_draw:true,
+  sets:[[24,26],[25,20],[25,22],[22,21]].map(([score_a,score_b],i)=>({score_a,score_b,early_finish:i===3}))};
+ assert.deepEqual(historicalErrors(body),[]);
+ assert.equal(matchResult(body.sets,{endedAsDraw:true}).winner,null);assert.equal(matchResult(body.sets,{endedAsDraw:true}).setsA,2);assert.equal(matchResult(body.sets,{endedAsDraw:true}).setsB,1);
+ const tied={...body,sets:body.sets.map((s,i)=>i===3?{...s,score_b:22}:s)};
+ assert.deepEqual(historicalErrors(tied),[]);assert.equal(matchResult(tied.sets).setsB,1);
+ assert.ok(historicalErrors({...tied,ended_as_draw:false}).length);
+ assert.ok(historicalErrors({...tied,sets:tied.sets.map(s=>({...s,early_finish:false}))}).length);
+ assert.ok(historicalErrors({...body,sets:[{score_a:25,score_b:20},{score_a:25,score_b:20},{score_a:25,score_b:20}]}).some(e=>e.includes('already won')));
+ assert.ok(historicalErrors({...body,sets:[{score_a:0,score_b:0,early_finish:true}]}).length);
+ const official={...tied,rules:'official'};assert.deepEqual(historicalErrors(official),[]);
+});

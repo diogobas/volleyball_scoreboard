@@ -6,10 +6,11 @@ import { PGlite } from '@electric-sql/pglite';
 
 const target='653c2c8d-9903-4410-b109-c66320f7300c';
 const matchId='8deb93c2-b213-4a36-9026-e56117c03113';
+// This tests the pre-community repair script, which must run before scoped access rollout.
 test('repairing the deployed score-only import restores references and every scorer without duplicating identities',async t=>{
  const db=new PGlite();t.after(()=>db.close());const q=(sql,args=[])=>db.query(sql,args);
  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;grant usage on schema public,auth to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;`);
- for(const file of (await readdir(new URL('./migrations/',import.meta.url))).filter(f=>f.endsWith('.sql')).sort())await db.exec(await readFile(new URL(`./migrations/${file}`,import.meta.url),'utf8'));
+ for(const file of (await readdir(new URL('./migrations/',import.meta.url))).filter(f=>f.endsWith('.sql') && f<'20261109000200_communities_and_scoped_public_access.sql').sort())await db.exec(await readFile(new URL(`./migrations/${file}`,import.meta.url),'utf8'));
  const owner=randomUUID();await q('insert into auth.users values($1,$2,now())',[owner,'owner@test.local']);
  await q("insert into public.groups(id,name,time_zone) values($1,'Tuesday Volleyball ‐ 7:30PM-10PM','America/Toronto')",[target]);
  await q('insert into private.group_admins(group_id,user_id,added_by) values($1,$2,$2)',[target,owner]);
@@ -54,8 +55,9 @@ test('repairing the deployed score-only import restores references and every sco
   const duplicate=structuredClone(current.payload);duplicate.players.push(duplicate.players[0]);await assert.rejects(rpc('save_historical_match',[target,duplicate,current.version,'Bad duplicate',randomUUID()]),/same team/);
   assert.equal((await rpc('get_historical_match',[target,matchId])).version,current.version);
  });
- await t.test('a corrected import cannot be republished by re-running the owner repair after deletion',async()=>{
-  const current=await rpc('get_historical_match',[target,matchId]);await rpc('delete_final_match',[target,matchId,current.version,'Remove result']);
-  await db.exec(repair);assert.equal((await summary()).match_count,0);
+ await t.test('a corrected import cannot be deleted by an administrator',async()=>{
+  const current=await rpc('get_historical_match',[target,matchId]);
+  await assert.rejects(rpc('delete_final_match',[target,matchId,current.version,'Delete']),/Finalized matches cannot be deleted/);
+  assert.equal((await summary()).match_count,1);
  });
 });

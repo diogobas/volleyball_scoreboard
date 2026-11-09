@@ -1,16 +1,17 @@
 import { competitiveTeam, historicalPlayerKey } from './historicalPlayers.js';
 
 // A match is decided once: later sets remain useful as training statistics.
-export function matchResult(sets) {
+export function matchResult(sets, { endedAsDraw = false, interruptedSet = null, rules = 'recreational' } = {}) {
   let setsA = 0; let setsB = 0; let winner = null; let decidedAt = null;
   const classified = sets.map((set, index) => {
     const training = winner !== null;
     const a = set.score_a ?? set.scoreA; const b = set.score_b ?? set.scoreB;
-    if (!training) {
+    const interrupted = endedAsDraw && index === sets.length - 1 && (interruptedSet === index + 1 || set.early_finish === true && !validSetScore(a, b, rules === 'official' && index === 4 ? 15 : 25));
+    if (!training && !interrupted) {
       if (a > b) setsA++; else if (b > a) setsB++;
       if (setsA === 3 || setsB === 3) { winner = setsA === 3 ? 'A' : 'B'; decidedAt = index + 1; }
     }
-    return { ...set, training };
+    return { ...set, training, ...(interrupted ? { interrupted: true } : {}) };
   });
   return { setsA, setsB, winner, decidedAt, trainingSets: classified.filter(set => set.training).length, sets: classified };
 }
@@ -26,12 +27,14 @@ export function historicalErrors(payload) {
   if (!payload.played_on) errors.push('Choose the match date.');
   if (!['official', 'recreational'].includes(payload.rules)) errors.push('Choose the match format.');
   if (!payload.sets?.length) errors.push('Add at least one set.');
-  const result = matchResult(payload.sets ?? []);
+  const result = matchResult(payload.sets ?? [], { endedAsDraw: payload.ended_as_draw === true, rules: payload.rules });
+  if (payload.ended_as_draw && result.winner) errors.push('A match already won cannot be ended as a draw.');
   result.sets.forEach((set, index) => {
     const a = Number(set.score_a); const b = Number(set.score_b);
-    if (set.score_a === '' || set.score_b === '' || !Number.isInteger(a) || !Number.isInteger(b) || Math.min(a, b) < 0 || a === b) errors.push(`Set ${index + 1}: enter different nonnegative scores.`);
+    const interruptedDraw = payload.ended_as_draw === true && index === result.sets.length - 1 && set.early_finish === true && !result.winner && Math.max(a, b) > 0;
+    if (set.score_a === '' || set.score_b === '' || !Number.isInteger(a) || !Number.isInteger(b) || Math.min(a, b) < 0 || (a === b && !interruptedDraw)) errors.push(`Set ${index + 1}: enter different nonnegative scores.`);
     else if (!set.training && !validSetScore(a, b, payload.rules === 'official' && index === 4 ? 15 : 25) &&
-      (payload.rules === 'official' || !set.early_finish)) errors.push(`Set ${index + 1}: correct the score${payload.rules === 'recreational' ? ' or mark it as ended early' : ''}.`);
+      (payload.rules === 'official' || !set.early_finish) && !interruptedDraw) errors.push(`Set ${index + 1}: correct the score${payload.rules === 'recreational' ? ' or mark it as ended early' : ''}.`);
   });
   for (const team of ['A', 'B']) {
     if (!payload[team === 'A' ? 'team_a_name' : 'team_b_name']?.trim()) errors.push(`Team ${team}: enter a name.`);

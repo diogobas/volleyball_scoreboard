@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material';
 import { getRemoteClient } from '../remote/client';
-import GroupAdministration from './GroupAdministration';
+import AdministrationWorkspace from './AdministrationWorkspace';
 import { setRegistryIdentity } from '../game/registryCache';
 
 export default function AccountDialog({ database, onClose }) {
@@ -81,7 +81,7 @@ function Account({ client, database, busy, setBusy }) {
         <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>Signed in as {session.user.email}</Typography>
         <Button disabled={busy} onClick={signOut}>Sign out</Button>
       </Stack>
-      <GroupAdministration key={session.user.id} client={client} userId={session.user.id} busy={busy} setBusy={setBusy} />
+      <AdministrationWorkspace key={session.user.id} client={client} userId={session.user.id} busy={busy} setBusy={setBusy} />
     </> : <Stack component="form" onSubmit={authenticate} spacing={2}>
       <Typography component="h3" variant="h6">{signingUp ? 'Create account' : 'Sign in'}</Typography>
       <Typography variant="body2" color="text.secondary">Sign in to create and administer online groups. Your local matches remain available without signing in.</Typography>

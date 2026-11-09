@@ -7,40 +7,35 @@ async function clientFor(supplied) {
 
 async function resolveGroupId(groupId, client) {
   if (!/^G-[1-9][0-9]{0,18}$/i.test(groupId)) return groupId;
-  const { data, error } = await client.from('groups').select('id').eq('display_id', groupId.toUpperCase()).maybeSingle();
+  const { data, error } = await client.rpc('public_group_info', { p_group_ref: groupId.toUpperCase() });
   if (error) throw error;
   if (!data?.id) throw new Error('Group not found.');
   return data.id;
 }
 
-export async function listPublicGroups(suppliedClient) {
+export async function publicCommunity(communityId, suppliedClient) {
   const client = await clientFor(suppliedClient);
-  const groups = [];
-  for (let offset = 0; ; offset += 100) {
-    const { data, error } = await client.from('groups').select('id,name,time_zone,display_id').order('id').range(offset, offset + 99);
-    if (error) throw error;
-    if (!Array.isArray(data)) throw new Error('The public group list could not be read.');
-    groups.push(...data);
-    if (data.length < 100) break;
-  }
-  return groups.sort((a, b) => a.name.localeCompare(b.name));
+  const { data, error } = await client.rpc('public_community', { p_community_ref: communityId });
+  if (error) throw error;
+  if (!data?.community?.id || ![data.community.id.toLowerCase(), data.community.display_id?.toLowerCase()].includes(communityId.toLowerCase()) || !Array.isArray(data.groups)) throw new Error('The community response was incomplete. Refresh to try again.');
+  return data;
 }
 
-export async function publicGroupSummary(groupId, season = null, page = 1, suppliedClient, pageSize = 25) {
+export async function publicGroupSummary(groupId, season = null, page = 1, suppliedClient, pageSize = 25, period) {
   if (!Number.isInteger(page) || page < 1 || page > 100000 || ![5,10,25].includes(pageSize)) throw new Error('Invalid match page or page size.');
   const client = await clientFor(suppliedClient);
   groupId = await resolveGroupId(groupId, client);
   async function read(serverPage, selectedSeason) {
-    const { data, error } = await client.rpc('public_group_summary', { p_group_id: groupId, p_season: selectedSeason, p_page: serverPage });
+    const { data, error } = await client.rpc(period ? 'public_group_period_summary' : 'public_group_summary', { p_group_id: groupId, p_season: selectedSeason, p_page: serverPage, ...(period ? { p_period: period } : {}) });
     if (error) throw error;
     if (data?.group?.id !== groupId || !Array.isArray(data.players) || !Array.isArray(data.matches) || !Array.isArray(data.seasons) ||
-        !Number.isInteger(data.season) || (selectedSeason !== null && data.season !== selectedSeason) || data.page !== serverPage || data.page_size !== 25 || !Number.isInteger(data.match_count)) {
+        !Number.isInteger(data.season) || (selectedSeason !== null && data.season !== selectedSeason) || (period && data.period !== period) || data.page !== serverPage || data.page_size !== 25 || !Number.isInteger(data.match_count)) {
       throw new Error('The public results response was incomplete. Refresh to try again.');
     }
     return data;
   }
-  // The existing RPC returns batches of 25. Read only the one or two batches
-  // needed for the selected display page, keeping the deployed database unchanged.
+  // Summary RPCs return batches of 25. Read only the one or two batches
+  // needed for the selected display page; totals cover the full selected period.
   const offset = (page - 1) * pageSize;
   const serverPage = Math.floor(offset / 25) + 1;
   const start = offset % 25;
@@ -62,6 +57,20 @@ export async function publicMatchDetails(groupId, matchId, suppliedClient) {
   if (error) throw error;
   if (data?.id !== matchId || data.group_id !== groupId || data.group?.id !== groupId || !Array.isArray(data.sets)) {
     throw new Error('The match response was incomplete. Refresh to try again.');
+  }
+  return data;
+}
+
+export async function publicPlayerProfile(groupId, playerId, { season = null, period = 'all', page = 1, pageSize = 5 } = {}, suppliedClient) {
+  if (!Number.isInteger(page) || page < 1 || page > 100000 || ![5, 10, 25].includes(pageSize)) throw new Error('Invalid player match page.');
+  const client = await clientFor(suppliedClient);
+  groupId = await resolveGroupId(groupId, client);
+  const { data, error } = await client.rpc('public_player_profile', { p_group_id: groupId, p_player_ref: playerId, p_season: season, p_period: period, p_page: page, p_page_size: pageSize });
+  if (error) throw error;
+  if (data?.group?.id !== groupId || !data.player?.id || ![data.player.id.toLowerCase(), data.player.display_id?.toLowerCase()].includes(playerId.toLowerCase()) ||
+      !data.statistics || !Array.isArray(data.matches) || !Array.isArray(data.seasons) || !Array.isArray(data.player.preferred_positions) ||
+      !Number.isInteger(data.season) || (season !== null && data.season !== season) || data.period !== period || data.page !== page || data.page_size !== pageSize || !Number.isInteger(data.match_count)) {
+    throw new Error('The player profile response was incomplete. Refresh to try again.');
   }
   return data;
 }

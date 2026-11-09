@@ -18,14 +18,15 @@ Closing/reopening a game day now only changes its state and does not publish or 
 
 - Server-side search by played date, scheduled date, team or recorded player name, with season selection, day scope and pagination.
 - Shared `MatchCard` presentation: winner colors, set scores, top scorers and shared Statistics details.
-- Edit using the existing versioned correction editor, now saving directly to results. Team names, participants, points and set boundaries can be corrected; match identity and recorded timestamps remain stable. Corrections require a reason and preserve revision history.
-- Delete with confirmation, reason and version validation. The match disappears from results/statistics, while a private exclusion and original submission prevent an old sync retry or day closure from recreating it. Other matches and registered players remain intact.
+- Edit from the group Matches tab using the existing versioned correction editor, now saving directly to results. Team names, participants, points and set boundaries can be corrected; match identity and recorded timestamps remain stable. Corrections require a reason and preserve revision history.
+- Game-day matches are read-only. Finalized matches cannot be deleted from either location, including through legacy deletion RPCs. Days with finalized results cannot be deleted. Empty days can still be removed. Apply migration `20261109000100_season_periods_and_finalized_match_protection.sql` before deploying this interface.
+- Year and calendar-month Season filters apply to the full match list and statistics, including pagination and attendance denominators. The default is the current northern season.
 
 ## Validation
 
 - `npm test`: 190 tests, including PostgreSQL execution of the migration against existing pending data; automatic completion with substitutions and newly registered Subs; exact receipt retries; immediate corrections, version conflicts and immutable original submissions; search/filter/pagination/permissions; closed-day uploads; individual deletion without resurrection; legacy upload compatibility; invalid-data rollback; and retaining local archives when an old server has not confirmed completion.
 - `npm run test:court:browser`: offline play/save/delete/restart, manual sync and immediate finalized match details in the admin, without the old association/approval/publication steps.
-- `npm run test:admin:browser`: search, edit team name with correction confirmation, delete/cancel, pagination, seasons and existing player/day administration.
+- `npm run test:admin:browser`: search, edit team name with correction confirmation, deletion protection, pagination, year/period filters and existing player/day administration.
 - `npm run test:public:browser`: public navigation, shared cards, scorer calculations, pagination and Statistics.
 - `npm run build` and `npm run build:public`.
 

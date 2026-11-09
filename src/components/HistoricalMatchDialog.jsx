@@ -13,11 +13,12 @@ export default function HistoricalMatchDialog({ client, group, matchId, initialD
   const [addingPlayerAt, setAddingPlayerAt] = useState(null);
   const [players, setPlayers] = useState([]); const [version, setVersion] = useState(null);
   const [draft, setDraft] = useState(() => ({ format_version: 3, id: matchId ?? createLocalId(), group_id: group.id, played_on: initialDate ?? '', rules: 'recreational', team_a_name: 'Team 1', team_b_name: 'Team 2',
-    player_totals_recorded: false, sets: [{ score_a: '', score_b: '', early_finish: false }], players: ['A', 'B'].flatMap(team => Array.from({ length: 6 }, () => emptyPlayer(team))), errors_a: 0, errors_b: 0 }));
+    ended_as_draw: false, player_totals_recorded: false, sets: [{ score_a: '', score_b: '', early_finish: false }], players: ['A', 'B'].flatMap(team => Array.from({ length: 6 }, () => emptyPlayer(team))), errors_a: 0, errors_b: 0 }));
   const [reason, setReason] = useState(matchId ? '' : 'Historical match');
   const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [showErrors, setShowErrors] = useState(false);
-  const issues = historicalErrors(draft); const result = matchResult(draft.sets);
-  const change = patch => setDraft(previous => ({ ...previous, ...patch }));
+  const issues = historicalErrors(draft); const result = matchResult(draft.sets, { endedAsDraw: draft.ended_as_draw === true, rules: draft.rules });
+  const canDraw = !matchResult(draft.sets.slice(0, -1)).winner;
+  const change = patch => setDraft(previous => { const next = { ...previous, ...patch }; if (matchResult(next.sets.slice(0, -1)).winner) next.ended_as_draw = false; return next; });
   useEffect(() => {
     let active = true;
     Promise.all([dayRpc('get_group_registry', { p_group_id: group.id }, client), matchId ? dayRpc('get_historical_match', { p_group_id: group.id, p_match_id: matchId }, client) : null])
@@ -49,17 +50,18 @@ export default function HistoricalMatchDialog({ client, group, matchId, initialD
             <option value="recreational">Recreational · all sets to 25</option><option value="official">Official · fifth set to 15</option>
           </TextField>
         </Stack>
-        <Typography variant="body2" color="text.secondary">Official sets require a two-point lead. For an abbreviated recreational set, select Ended early. Later training sets do not change the match winner.</Typography>
+        <Typography variant="body2" color="text.secondary">Official sets require a two-point lead. For an abbreviated recreational set, select Ended early. If the match could not be completed, select Finish as draw. An interrupted final set can keep its recorded score when marked Ended early. Later training sets do not change the match winner.</Typography>
         <Stack spacing={1}>
           {result.sets.map((set, index) => <Stack key={index} direction="row" sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-            <Typography sx={{ minWidth: 90 }}>Set {index + 1}{set.training ? ' · Training' : ''}</Typography>
+            <Typography sx={{ minWidth: 90 }}>Set {index + 1}{set.interrupted ? ' · Interrupted' : set.training ? ' · Training' : ''}</Typography>
             {['score_a', 'score_b'].map((key, team) => <TextField key={key} type="number" size="small" label={`Set ${index + 1} · Team ${team + 1}`} value={set[key]} disabled={busy || loading} sx={{ width: 130 }}
               slotProps={{ htmlInput: { min: 0, max: 10000, step: 1 } }} onChange={event => change({ sets: draft.sets.map((item, i) => i === index ? { ...item, [key]: number(event.target.value) } : item) })} />)}
-            {draft.rules === 'recreational' && !set.training && <FormControlLabel label="Ended early" control={<Checkbox checked={set.early_finish} disabled={busy || loading} onChange={event => change({ sets: draft.sets.map((item, i) => i === index ? { ...item, early_finish: event.target.checked } : item) })} />} />}
+            {(draft.rules === 'recreational' || (draft.ended_as_draw && index === draft.sets.length - 1)) && !set.training && <FormControlLabel label="Ended early" control={<Checkbox checked={set.early_finish} disabled={busy || loading} onChange={event => change({ sets: draft.sets.map((item, i) => i === index ? { ...item, early_finish: event.target.checked } : item) })} />} />}
             <Button color="warning" disabled={busy || loading || draft.sets.length === 1} onClick={() => change({ sets: draft.sets.filter((_, i) => i !== index) })}>Remove set {index + 1}</Button>
           </Stack>)}
           <Button sx={{ alignSelf: 'start' }} disabled={busy || loading || draft.sets.length >= 100} onClick={() => change({ sets: [...draft.sets, { score_a: '', score_b: '', early_finish: false }] })}>Add set</Button>
-          <Alert severity={result.winner ? 'success' : 'info'}>{result.winner ? `Winner: ${draft[result.winner === 'A' ? 'team_a_name' : 'team_b_name']} · ${result.setsA} × ${result.setsB}. ${result.trainingSets} training sets.` : `Unfinished match · ${result.setsA} × ${result.setsB}. A team needs three set wins.`}</Alert>
+          {canDraw && <FormControlLabel label="Finish as draw" control={<Checkbox checked={draft.ended_as_draw === true} disabled={busy || loading} onChange={event => change({ ended_as_draw: event.target.checked })} />} />}
+          <Alert severity={result.winner ? 'success' : 'info'}>{result.winner ? `Winner: ${draft[result.winner === 'A' ? 'team_a_name' : 'team_b_name']} · ${result.setsA} × ${result.setsB}. ${result.trainingSets} training sets.` : draft.ended_as_draw ? `Draw · ${result.setsA} × ${result.setsB}. Scores and points are preserved; no individual wins are awarded.` : `Unfinished match · ${result.setsA} × ${result.setsB}. A team needs three set wins.`}</Alert>
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           {['team_a_name', 'team_b_name'].map((key, index) => <TextField key={key} label={`Team ${index + 1} name`} value={draft[key]} disabled={busy || loading} slotProps={{ htmlInput: { maxLength: 16 } }} onChange={event => change({ [key]: event.target.value })} />)}

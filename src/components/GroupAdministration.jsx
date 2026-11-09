@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Alert, Box, Button, Paper, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Stack, TextField, Typography } from '@mui/material';
 import GameDayAdministration from '../public/GameDayAdministration';
 import SectionNavigation from './SectionNavigation';
 import AdminGroupResults from './AdminGroupResults';
+import { publicGroupHref } from '../public/routes';
 import { remoteGroups } from '../remote/groups';
 
-export default function GroupAdministration({ client, userId, busy, setBusy }) {
+export default function GroupAdministration({ client, userId, busy, setBusy, communities = [], community = null }) {
   const [view, setView] = useState('overview');
   const [playersView, setPlayersView] = useState('registry');
   const [registryVersion, setRegistryVersion] = useState(0);
@@ -13,7 +14,8 @@ export default function GroupAdministration({ client, userId, busy, setBusy }) {
   const [selected, setSelected] = useState(null);
   const [admins, setAdmins] = useState(null);
   const [name, setName] = useState('');
-  const [timeZone, setTimeZone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const [communityId, setCommunityId] = useState(community?.id ?? '');
+  const [creating, setCreating] = useState(false);
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -23,10 +25,10 @@ export default function GroupAdministration({ client, userId, busy, setBusy }) {
     let active = true;
     setError('');
     setGroups(null);
-    remoteGroups(client).list().then(result => { if (active) setGroups(result); })
+    remoteGroups(client).list().then(result => { if (active) setGroups(community ? result.filter(group => group.community_id === community.id) : result); })
       .catch(failure => { if (active) setError(failure.message || 'Groups could not be loaded. Check your connection.'); });
     return () => { active = false; };
-  }, [client, attempt]);
+  }, [client, community?.id, attempt]);
 
   useEffect(() => {
     let active = true;
@@ -47,12 +49,13 @@ export default function GroupAdministration({ client, userId, busy, setBusy }) {
   function create(event) {
     event.preventDefault();
     run(async api => {
-      const group = await api.create(name, timeZone);
+      const group = await api.createInCommunity(name, communityId);
       setGroups(previous => [...(previous ?? []), group]);
-      setName(''); setView('overview'); setSelected(group); setMessage('Group created. You are its first administrator.');
+      setName(''); setCreating(false); setView('overview'); setSelected(group); setMessage('Group created. You are its first administrator.');
     });
   }
 
+  const selectedGroup = selected ? { ...selected, can_import_community_players: communities.some(item => item.id === selected.community_id) } : null;
   return <Stack spacing={2}>
     {error && <Alert severity="error">{error}</Alert>}
     {message && <Alert severity="success">{message}</Alert>}
@@ -60,7 +63,8 @@ export default function GroupAdministration({ client, userId, busy, setBusy }) {
     {selected ? <>
       <Button sx={{ alignSelf: 'start' }} disabled={busy} onClick={() => { setSelected(null); setError(''); setMessage(''); }}>Back to my groups</Button>
       <Typography component="h3" variant="h6">{selected.name}</Typography>
-      <Typography variant="body2" color="text.secondary">{selected.display_id && `${selected.display_id} · `}Time zone: {selected.time_zone}</Typography>
+      <Typography variant="body2" color="text.secondary">{selected.display_id}</Typography>
+      <Button component="a" href={publicGroupHref(selected.display_id ?? selected.id)} sx={{ alignSelf: 'start' }}>Public group page</Button>
       <SectionNavigation value={view} onChange={setView} disabled={busy} label="Administration sections" sections={[
         { id: 'overview', label: 'Overview' }, { id: 'players', label: 'Players' }, { id: 'matches', label: 'Matches' },
         { id: 'days', label: 'Game days' }, { id: 'access', label: 'Access' },
@@ -68,9 +72,9 @@ export default function GroupAdministration({ client, userId, busy, setBusy }) {
       {view === 'players' && <SectionNavigation value={playersView} onChange={setPlayersView} label="Player sections" sections={[
         { id: 'registry', label: 'Registry' }, { id: 'statistics', label: 'Statistics' },
       ]} />}
-      <GameDayAdministration key={selected.id} client={client} group={selected} view={view === 'players' && playersView !== 'registry' ? 'hidden' : view} onRegistryChanged={() => setRegistryVersion(value => value + 1)} />
+      <GameDayAdministration key={selected.id} client={client} group={selectedGroup} view={view === 'players' && playersView !== 'registry' ? 'hidden' : view} onRegistryChanged={() => setRegistryVersion(value => value + 1)} />
       <Box hidden={!['overview', 'players', 'matches'].includes(view) || (view === 'players' && playersView === 'registry')}>
-        <AdminGroupResults key={selected.id} client={client} group={selected} view={view} refreshKey={registryVersion} onViewChange={next => { if (next === 'players') setPlayersView('statistics'); setView(next); }} />
+        <AdminGroupResults key={selected.id} client={client} group={selectedGroup} view={view} refreshKey={registryVersion} onViewChange={next => { if (next === 'players') setPlayersView('statistics'); setView(next); }} />
       </Box>
       <Box hidden={view !== 'access'}><Stack spacing={2}>
       <Typography component="h4" variant="h6">Administrators</Typography>
@@ -97,22 +101,29 @@ export default function GroupAdministration({ client, userId, busy, setBusy }) {
       </Stack>
       </Stack></Box>
     </> : <>
-      <Typography component="h3" variant="h6">My groups</Typography>
+      <Typography component="h3" variant="h6">{community ? `${community.name} groups` : 'My groups'}</Typography>
       {groups === null && !error && <Typography role="status">Loading groups…</Typography>}
       {groups?.length === 0 && <Typography variant="body2">You do not administer a group yet. Create one or ask a group administrator to authorize your email.</Typography>}
       {groups?.map(group => <Paper key={group.id} variant="outlined" sx={{ p: 2 }}>
         <Typography sx={{ overflowWrap: 'anywhere' }}>{group.name}</Typography>
-        <Typography variant="body2" color="text.secondary">{group.display_id && `${group.display_id} · `}{group.time_zone}</Typography>
+        <Typography variant="body2" color="text.secondary">{group.display_id}</Typography>
         <Button disabled={busy} onClick={() => { setView('overview'); setSelected(group); setError(''); setMessage(''); }}>Manage group</Button>
       </Paper>)}
-      <Box component="form" onSubmit={create}>
-        <Typography component="h3" variant="h6" sx={{ mb: 2 }}>Create group</Typography>
-        <Stack spacing={2}>
-          <TextField label="Group name" required value={name} disabled={busy} onChange={event => setName(event.target.value)} slotProps={{ htmlInput: { maxLength: 80 } }} />
-          <TextField label="Time zone" required value={timeZone} disabled={busy} onChange={event => setTimeZone(event.target.value)} helperText="For example: America/Toronto. Used for attendance and seasons." />
-          <Button type="submit" variant="contained" disabled={busy || groups === null}>Create group</Button>
-        </Stack>
-      </Box>
+      <Button variant="contained" sx={{ alignSelf: 'start' }} disabled={busy || groups === null || !communities.length} onClick={() => { setName(''); setCommunityId(community?.id ?? communities[0]?.id ?? ''); setCreating(true); }}>Create group</Button>
+      {!communities.length && <Typography variant="body2" color="text.secondary">A community administrator can create a group. To start your own community, open My communities.</Typography>}
+      <Dialog open={creating} onClose={() => { if (!busy) setCreating(false); }} fullWidth maxWidth="xs" aria-labelledby="create-group-title">
+        <Box component="form" onSubmit={create}>
+          <DialogTitle id="create-group-title">Create group</DialogTitle>
+          <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
+            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+            <TextField select label="Community" required value={communityId} disabled={busy || Boolean(community)} slotProps={{ select: { native: true }, inputLabel: { shrink: true } }} onChange={event => setCommunityId(event.target.value)}>
+              <option value="">Choose a community</option>{communities.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </TextField>
+            <TextField autoFocus fullWidth margin="dense" label="Group name" required value={name} disabled={busy} onChange={event => setName(event.target.value)} slotProps={{ htmlInput: { maxLength: 80 } }} />
+          </Stack></DialogContent>
+          <DialogActions><Button disabled={busy} onClick={() => setCreating(false)}>Cancel</Button><Button type="submit" variant="contained" disabled={busy || !name.trim() || !communityId}>Create group</Button></DialogActions>
+        </Box>
+      </Dialog>
     </>}
   </Stack>;
 }

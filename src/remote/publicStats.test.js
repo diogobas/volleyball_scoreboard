@@ -1,16 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { listPublicGroups, publicGroupSummary, publicMatchDetails } from './publicStats.js';
+import { publicCommunity, publicGroupSummary, publicMatchDetails } from './publicStats.js';
 import { publicMatchStatistics } from '../public/matchStatistics.js';
-import { publicGroupHref, readRoute } from '../public/routes.js';
+import { publicCommunityHref, publicGroupHref, readRoute } from '../public/routes.js';
 
 const groupId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const matchId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 test('hash routes preserve season and page, support deep links and leave the scoreboard at the default URL', () => {
   for (const hash of ['', '#', '#/', '#/app']) assert.deepEqual(readRoute(hash), { kind: 'app' });
-  for (const hash of ['', '#', '#/']) assert.deepEqual(readRoute(hash,'public'), { kind: 'groups' });
+  for (const hash of ['', '#', '#/']) assert.deepEqual(readRoute(hash,'public'), { kind: 'directory' });
   assert.deepEqual(readRoute('#/app','public'), { kind: 'app' });
-  assert.deepEqual(readRoute('#/groups'), { kind: 'groups' });
+  assert.deepEqual(readRoute('#/groups'), { kind: 'directory' });
   const href = publicGroupHref(groupId, { season: 2025, page: 2, matchId });
   assert.deepEqual(readRoute(href), { kind: 'match', groupId, matchId, season: 2025, page: 2, view: 'matches', pageSize: 5 });
   assert.equal(readRoute(publicGroupHref(groupId)).season, null);
@@ -32,20 +32,15 @@ test('hash routes preserve season and page, support deep links and leave the sco
   }
 });
 
-test('public group discovery paginates beyond one response and requests only public group fields', async () => {
-  const groups = Array.from({ length: 161 }, (_, i) => ({ id: `${i}`, name: `Group ${String(i).padStart(3,'0')}`, time_zone: 'UTC' }));
-  const calls = [];
-  const client = { from: table => {
-    assert.equal(table, 'groups');
-    return { select: fields => {
-      assert.equal(fields, 'id,name,time_zone,display_id');
-      return { order: order => { assert.equal(order, 'id'); return { range: async (start, end) => {
-        calls.push([start,end]); return { data: groups.slice(start, end + 1) };
-      } }; } };
-    } };
+test('public community reads require an explicit scope and never enumerate global tables', async () => {
+  const data = { community: { id: 'community-id', display_id: 'C-1', name: 'Montreal Volleyball Community' }, groups: [{ id: groupId, name: 'One group' }] };
+  const client = { get from() { throw new Error('Global public tables must never be read'); }, rpc: async (name, args) => {
+    assert.equal(name, 'public_community'); assert.deepEqual(args, { p_community_ref: 'C-1' }); return { data };
   } };
-  assert.deepEqual(await listPublicGroups(client), groups);
-  assert.deepEqual(calls, [[0,99],[100,199]]);
+  assert.deepEqual(await publicCommunity('C-1', client), data);
+  assert.deepEqual(readRoute(publicCommunityHref('C-1')), { kind: 'community', communityId: 'C-1' });
+  assert.equal(readRoute('#/communities/C-0').kind, 'missing');
+  await assert.rejects(publicCommunity('C-1', { rpc: async () => ({ data: {} }) }), /incomplete/);
 });
 
 test('public summaries and details use only read RPCs, keep filters and reject mismatched responses', async () => {
@@ -70,7 +65,7 @@ test('public read errors propagate instead of presenting a failed request as an 
   const failure = new Error('Network unavailable');
   await assert.rejects(publicGroupSummary(groupId,2026,1,{ rpc: async () => ({ error: failure }) }), /Network unavailable/);
   await assert.rejects(publicMatchDetails(groupId,matchId,{ rpc: async () => ({ error: failure }) }), /Network unavailable/);
-  await assert.rejects(listPublicGroups({ from: () => ({ select: () => ({ order: () => ({ range: async () => ({ error: failure }) }) }) }) }), /Network unavailable/);
+  await assert.rejects(publicCommunity('C-1', { rpc: async () => ({ error: failure }) }), /Network unavailable/);
 });
 
 
@@ -94,10 +89,8 @@ test('short group references support public links and resolve to the existing UU
   assert.equal(readRoute('#/groups/g-12').groupId,'G-12');
   for(const value of ['G-0','G-01','G--1','P-1']) assert.equal(readRoute(`#/groups/${value}`).kind,'missing');
   const calls=[];
-  const client={from:table=>({select:fields=>({eq:(field,value)=>({maybeSingle:async()=>{
-    assert.equal(table,'groups'); assert.equal(fields,'id'); assert.equal(field,'display_id'); assert.equal(value,'G-1');
-    return {data:{id:groupId}};
-  }})})}),rpc:async(name,args)=>{
+  const client={get from(){throw new Error('No global public table reads');},rpc:async(name,args)=>{
+    if(name==='public_group_info'){assert.equal(args.p_group_ref,'G-1');return {data:{id:groupId}};}
     calls.push([name,args]);
     return {data:name==='public_group_summary'?{group:{id:groupId,display_id:'G-1'},season:2026,page:1,page_size:25,match_count:0,seasons:[2026],players:[],matches:[]}:
       {id:matchId,group_id:groupId,group:{id:groupId,display_id:'G-1'},sets:[]}};
@@ -105,7 +98,7 @@ test('short group references support public links and resolve to the existing UU
   assert.equal((await publicGroupSummary('G-1',null,1,client)).group.id,groupId);
   assert.equal((await publicMatchDetails('g-1',matchId,client)).group_id,groupId);
   assert.ok(calls.every(([,args])=>args.p_group_id===groupId));
-  const missing={from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:null})})})})};
+  const missing={rpc:async()=>({data:null})};
   await assert.rejects(publicGroupSummary('G-999',null,1,missing),/Group not found/);
 });
 
@@ -122,4 +115,20 @@ test('historical points from both teams combine into one player ranking', () => 
  players:[{id:'chico',name:'Chicó',team:'A',points:7},{id:'chico',name:'Chicó',team:'B',points:5},{id:'carlos',name:'Carlos',team:'B',points:0}]});
  assert.equal(view.topPlayers.length,1);assert.equal(view.topPlayers[0].points,12);assert.deepEqual(view.topPlayers[0].teamIds,['A','B']);
  assert.equal(view.teams[0].players.find(p=>p.id==='chico').points,7);assert.equal(view.teams[1].players.find(p=>p.id==='chico').points,5);
+});
+
+test('period pagination keeps the period on every server batch and rejects mismatched totals', async () => {
+  const calls = [];
+  const all = Array.from({ length: 30 }, (_, i) => ({ id: `match-${i}` }));
+  let responsePeriod = 'fall';
+  const client = { rpc: async (name, args) => {
+    assert.equal(name, 'public_group_period_summary'); calls.push(args);
+    return { data: { group: { id: groupId }, season: 2026, period: responsePeriod, page: args.p_page, page_size: 25,
+      match_count: 30, seasons: [2026], players: [], matches: all.slice((args.p_page - 1) * 25, args.p_page * 25) } };
+  } };
+  const data = await publicGroupSummary(groupId, 2026, 3, client, 10, 'fall');
+  assert.deepEqual(data.matches, all.slice(20, 30));
+  assert.ok(calls.every(args => args.p_period === 'fall' && args.p_season === 2026));
+  responsePeriod = 'summer';
+  await assert.rejects(publicGroupSummary(groupId, 2026, 1, client, 5, 'fall'), /incomplete/);
 });

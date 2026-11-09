@@ -28,7 +28,8 @@
     "site:publish:github": "python3 scripts/publish-github-pages.py",
     "verify:remote": "node scripts/check-public-backend.mjs",
     "site:pages:check": "node scripts/publish-pages.mjs",
-    "site:pages:deploy": "node scripts/publish-pages.mjs --upload"
+    "site:pages:deploy": "node scripts/publish-pages.mjs --upload",
+    "test:communities:browser": "node scripts/check-communities.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",

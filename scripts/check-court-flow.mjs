@@ -34,11 +34,12 @@ try {
       if(!existing)receipts.push({id:args.p_match.id,day_id:dayId,submission:args.p_match,draft:null,decision:'approved',version:1,audit:[],received_at:new Date().toISOString()});
       result={status:existing?'already_received':'received',published:true,match_id:args.p_match.id,day_id:dayId,submission:args.p_match};
     }
-    else if(name==='public_group_summary')result={group,season:args.p_season??2026,page:args.p_page,page_size:25,seasons:[2026],match_count:0,point_count:0,participant_count:0,fallback_dates:0,matches:[],players:[]};
+    else if(name==='public_group_period_summary')result={group,period:args.p_period,season:args.p_season??2026,page:args.p_page,page_size:25,seasons:[2026],match_count:0,point_count:0,participant_count:0,fallback_dates:0,matches:[],players:[]};
+    else if(name==='list_my_communities')result=[];
     else if(name==='list_my_groups')result=[group];
     else if(name==='list_group_admins')result=[{user_id:userId,email:session.user.email}];
     else if(name==='get_group_registry')result={group,players:people};
-    else if(name==='list_group_matches')result={group,page:1,page_size:args.p_page_size,total:receipts.length,seasons:[2026],matches:receipts.map(r=>({id:r.id,version:1,started_at:r.submission.started_at,closed_at:r.submission.closed_at,team_a_name:r.submission.team_a_name,team_b_name:r.submission.team_b_name,sets_a:1,sets_b:0,sets:r.submission.sets}))};
+    else if(name==='list_group_period_matches')result={group,period:args.p_period,page:1,page_size:args.p_page_size,total:receipts.length,seasons:[2026],matches:receipts.map(r=>({id:r.id,version:1,started_at:r.submission.started_at,closed_at:r.submission.closed_at,team_a_name:r.submission.team_a_name,team_b_name:r.submission.team_b_name,sets_a:1,sets_b:0,sets:r.submission.sets}))};
     else if(name==='public_match_details') {
       const r=receipts.find(r=>r.id===args.p_match_id), m=r.submission;
       result={...m,id:r.id,version:1,group,sets_a:1,sets_b:0,sets:m.sets.map((set,index)=>{

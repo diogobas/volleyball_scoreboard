@@ -36,7 +36,7 @@ export default function GameDayList({ days, busy, loading, onCreate, onRefresh, 
           <Stack direction="row" sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
             <Button disabled={busy} onClick={() => onOpen(day)}>Open day</Button>
             <Button disabled={busy} aria-label={`Edit day ${day.play_date}`} onClick={() => onEdit(day)}>Edit</Button>
-            <Button color="warning" disabled={busy} aria-label={`Delete day ${day.play_date}`} onClick={() => onDelete(day)}>Delete</Button>
+            <Button color="warning" disabled={busy || day.published_count > 0} aria-label={`Delete day ${day.play_date}`} onClick={() => onDelete(day)}>Delete</Button>
           </Stack>
         </Stack>
       </Paper>)}
