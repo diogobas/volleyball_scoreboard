@@ -28,7 +28,7 @@ Publicação inicial: **GitHub Pages**, usando o repositório público já exist
 
 https://diogobas.github.io/volleyball_scoreboard/
 
-A raiz abre os grupos; links por hash permitem atualizar páginas de partidas sem erro 404. O build do aplicativo continua abrindo o placar. A interface de administração exige conta autorizada e internet. O site não contém senha administrativa nem chave service_role.
+A raiz orienta o visitante a abrir um link de comunidade ou grupo, sem listar todas as comunidades; links por hash permitem atualizar páginas sem erro 404. O build do aplicativo continua abrindo o placar. A interface de administração exige conta autorizada e internet. O site não contém senha administrativa nem chave service_role.
 
 Para atualizar, na branch revisada, configure `.env.local` com a URL e chave **publishable** do Supabase conforme `docs/testing-supabase-admin-3.1.md`, autentique `gh auth login` e execute:
 
@@ -110,3 +110,14 @@ A página estática identifica o app e o desenvolvedor, descreve dados locais, s
 O build Android **1.2.0 (6)** acrescenta **Privacy policy** ao final da tela, com uma cópia HTML incluída no próprio pacote, acessível offline. A mesma página é vinculada nos resultados públicos e na administração web. O build 5 já distribuído não recebe esse link automaticamente; envie o novo AAB para a faixa Internal testing para atualizar o app. O TestFlight permanece no build 5 nesta entrega.
 
 O pacote é `artifacts/android/VolleyballScoreboard-1.2.0-6.aab`, assinado com a chave existente. A política também está em `base/assets/public/privacy.html` dentro do AAB. Os testes de navegador cobrem os links e o conteúdo público, sem exigir conta, inclusive o acesso pelo app.
+
+
+## Publicação web — 09/11/2026
+
+Esta versão reúne as temporadas por período/ano, proteção contra exclusão de resultados finalizados, criação de grupos por diálogo, comunidades com permissões herdadas, reaproveitamento de jogadores entre grupos, perfis com sexo/posições e estatísticas, edição pela página do jogador e encerramento explícito de partidas históricas como empate.
+
+A comunidade inicial é Montreal Volleyball Community (`C-1`), administrada pela conta confirmada `diogovvb@gmail.com`. A página compartilhável é `https://volleyball-scoreboard-results.pages.dev/#/communities/C-1`. O diretório geral não é público; a API bloqueia consultas anônimas às tabelas gerais. As estatísticas e permissões de jogadores permanecem por grupo.
+
+O banco publicado já foi verificado com as funcionalidades das migrações `20261109000100` a `20261109000400`: comunidade, perfis de jogadores e metadados de empate estão disponíveis. O verificador remoto passou em modo somente leitura, incluindo a restrição das tabelas gerais. Nenhuma migração foi reaplicada durante esta publicação, e os resultados existentes foram preservados.
+
+Validação da versão: 242 testes, builds do app/site e cenários de navegador de administração, páginas públicas, comunidades e placar. O código segue o fluxo branch → pull request → CI → master. O deploy usa o projeto Direct Upload já existente, sem criar outro site ou alterar seu endereço. Esta publicação web não envia novos binários para Apple ou Google Play.

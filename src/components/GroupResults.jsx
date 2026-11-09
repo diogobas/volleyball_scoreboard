@@ -1,11 +1,13 @@
+import SeasonFilters from './SeasonFilters';
+import { currentPeriod, periodTitle } from '../game/seasonPeriods';
 import { percentage } from '../game/playerRates';
 import { matchResult } from '../game/matchResult';
 import { useEffect, useState } from 'react';
-import { Alert, Box, Button, Chip, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Chip, Link, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
 import { publicMatchDetails } from '../remote/publicStats';
 import StatisticsView from './StatisticsView';
 import { publicMatchStatistics } from '../public/matchStatistics';
-import { publicGroupHref } from '../public/routes';
+import { publicGroupHref, publicPlayerHref } from '../public/routes';
 import { teamColors } from '../theme';
 import SectionNavigation from './SectionNavigation';
 import ListPagination from './ListPagination';
@@ -15,28 +17,30 @@ function playedTime(match, timeZone) {
   return new Intl.DateTimeFormat('en', { timeZone, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(match.started_at ?? match.closed_at));
 }
 const winnerFor = match => Object.hasOwn(match, 'winner') ? match.winner : matchResult(match.sets).winner;
-const resultText = match => winnerFor(match) ? `Winner: ${winnerFor(match) === 'A' ? match.team_a_name : match.team_b_name}` : 'Match unfinished · no team has won three sets';
+const resultText = match => match.ended_as_draw ? 'Draw · match ended early' : winnerFor(match) ? `Winner: ${winnerFor(match) === 'A' ? match.team_a_name : match.team_b_name}` : 'Match unfinished · no team has won three sets';
 export function GroupSeason({ data, route, loading, refresh, onNavigate, hideNavigation = false, client }) {
   const navigate = href => { if (onNavigate) onNavigate(href); else window.location.hash = href.slice(1); };
   const view = route.view ?? 'overview';
+  const period = data.period ?? route.period ?? currentPeriod();
+  const title = periodTitle(data.season, period);
+  const groupHref = (groupId, options) => publicGroupHref(groupId, { period, ...options });
   return <Box onClick={onNavigate ? event => {
     const link = event.target.closest('a[href^="#/groups/"]');
-    if (link && !event.ctrlKey && !event.metaKey && !event.shiftKey && event.button === 0) { event.preventDefault(); onNavigate(link.getAttribute('href')); }
+    if (link && !link.getAttribute('href').includes('/players/') && !event.ctrlKey && !event.metaKey && !event.shiftKey && event.button === 0) { event.preventDefault(); onNavigate(link.getAttribute('href')); }
   } : undefined}>
-    <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-      <TextField select label="Season" value={data.season} onChange={event => { navigate(publicGroupHref(route.groupId, { season: Number(event.target.value), view, pageSize: route.pageSize })); }}
-        slotProps={{ select: { native: true }, inputLabel: { shrink: true } }} size="small" sx={{ minWidth: 120 }}>
-        {data.seasons.map(year => <option key={year} value={year}>{year}</option>)}
-      </TextField>
+    <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+      <SeasonFilters years={data.seasons} year={data.season} period={period}
+        onYearChange={season => navigate(groupHref(route.groupId, { season, view, pageSize: route.pageSize }))}
+        onPeriodChange={next => navigate(groupHref(route.groupId, { season: data.season, period: next, view, pageSize: route.pageSize }))} />
       <Button disabled={loading} onClick={refresh}>Refresh results</Button>
     </Stack>
-    {!hideNavigation && <SectionNavigation idPrefix="group" value={view} label="Group sections" sections={['overview', 'players', 'matches'].map(id => ({ id, label: id[0].toUpperCase() + id.slice(1), href: publicGroupHref(route.groupId, { ...route, view: id }) }))} />}
+    {!hideNavigation && <SectionNavigation idPrefix="group" value={view} label="Group sections" sections={['overview', 'players', 'matches'].map(id => ({ id, label: id[0].toUpperCase() + id.slice(1), href: groupHref(route.groupId, { ...route, view: id }) }))} />}
     <Box role={hideNavigation ? undefined : 'tabpanel'} id={hideNavigation ? undefined : `group-section-${view}`} aria-labelledby={hideNavigation ? undefined : `group-tab-${view}`}>
       {view === 'overview' && <>
-        <Typography component="h2" variant="h5" sx={{ mb: 2 }}>Season overview · {data.season}</Typography>
+        <Typography component="h2" variant="h5" sx={{ mb: 2 }}>Season overview · {title}</Typography>
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: { xs: 1, sm: 2 }, mb: 4 }}>
           {[[data.match_count, 'Matches', 'matches'], [data.participant_count, 'Players', 'players'], [data.point_count, 'Points played', null]].map(([value, label, section]) => <Paper key={label} variant="outlined"
-            component={section ? 'a' : 'div'} href={section ? publicGroupHref(route.groupId, { season: route.season, page: route.page, pageSize: route.pageSize, view: section }) : undefined}
+            component={section ? 'a' : 'div'} href={section ? groupHref(route.groupId, { season: route.season, page: route.page, pageSize: route.pageSize, view: section }) : undefined}
             aria-label={section ? `View ${label.toLowerCase()}` : undefined}
             sx={{ p: { xs: 1.5, sm: 2.5 }, display: 'block', color: 'inherit', textDecoration: 'none', ...(section && {
               '&:hover': { borderColor: 'primary.main' }, '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
@@ -47,29 +51,29 @@ export function GroupSeason({ data, route, loading, refresh, onNavigate, hideNav
         <Typography variant="body2" color="text.secondary">Choose Players for individual statistics or Matches to browse published results.</Typography>
       </>}
       {view === 'players' && <>
-        <Typography component="h2" variant="h5" sx={{ mb: 2 }}>Player statistics · {data.season}</Typography>
+        <Typography component="h2" variant="h5" sx={{ mb: 2 }}>Player statistics · {title}</Typography>
         {data.unattributed_matches > 0 && <Alert severity="info" sx={{ mb: 2 }}>{data.unattributed_matches} matches have set scores only and are excluded from individual points, attendance and wins.</Alert>}
         <TableContainer component={Paper} variant="outlined">
-          <Table size="small" aria-label={`Player statistics for season ${data.season}`} sx={{ minWidth: 640 }}>
+          <Table size="small" aria-label={`Player statistics for season ${title}`} sx={{ minWidth: 640 }}>
             <TableHead><TableRow><TableCell>Player</TableCell>{['Points', 'Matches', 'Wins', 'Win rate', 'Attendance'].map(label => <TableCell key={label} align="right">{label}</TableCell>)}</TableRow></TableHead>
             <TableBody>{data.players.map(player => <TableRow key={player.id}>
-              <TableCell component="th" scope="row" sx={{ overflowWrap: 'anywhere', maxWidth: 240 }}>{player.name}{player.display_id && <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>{player.display_id}</Typography>}{player.category && <Chip size="small" label={player.category === 'fixed' ? 'Fixed' : 'Sub'} sx={{ ml: 1 }} />}{player.removed && <Typography component="span" variant="caption" color="text.secondary"> · Removed</Typography>}</TableCell>
+              <TableCell component="th" scope="row" sx={{ overflowWrap: 'anywhere', maxWidth: 240 }}><Link href={publicPlayerHref(route.groupId, player.display_id ?? player.id, { season: data.season, period, pageSize: route.pageSize })}>{player.name}</Link>{player.display_id && <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>{player.display_id}</Typography>}{player.category && <Chip size="small" label={player.category === 'fixed' ? 'Fixed' : 'Sub'} color={player.category === 'fixed' ? 'primary' : 'warning'} sx={{ ml: 1 }} />}{player.removed && <Typography component="span" variant="caption" color="text.secondary"> · Removed</Typography>}</TableCell>
               {[player.points, player.matches, player.wins, percentage(player.wins, player.matches), Number.isInteger(data.attendance_day_count) && data.attendance_day_count > 0 ? `${player.days} / ${data.attendance_day_count} · ${percentage(player.days, data.attendance_day_count)}` : '—'].map((value, i) => <TableCell key={i} align="right">{value}</TableCell>)}
             </TableRow>)}</TableBody>
           </Table>
         </TableContainer>
         {data.players.length === 0 && <Typography sx={{ mt: 1 }}>No registered players yet.</Typography>}
         <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'block', sm: 'none' }, mt: 1 }}>Swipe the table sideways to see all columns.</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>Win rate = wins ÷ matches played. Attendance = days played ÷ days with recorded participants in this season, counting each date once in the group time zone. Days without player records are excluded. A dash means there is no basis for a percentage. Playing for both teams during competitive sets gives no individual win. Training team changes do not affect victories. Unfinished matches grant no victory.</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>Win rate = wins ÷ matches played. Attendance = days played ÷ days with recorded participants in this season, counting each recorded date once. Days without player records are excluded. A dash means there is no basis for a percentage. Playing for both teams during competitive sets gives no individual win. Training team changes do not affect victories. Unfinished matches grant no victory.</Typography>
         {data.fallback_dates > 0 && <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Older matches using their closing date: {data.fallback_dates}.</Typography>}
       </>}
       {view === 'matches' && <>
-        <Typography component="h2" variant="h5" sx={{ mb: 2 }}>Matches · {data.season}</Typography>
-        {data.matches.length === 0 && <Alert severity="info" action={data.match_count ? <Button component="a" href={publicGroupHref(route.groupId, { season: data.season, pageSize: data.page_size, view: 'matches' })}>First page</Button> : undefined}>{data.match_count ? 'No matches on this page.' : 'No confirmed matches in this season.'}</Alert>}
-        <ListPagination total={data.match_count} page={data.page} pageSize={data.page_size} count={data.matches.length} label="Matches" getPageHref={page => publicGroupHref(route.groupId, { season: data.season, page, pageSize: data.page_size, view: 'matches' })} onPageChange={page => navigate(publicGroupHref(route.groupId, { season: data.season, page, pageSize: data.page_size, view: 'matches' }))} onPageSizeChange={pageSize => navigate(publicGroupHref(route.groupId, { season: data.season, pageSize, view: 'matches' }))} />
+        <Typography component="h2" variant="h5" sx={{ mb: 2 }}>Matches · {title}</Typography>
+        {data.matches.length === 0 && <Alert severity="info" action={data.match_count ? <Button component="a" href={groupHref(route.groupId, { season: data.season, pageSize: data.page_size, view: 'matches' })}>First page</Button> : undefined}>{data.match_count ? 'No matches on this page.' : 'No confirmed matches in this season.'}</Alert>}
+        <ListPagination total={data.match_count} page={data.page} pageSize={data.page_size} count={data.matches.length} label="Matches" getPageHref={page => groupHref(route.groupId, { season: data.season, page, pageSize: data.page_size, view: 'matches' })} onPageChange={page => navigate(groupHref(route.groupId, { season: data.season, page, pageSize: data.page_size, view: 'matches' }))} onPageSizeChange={pageSize => navigate(groupHref(route.groupId, { season: data.season, pageSize, view: 'matches' }))} />
         <Stack spacing={2}>
           {data.matches.map(match => <MatchCard key={match.id} match={match} timeZone={data.group.time_zone} groupId={data.group.id} client={client}
-            actions={<Button component="a" href={publicGroupHref(route.groupId, { season: data.season, page: data.page, pageSize: data.page_size, matchId: match.id })}>View match</Button>} />)}
+            actions={<Button component="a" href={groupHref(route.groupId, { season: data.season, page: data.page, pageSize: data.page_size, matchId: match.id })}>View match</Button>} />)}
         </Stack>
       </>}
     </Box>
@@ -114,7 +118,7 @@ function MatchTopScorers({ groupId, match, client }) {
 
 export function MatchDetails({ data, loading, refresh }) {
   const statistics = publicMatchStatistics(data);
-  const result = matchResult(data.sets);
+  const result = matchResult(data.sets, { endedAsDraw: data.ended_as_draw, interruptedSet: data.draw_interrupted_set, rules: data.rules });
   return <>
     <Typography component="h1" variant="h4" sx={{ overflowWrap: 'anywhere' }}>{data.team_a_name} {result.setsA} × {result.setsB} {data.team_b_name}</Typography>
     <Stack direction="row" sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 1, mt: 2, mb: 2 }}>
@@ -129,7 +133,7 @@ export function MatchDetails({ data, loading, refresh }) {
 }
 
 export function MatchCard({ match, timeZone, groupId, client, actions }) {
-  const result = matchResult(match.sets);
+  const result = matchResult(match.sets, { endedAsDraw: match.ended_as_draw, interruptedSet: match.draw_interrupted_set, rules: match.rules });
   return <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, display: 'grid',
             borderTop: '4px solid', borderTopColor: winnerFor(match) ? matchTeamColors[winnerFor(match)] : 'divider',
             gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'minmax(0, 1fr) minmax(0, 1.4fr)' }, alignItems: 'center', gap: { xs: 2, sm: 3 } }}>

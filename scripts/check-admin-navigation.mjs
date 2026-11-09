@@ -1,3 +1,5 @@
+import { matchResult } from '../src/game/matchResult.js';
+import { currentPeriod, periodTitle } from '../src/game/seasonPeriods.js';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright-core');
@@ -8,17 +10,18 @@ const allMatches = Array.from({ length: 26 }, (_, i) => ({
   started_at: '2025-11-07T23:00:00Z', closed_at: '2025-11-08T01:00:00Z',
   team_a_name: `Home ${i+1}`, team_b_name: 'Away', sets_a: 1, sets_b: 0, version: 1, sets: [{ score_a: 25, score_b: 20 }],
 }));
-const players = [{ id: 'player-a', name: 'Alex', points: 20, matches: 4, wins: 2, days: 2 }];
+const players = [{ id: 'player-a', name: 'Alex', category: 'fixed', points: 20, matches: 4, wins: 2, days: 2 }, { id: 'player-b', name: 'Sam', category: 'sub', points: 0, matches: 0, wins: 0, days: 0 }];
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
   page.setDefaultTimeout(10000);
   const errors = []; page.on('pageerror', error => { errors.push(error.message); console.log('PAGE ERROR', error.message); });
   const user = { id: '33333333-3333-4333-8333-333333333333', email: 'admin@example.test', aud: 'authenticated', role: 'authenticated' };
   let registryPlayers = ['Anderson','Carlos','Chicó','Diogo','Diego','Geraldo','Jota','KJ','Gaëtan','Phillip','Omer','Kaue','Dimitri'].map((name, index) => ({ id: `player-${index}`, group_id: group.id, name, display_id: `P-${index+1}`, category: 'fixed', version: 1 }));
-  const days = Array.from({ length: 7 }, (_, i) => ({ id: `day-${i}`, play_date: `2026-11-${String(8-i).padStart(2, '0')}`, state: i === 6 ? 'closed' : 'open', pending: 0, version: 1, lineup_version: 1, match_count: 0, published_count: 0, team_a_name: 'Home', team_b_name: 'Away' }));
+  const days = Array.from({ length: 7 }, (_, i) => ({ id: `day-${i}`, play_date: `2026-11-${String(8-i).padStart(2, '0')}`, state: i === 6 ? 'closed' : 'open', pending: 0, version: 1, lineup_version: 1, match_count: i === 5 ? 1 : 0, published_count: i === 5 ? 1 : 0, team_a_name: 'Home', team_b_name: 'Away' }));
   const dayLineups = new Map(); const matchDrafts = new Map(); const historicalMatches = new Map();
-  await page.route('**/*', async route => {
+  await page.context().route('**/*', async route => {
     const request = route.request(); const url = new URL(request.url());
     if (['localhost', '127.0.0.1'].includes(url.hostname)) return route.continue();
     const headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'GET,POST,OPTIONS' };
@@ -28,18 +31,24 @@ try {
     let json;
     if (name === 'token') json = { access_token: 'mock-token', refresh_token: 'mock-refresh', token_type: 'bearer', expires_in: 3600, user };
     else if (name === 'user') json = user;
+    else if (name === 'list_my_communities') json = [{ id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', display_id: 'C-1', name: 'Montreal Volleyball Community', region: 'Montreal' }];
     else if (name === 'list_my_groups') json = [group];
+    else if (name === 'public_group_info') json = group;
+    else if (name === 'public_player_profile') {
+      const player = registryPlayers.find(player => player.id === args.p_player_ref || player.display_id === args.p_player_ref);
+      json = { group, player, season: args.p_season ?? 2026, period: args.p_period, seasons: [2026,2025], page: args.p_page, page_size: args.p_page_size, match_count: 0, matches: [], statistics: { points: 0, matches: 0, wins: 0, days: 0, attendance_day_count: 0 } };
+    }
     else if (name === 'list_group_admins') json = [{ user_id: user.id, email: user.email }];
     else if (name === 'get_group_registry') json = { group, players: registryPlayers, deleted_player_ids: [] };
-    else if (name === 'save_group_player') {
+    else if (name === 'save_group_player_profile') {
       const previous = registryPlayers.find(player => player.id === args.p_player_id);
       if (registryPlayers.some(player => player.id !== args.p_player_id && player.name.toLowerCase() === args.p_name.toLowerCase())) return route.fulfill({ status: 409, headers, json: { code: '23505', message: 'A player with this name already exists in this group.' } });
-      json = { id: args.p_player_id, group_id: args.p_group_id, name: args.p_name, category: args.p_category, version: (previous?.version ?? 0) + 1 };
+      json = { id: args.p_player_id, group_id: args.p_group_id, name: args.p_name, category: args.p_category, sex: args.p_sex, preferred_positions: args.p_preferred_positions, version: (previous?.version ?? 0) + 1 };
       registryPlayers = [...registryPlayers.filter(player => player.id !== json.id), json];
     }
     else if (name === 'delete_group_player') { registryPlayers = registryPlayers.filter(player => player.id !== args.p_player_id); json = null; }
     else if (name === 'list_game_days') json = days;
-    else if (name === 'get_game_day') json = { day: days.find(day => day.id === args.p_day_id), lineup: dayLineups.get(args.p_day_id) ?? { A: { name: 'Home', players: Array(6).fill(null) }, B: { name: 'Away', players: Array(6).fill(null) } }, receipts: [], lineups: [], history: [] };
+    else if (name === 'get_game_day') json = { day: days.find(day => day.id === args.p_day_id), lineup: dayLineups.get(args.p_day_id) ?? { A: { name: 'Home', players: Array(6).fill(null) }, B: { name: 'Away', players: Array(6).fill(null) } }, receipts: args.p_day_id === 'day-5' ? [{ id: allMatches[0].id, decision: 'approved' }] : [], lineups: [], history: [] };
     else if (name === 'create_game_day') {
       const day = { id: 'created-day', play_date: args.p_date, state: 'open', version: 1, lineup_version: 1, pending: 0, match_count: 0, published_count: 0, team_a_name: args.p_lineup.A.name, team_b_name: args.p_lineup.B.name };
       dayLineups.set(day.id, args.p_lineup); days.unshift(day); json = { day, code: 'AB7K9' };
@@ -64,7 +73,8 @@ try {
       const source = args.p_match; const existing = historicalMatches.get(source.id); const version = (existing?.version ?? 1) + 1;
       const payload = structuredClone(source); payload.players = payload.players.map((player,index)=>({ ...player, player_id: player.player_id ?? registryPlayers.find(p=>p.name===player.name)?.id ?? `historical-${index}` }));
       historicalMatches.set(payload.id, { payload, version });
-      const record = { id: payload.id, version, entry_mode: 'summary', player_totals_recorded: payload.player_totals_recorded, played_on: payload.played_on, closed_at: `${payload.played_on}T17:00:00Z`, started_at: null, rules: payload.rules, team_a_name: payload.team_a_name, team_b_name: payload.team_b_name, sets_a: 0, sets_b: 3, winner: 'B', decided_at: 3, sets: payload.sets };
+      const outcome = matchResult(payload.sets, { endedAsDraw: payload.ended_as_draw, rules: payload.rules });
+      const record = { id: payload.id, version, entry_mode: 'summary', player_totals_recorded: payload.player_totals_recorded, played_on: payload.played_on, closed_at: `${payload.played_on}T17:00:00Z`, started_at: null, rules: payload.rules, team_a_name: payload.team_a_name, team_b_name: payload.team_b_name, sets_a: outcome.setsA, sets_b: outcome.setsB, winner: outcome.winner, decided_at: outcome.decidedAt, ended_as_draw: payload.ended_as_draw ?? false, draw_interrupted_set: outcome.sets.findIndex(set => set.interrupted) + 1 || null, sets: payload.sets };
       const index = allMatches.findIndex(m=>m.id===payload.id); if(index>=0) allMatches[index]=record; else allMatches.unshift(record);
       json = { id: payload.id, version };
     }
@@ -72,12 +82,12 @@ try {
     else if (name === 'public_match_details' && historicalMatches.has(args.p_match_id)) {
       const {payload,version}=historicalMatches.get(args.p_match_id);
       json = { ...allMatches.find(m=>m.id===args.p_match_id), group, group_id: group.id, version, players: payload.players.map(p=>({id:p.player_id,name:p.name,team:p.team,points:p.points})), errors_a:payload.errors_a, errors_b:payload.errors_b,
-        sets:payload.sets.map((set,index)=>({...set,number:index+1,training:index>=3,statistics_available:false,players:[],team_a_name:payload.team_a_name,team_b_name:payload.team_b_name,errors_a:0,errors_b:0})) };
+        sets:payload.sets.map((set,index)=>({...set,number:index+1,training:allMatches.find(match=>match.id===args.p_match_id).decided_at != null && index >= allMatches.find(match=>match.id===args.p_match_id).decided_at,statistics_available:false,players:[],team_a_name:payload.team_a_name,team_b_name:payload.team_b_name,errors_a:0,errors_b:0})) };
     }
-    else if (name === 'list_group_matches') {
-      const filtered = args.p_day_id ? [] : allMatches.filter(match => !args.p_query || `${match.team_a_name} ${match.team_b_name} Alex`.toLowerCase().includes(args.p_query.toLowerCase()));
+    else if (name === 'list_group_period_matches') {
+      const filtered = args.p_day_id ? (args.p_day_id === 'day-5' ? [allMatches[0]] : []) : allMatches.filter(match => !args.p_query || `${match.team_a_name} ${match.team_b_name} Alex`.toLowerCase().includes(args.p_query.toLowerCase()));
       const pageNumber = Math.max(1, Math.min(args.p_page, Math.ceil(filtered.length / args.p_page_size)));
-      json = { group, total: filtered.length, page: pageNumber, page_size: args.p_page_size, seasons: [2026,2025], matches: filtered.slice((pageNumber-1)*args.p_page_size,pageNumber*args.p_page_size) };
+      json = { group, period: args.p_period, total: filtered.length, page: pageNumber, page_size: args.p_page_size, seasons: [2026,2025], matches: filtered.slice((pageNumber-1)*args.p_page_size,pageNumber*args.p_page_size) };
     }
     else if (name === 'get_match_for_edit') {
       const record = allMatches.find(match => match.id === args.p_match_id);
@@ -89,8 +99,8 @@ try {
       const record = allMatches.find(match => match.id === args.p_match_id); record.version++; record.team_a_name = args.p_match.team_a_name; record.team_b_name = args.p_match.team_b_name; matchDrafts.set(record.id, args.p_match);
       json = { status: 'corrected', group_id: group.id, match_id: record.id, revision_id: args.p_revision_id, version: record.version, current_version: record.version };
     }
-    else if (name === 'delete_final_match') { allMatches.splice(allMatches.findIndex(match=>match.id===args.p_match_id),1); json = null; }
-    else if (name === 'public_group_summary') json = { group, season: args.p_season ?? 2026, page: args.p_page, page_size: 25, seasons: [2026, 2025], match_count: allMatches.length, participant_count: 1, attendance_day_count: 3, point_count: 20, fallback_dates: 0, players, matches: allMatches.slice((args.p_page-1)*25, args.p_page*25) };
+    else if (name === 'delete_final_match') throw new Error('Finalized match deletion must never be requested');
+    else if (name === 'public_group_period_summary') json = { group, period: args.p_period, season: args.p_season ?? 2026, page: args.p_page, page_size: 25, seasons: [2026, 2025], match_count: allMatches.length, participant_count: 1, attendance_day_count: 3, point_count: 20, fallback_dates: 0, players, matches: allMatches.slice((args.p_page-1)*25, args.p_page*25) };
     else if (name === 'public_match_details') json = { group, group_id: group.id, id: args.p_match_id, team_a_name: allMatches.find(match=>match.id===args.p_match_id)?.team_a_name ?? 'Home', team_b_name: 'Away', version: allMatches.find(match=>match.id===args.p_match_id)?.version ?? 1, sets_a: 1, sets_b: 0, started_at: '2026-11-08T12:00:00Z', sets: [{ number: 1, team_a_name: 'Home', team_b_name: 'Away', score_a: 4, score_b: 2, errors_a: 1, errors_b: 0, players: [{ id: 'alex', name: 'Alex', team: 'A', position: 1, points: 3 }, { id: 'chris', name: 'Chris', team: 'B', position: 1, points: 2 }] }] };
     else throw new Error(`Unexpected external request: ${name}`);
     return route.fulfill({ headers, json });
@@ -99,10 +109,17 @@ try {
   await page.getByRole('textbox', { name: 'Email', exact: true }).fill(user.email);
   await page.locator('input[type="password"]').fill('test-password');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.getByRole('heading', { name: 'My groups', exact: true }).waitFor();
+  assert.equal(await page.getByRole('textbox', { name: 'Group name', exact: true }).count(), 0);
+  await page.getByRole('button', { name: 'Create group', exact: true }).click();
+  const createGroup = page.getByRole('dialog', { name: 'Create group', exact: true });
+  await createGroup.getByRole('textbox', { name: 'Group name', exact: true }).fill('Test group');
+  assert.equal(await page.getByRole('textbox', { name: 'Time zone', exact: true }).count(), 0);
+  await createGroup.getByRole('button', { name: 'Cancel', exact: true }).click();
   await page.getByRole('button', { name: 'Manage group', exact: true }).click();
   const nav = page.getByRole('tablist', { name: 'Administration sections' });
   const tab = async name => { await nav.getByRole('tab', { name, exact: true }).click(); };
-  await page.getByRole('heading', { name: 'Season overview · 2026' }).waitFor();
+  await page.getByRole('heading', { name: `Season overview · ${periodTitle(2026, currentPeriod())}` }).waitFor();
   assert.equal(await page.getByRole('button', { name: 'Add administrator' }).count(), 0);
   assert.equal(await page.getByRole('button', { name: 'Open day' }).count(), 0);
   await page.getByRole('link', { name: 'View matches', exact: true }).click();
@@ -120,24 +137,39 @@ try {
   await page.getByRole('button', { name: 'Add player', exact: true }).waitFor();
   await page.getByText('P-1', { exact: true }).waitFor();
   await page.getByRole('textbox', { name: 'Search players' }).fill('P-13');
-  await page.getByRole('button', { name: 'Edit Dimitri', exact: true }).waitFor();
-  assert.equal(await page.getByRole('button', { name: /^Edit / }).count(), 1);
+  await page.getByRole('link', { name: 'View profile for Dimitri', exact: true }).waitFor();
+  assert.equal(await page.getByRole('button', { name: /^Edit / }).count(), 0);
   await page.getByRole('textbox', { name: 'Search players' }).fill('');
   assert.equal(await page.getByRole('table').count(), 0);
   await page.getByRole('button', { name: 'Add player', exact: true }).click();
   const playerForm = page.getByRole('dialog', { name: 'Add player', exact: true });
   await playerForm.getByRole('textbox', { name: 'Player name' }).fill('Visitor');
   assert.equal(await playerForm.getByRole('combobox', { name: 'Player category' }).inputValue(), 'sub');
+  await playerForm.getByRole('combobox', { name: 'Sex', exact: true }).selectOption('female');
+  await playerForm.getByRole('checkbox', { name: 'Setter (S)', exact: true }).check();
+  await playerForm.getByRole('checkbox', { name: 'Outside Hitter (O)', exact: true }).check();
   await playerForm.getByRole('button', { name: 'Save player', exact: true }).click();
   await page.getByRole('textbox', { name: 'Search players' }).fill('Visitor');
-  await page.getByRole('button', { name: 'Edit Visitor', exact: true }).click();
-  const editForm = page.getByRole('dialog', { name: 'Edit player', exact: true });
+  assert.equal(await page.getByRole('button', { name: /^Edit / }).count(), 0);
+  const profileHref = await page.getByRole('link', { name: 'View profile for Visitor', exact: true }).getAttribute('href');
+  const profilePage = await page.context().newPage();
+  await profilePage.goto(`${baseUrl}/${profileHref}`);
+  await profilePage.getByRole('button', { name: 'Edit player', exact: true }).click();
+  const editForm = profilePage.getByRole('dialog', { name: 'Edit player', exact: true });
+  assert.equal(await editForm.getByRole('combobox', { name: 'Sex', exact: true }).inputValue(), 'female');
+  assert.equal(await editForm.getByRole('checkbox', { name: 'Setter (S)', exact: true }).isChecked(), true);
+  assert.equal(await editForm.getByRole('checkbox', { name: 'Outside Hitter (O)', exact: true }).isChecked(), true);
+  assert.equal(await editForm.getByRole('checkbox', { name: 'Opposite Hitter (OH)', exact: true }).isChecked(), false);
   await editForm.getByRole('textbox', { name: 'Player name' }).fill('Anderson');
   await editForm.getByRole('button', { name: 'Save player', exact: true }).click();
   await editForm.getByText('A player with this name already exists in this group.').waitFor();
   await editForm.getByRole('textbox', { name: 'Player name' }).fill('Visitor Updated');
   await editForm.getByRole('combobox', { name: 'Player category' }).selectOption('fixed');
   await editForm.getByRole('button', { name: 'Save player', exact: true }).click();
+  await profilePage.getByRole('heading', { name: 'Visitor Updated', exact: true }).waitFor();
+  await profilePage.close();
+  await page.getByRole('button', { name: 'Refresh players', exact: true }).click();
+  await page.getByText('Players refreshed.', { exact: true }).waitFor();
   await page.getByRole('combobox', { name: 'Category', exact: true }).selectOption('sub');
   await page.getByText('No players match this search.', { exact: true }).waitFor();
   await page.getByRole('combobox', { name: 'Category', exact: true }).selectOption('fixed');
@@ -148,14 +180,26 @@ try {
   await page.getByText('No players match this search.', { exact: true }).waitFor();
   await page.getByRole('textbox', { name: 'Search players' }).fill('');
   await page.getByRole('combobox', { name: 'Players per page' }).selectOption('25');
-  assert.equal(await page.getByRole('button', { name: /^Edit / }).count(), 13);
+  assert.equal(await page.getByRole('link', { name: /^View profile for / }).count(), 13);
+  assert.equal(await page.getByRole('button', { name: /^Edit / }).count(), 0);
   await mkdir('artifacts/admin-navigation', { recursive: true });
   await page.screenshot({ path: 'artifacts/admin-navigation/players-mobile.png', fullPage: true });
   await page.getByRole('tablist', { name: 'Player sections' }).getByRole('tab', { name: 'Statistics', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Season', exact: true }).selectOption('2025');
-  await page.getByRole('table', { name: 'Player statistics for season 2025' }).waitFor();
+  await page.getByRole('combobox', { name: 'Year', exact: true }).selectOption('2025');
+  await page.getByRole('table', { name: `Player statistics for season ${periodTitle(2025, currentPeriod())}` }).waitFor();
   await page.getByRole('cell',{name:'50%',exact:true}).waitFor();
   await page.getByRole('cell',{name:'2 / 3 · 66.7%',exact:true}).waitFor();
+  const statsTable = page.getByRole('table');
+  const fixedColor = await statsTable.getByText('Fixed', { exact: true }).evaluate(element => getComputedStyle(element.closest('.MuiChip-root')).backgroundColor);
+  const subColor = await statsTable.getByText('Sub', { exact: true }).evaluate(element => getComputedStyle(element.closest('.MuiChip-root')).backgroundColor);
+  assert.notEqual(fixedColor, subColor);
+  await page.getByRole('combobox', { name: 'Season', exact: true }).selectOption('summer');
+  await page.getByRole('table', { name: 'Player statistics for season Summer 2025' }).waitFor();
+  await tab('Matches');
+  assert.equal(await page.getByRole('combobox', { name: 'Season', exact: true }).inputValue(), 'summer');
+  await tab('Players');
+  await page.getByRole('combobox', { name: 'Season', exact: true }).selectOption(currentPeriod());
+  await page.getByRole('table', { name: `Player statistics for season ${periodTitle(2025, currentPeriod())}` }).waitFor();
   await tab('Access');
   await page.getByRole('button', { name: 'Add administrator', exact: true }).waitFor();
   assert.equal(await page.getByRole('table').count(), 0);
@@ -166,6 +210,15 @@ try {
   assert.equal(await page.getByRole('button', { name: 'Open day', exact: true }).count(), 2);
   await page.getByRole('button', { name: 'Open day', exact: true }).first().click();
   const dayNav = page.getByRole('tablist', { name: 'Game day sections' });
+  await page.getByRole('button', { name: 'View match', exact: true }).waitFor();
+  assert.equal(await page.getByRole('button', { name: 'Edit match', exact: true }).count(), 0);
+  assert.equal(await page.getByRole('button', { name: 'Delete match', exact: true }).count(), 0);
+  assert.equal(await page.getByRole('button', { name: 'Delete game day', exact: true }).isDisabled(), true);
+  await page.getByRole('button', { name: 'View match', exact: true }).click();
+  await page.getByRole('heading', { name: 'Top 3', exact: true }).waitFor();
+  assert.equal(await page.getByRole('button', { name: 'Edit match', exact: true }).count(), 0);
+  assert.equal(await page.getByRole('button', { name: 'Delete match', exact: true }).count(), 0);
+  await page.getByRole('button', { name: '← Back to matches', exact: true }).click();
   await page.getByRole('heading', { name: 'Finalized matches', exact: true }).waitFor();
   assert.equal(await page.getByRole('button', { name: 'Close day', exact: true }).count(), 0);
   await dayNav.getByRole('tab', { name: 'Lineup', exact: true }).click();
@@ -236,12 +289,12 @@ try {
   assert.equal(await page.getByRole('textbox', { name: 'Search game days' }).inputValue(), 'Red team');
   await page.getByRole('button', { name: 'Delete day 2026-11-16', exact: true }).click();
   const deletion = page.getByRole('dialog', { name: 'Delete game day 2026-11-16?', exact: true });
-  assert.equal(await deletion.getByRole('button', { name: 'Delete day and results', exact: true }).isDisabled(), true);
+  assert.equal(await deletion.getByRole('button', { name: 'Delete day', exact: true }).isDisabled(), true);
   await deletion.getByRole('button', { name: 'Cancel', exact: true }).click();
   await page.getByRole('button', { name: 'Delete day 2026-11-16', exact: true }).click();
   await deletion.getByRole('textbox', { name: 'Reason for deleting day' }).fill('Remove test day');
-  await deletion.getByRole('button', { name: 'Delete day and results', exact: true }).click();
-  await page.getByText('Game day and its results deleted.', { exact: true }).waitFor();
+  await deletion.getByRole('button', { name: 'Delete day', exact: true }).click();
+  await page.getByText('Game day deleted.', { exact: true }).waitFor();
   await page.getByText('No game days match this search.', { exact: true }).waitFor();
   await page.getByRole('textbox', { name: 'Search game days' }).fill('');
   await page.screenshot({ path: 'artifacts/admin-navigation/game-days-mobile.png', fullPage: true });
@@ -261,14 +314,7 @@ try {
   await page.getByRole('button', { name: '← Back to matches', exact: true }).click();
   await page.getByRole('textbox', { name: 'Search matches' }).fill('Renamed team');
   await page.getByText('1–1 of 1 matches', { exact: true }).waitFor();
-  await page.getByRole('button', { name: 'Delete match', exact: true }).click();
-  const deleteMatch = page.getByRole('dialog', { name: 'Delete this match?', exact: true });
-  await deleteMatch.getByRole('button', { name: 'Keep match', exact: true }).click();
-  await page.getByRole('button', { name: 'Delete match', exact: true }).click();
-  await deleteMatch.getByRole('textbox', { name: 'Reason for deleting match' }).fill('Remove unwanted match');
-  await deleteMatch.getByRole('button', { name: 'Delete match', exact: true }).click();
-  await page.getByText('Match deleted. Results and statistics updated.', { exact: true }).waitFor();
-  await page.getByText('No matches found for this search.', { exact: true }).waitFor();
+  assert.equal(await page.getByRole('button', { name: 'Delete match', exact: true }).count(), 0);
   await page.getByRole('textbox', { name: 'Search matches' }).fill('');
   await page.getByRole('button', { name: 'Register historical match', exact: true }).click();
   const historical = page.getByRole('dialog', { name: 'Register historical match', exact: true });
@@ -353,10 +399,8 @@ try {
 
   await page.getByRole('progressbar',{name:'Points for Omer — Team 1',exact:true}).waitFor();
   await page.waitForFunction(()=>document.querySelector('[aria-label="Points for Omer — Team 1"]')?.getAttribute('aria-valuetext')==='20 points');
-  await page.getByRole('button',{name:'Delete match',exact:true}).click();
-  await deleteMatch.getByRole('textbox',{name:'Reason for deleting match'}).fill('Remove historical test');
-  await deleteMatch.getByRole('button',{name:'Delete match',exact:true}).click();
-  await page.getByRole('heading',{name:'Finalized matches',exact:true}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Delete match',exact:true}).count(), 0);
+  await page.getByRole('button',{name:'← Back to matches',exact:true}).click();
   await page.getByRole('button',{name:'Register historical match',exact:true}).click();
   const scoresOnly=page.getByRole('dialog',{name:'Register historical match',exact:true});
   await scoresOnly.locator('input[type="date"]').fill('2026-11-03');
@@ -377,6 +421,32 @@ try {
   await scoresEdit.getByRole('combobox',{name:'Team 1 · Player 1',exact:true}).waitFor();
   await scoresEdit.getByRole('button',{name:'Cancel',exact:true}).click();
   await page.screenshot({path:'artifacts/admin-navigation/historical-scores-only-mobile.png',fullPage:true,animations:'disabled'});
+  await page.getByRole('button', { name: '← Back to matches', exact: true }).click();
+  await page.getByRole('button', { name: 'Register historical match', exact: true }).click();
+  const drawForm = page.getByRole('dialog', { name: 'Register historical match', exact: true });
+  await drawForm.locator('input[type="date"]').fill('2026-10-23');
+  const drawScores = [[24,26],[25,20],[25,22],[22,21]];
+  for (let index = 0; index < drawScores.length; index++) {
+    if (index) await drawForm.getByRole('button', { name: 'Add set', exact: true }).click();
+    for (let team = 0; team < 2; team++) await drawForm.getByRole('spinbutton', { name: `Set ${index+1} · Team ${team+1}`, exact: true }).fill(String(drawScores[index][team]));
+  }
+  await drawForm.getByRole('checkbox', { name: 'Ended early', exact: true }).nth(3).check();
+  await drawForm.getByRole('checkbox', { name: 'Finish as draw', exact: true }).check();
+  await drawForm.getByText('Draw · 2 × 1. Scores and points are preserved; no individual wins are awarded.', { exact: true }).waitFor();
+  await drawForm.getByRole('button', { name: 'Save historical match', exact: true }).click();
+  await page.getByRole('heading', { name: 'Team 1 2 × 1 Team 2', exact: true }).waitFor();
+  await page.getByText('Draw · match ended early', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Edit match', exact: true }).click();
+  const drawEdit = page.getByRole('dialog', { name: 'Edit historical match', exact: true });
+  assert.equal(await drawEdit.getByRole('checkbox', { name: 'Finish as draw', exact: true }).isChecked(), true);
+  assert.equal(await drawEdit.getByRole('spinbutton', { name: 'Set 4 · Team 2', exact: true }).inputValue(), '21');
+  await drawEdit.getByRole('spinbutton', { name: 'Set 4 · Team 2', exact: true }).fill('22');
+  await drawEdit.getByRole('textbox', { name: 'Reason for historical record', exact: true }).fill('Correct interrupted set score');
+  await drawEdit.getByRole('button', { name: 'Save historical match', exact: true }).click();
+  await page.getByText('Draw · match ended early', { exact: true }).waitFor();
+  const drawn = [...historicalMatches.values()].find(match => match.payload.ended_as_draw);
+  assert.equal(drawn.payload.sets[3].score_a,22); assert.equal(drawn.payload.sets[3].score_b,22);
+
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await mkdir('artifacts/admin-navigation', { recursive: true });
   await page.screenshot({ path: 'artifacts/admin-navigation/matches-mobile.png', fullPage: true });
@@ -385,5 +455,5 @@ try {
   await page.screenshot({ path: 'artifacts/admin-navigation/matches-desktop.png', fullPage: true, animations: 'disabled' });
   assert.deepEqual(errors, []);
   assert.equal(new URL(page.url()).hash, '#/admin');
-  console.log('PASS: admin sections, shared results, statistics, pagination, season retention, player CRUD/categories/search, finalized match edit/delete/search, access, game-day CRUD/search/status filters, preserved lineup drafts and responsive layout.');
+  console.log('PASS: admin sections, shared results, statistics, pagination, season retention, player CRUD/categories/search, finalized match edit/search and deletion protection, access, game-day CRUD/search/status filters, preserved lineup drafts and responsive layout.');
 } finally { await browser.close(); }

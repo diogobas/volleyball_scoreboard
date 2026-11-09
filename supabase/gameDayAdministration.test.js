@@ -49,7 +49,7 @@ test('game-day editing, searchable list and deletion enforce ownership, versions
     const current=await load(); assert.deepEqual(current.lineup,lineup); assert.equal(current.history[0].new_state.action,'edit');
     assert.equal((await rpc('redeem_day_code',[day.code],null,'anon')).play_date,'2026-11-10');
   });
-  await t.test('deleting a published day removes its matches, private contents and access, preserving other days/players',async()=>{
+  await t.test('finalized days cannot be deleted and empty days can be removed',async()=>{
     const payload={format_version:1,id:randomUUID(),group_id:group.id,started_at:'2026-11-08T23:00:00Z',closed_at:'2026-11-09T01:00:00Z',team_a_name:'Home',team_b_name:'Away',sets:[{team_a_name:'Home',team_b_name:'Away',score_a:1,score_b:0,rosters:{A:players.slice(0,6),B:players.slice(6)},points:[{team:'A',player_id:players[0].id,player_name:players[0].name,is_opponent_error:false}]}]};
     await rpc('receive_day_match',[day.code,payload],null,'anon');
     assert.equal((await rpc('list_game_days',[group.id])).find(row=>row.id===day.day.id).published_count,1);
@@ -69,19 +69,11 @@ test('game-day editing, searchable list and deletion enforce ownership, versions
     await assert.rejects(rpc('delete_game_day',[group.id,day.day.id,1,'Stale']),/Day changed/);
     await assert.rejects(rpc('delete_game_day',[group.id,day.day.id,current.day.version,' ']),/reason/);
     assert.equal((await summary()).match_count,1);
-    await rpc('delete_game_day',[group.id,day.day.id,current.day.version,'Removed test day']);
-    await rpc('delete_game_day',[group.id,day.day.id,current.day.version,'Removed test day']);
-    assert.equal((await summary()).match_count,0); assert.equal((await summary()).point_count,0);
-    for(const table of ['matches','match_sets','set_players','match_points']) assert.equal((await q(`select count(*)::int n from public.${table} where group_id=$1`,[group.id])).rows[0].n,0);
-    for(const table of ['day_receipts','day_lineups','day_audit']) assert.equal((await q(`select count(*)::int n from private.${table} where day_id=$1`,[day.day.id])).rows[0].n,0);
-    const list=await rpc('list_game_days',[group.id]); assert.deepEqual(list.map(row=>row.id),[second.day.id]);
-    assert.equal((await rpc('get_group_registry',[group.id])).players.length,12);
-    await assert.rejects(rpc('redeem_day_code',[day.code],null,'anon'),/invalid or revoked/);
-    await assert.rejects(rpc('receive_day_match',[day.code,payload],null,'anon'),/invalid or revoked/);
-    await assert.rejects(load(),/Only group administrators/);
-    const deletion=(await q('select * from private.day_deletions where day_id=$1',[day.day.id])).rows[0];
-    assert.equal(deletion.reason,'Removed test day'); assert.ok(!('code_hash' in deletion.previous_state));
-    await assert.rejects(as(owner,()=>q('select * from private.day_deletions')),/permission denied/);
-    const replacement=await rpc('create_game_day',[group.id,'2027-01-01',lineup]); assert.notEqual(replacement.day.id,day.day.id);
+    await assert.rejects(rpc('delete_game_day',[group.id,day.day.id,current.day.version,'Removed test day']),/finalized matches cannot be deleted/);
+    assert.equal((await summary()).match_count,1);
+    assert.equal((await summary()).point_count,1);
+    assert.equal((await load()).receipts.length,1);
+    await rpc('delete_game_day',[group.id,second.day.id,second.day.version,'Remove empty day']);
+    assert.deepEqual((await rpc('list_game_days',[group.id])).map(row=>row.id),[day.day.id]);
   });
 });

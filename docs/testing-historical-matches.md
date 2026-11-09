@@ -94,3 +94,15 @@ Migration `20261108001200_player_attendance_statistics.sql` adds `attendance_day
 The UI explains the formulas and the treatment of unknown participation. Older servers without the added field continue to show win rates, with a dash for unavailable attendance. Apply migration 012 to enable attendance in the deployed database; no player records or match results are rewritten.
 
 Automated coverage checks zero/unknown denominators, percentage rounding, repeat matches on one date, full-season totals across multiple pages, missing rosters, publication and season filtering. Browser checks assert 2 wins in 4 matches = 50% and 2 attended days out of 3 = 66.7% in both admin and public tables, with the mobile table remaining inside its horizontal scrolling container.
+
+## Explicitly ending an incomplete match as a draw
+
+Apply `20261109000400_historical_draws.sql` after the player-profile migration before publishing this version. The form offers **Finish as draw** while no team had already won before the final set. For an interrupted last set, also select **Ended early**. This allows its recorded score, including a tied score, without awarding a deciding set win from an incomplete set. A completed valid set that already decided the match cannot be overridden by declaring a draw.
+
+For example, `24–26, 25–20, 25–22, 22–21`, with the last set interrupted, is saved as a draw: two completed set wins to one, plus the recorded interrupted set. All 185 points remain recorded. `22–22` is also accepted as that interrupted final set. The match outcome is Draw regardless of an unequal count of completed set wins; no fabricated score or extra set is added. Four fully completed sets ending 2–2 can also be explicitly closed as a draw.
+
+Player points and attendance remain recorded, and no individual victory is awarded. Player points plus opponent errors must still equal the recorded team score totals. Existing unfinished records remain unchanged until explicitly edited to mark a draw. Retries and corrections retain their existing version/revision contracts, and finalized-match deletion remains blocked.
+
+The migration preserves existing read/statistics implementations behind private functions and decorates their scoped results with draw/interrupted-set metadata. Anonymous users cannot call the private functions directly. Group results, match details, both admin match lists and player history use the same outcome. The production schema was verified read-only for the 2026-11-09 release and already exposes draw metadata; this migration was not reapplied.
+
+Validation includes frontend rules and real PostgreSQL tests for the exact score sequence above, score-only and player-total records, tied interrupted sets, official/recreational rules, earned-win protection, totals, authorization, retry/correction behavior, and consistent public/admin/player results. The admin browser test registers the score sequence, marks the draw, saves it, reopens the record and saves a tied last set without changing the other scores.

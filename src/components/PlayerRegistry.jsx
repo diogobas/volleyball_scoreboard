@@ -1,3 +1,6 @@
+import { publicPlayerHref } from '../public/routes';
+import { positionLabel, sexLabel } from '../game/playerProfile';
+import CommunityPlayerDialog from './CommunityPlayerDialog';
 import { useRef, useState } from 'react';
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Stack, TextField, Typography } from '@mui/material';
 import { createLocalId } from '../game/storage';
@@ -6,7 +9,8 @@ import { normalizeName } from '../game/registry';
 import PlayerFormDialog from './PlayerFormDialog';
 import ListPagination from './ListPagination';
 
-export default function PlayerRegistry({ client, groupId, players, loading, onChanged }) {
+export default function PlayerRegistry({ client, groupId, group, players, loading, onChanged }) {
+  const [importing, setImporting] = useState(false);
   const [form, setForm] = useState(null);
   const [removing, setRemoving] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -35,6 +39,8 @@ export default function PlayerRegistry({ client, groupId, players, loading, onCh
       <Typography component="h3" variant="h5">Player registry</Typography>
       <Button variant="contained" disabled={busy || loading} onClick={() => open(null)}>Add player</Button>
     </Stack>
+    {group?.can_import_community_players && <Button variant="outlined" sx={{ alignSelf: 'start' }} disabled={busy || loading} onClick={() => setImporting(true)}>Add from community</Button>}
+    {importing && <CommunityPlayerDialog client={client} group={group} onClose={() => setImporting(false)} onSaved={async () => { setImporting(false); setMessage('Community players added.'); try { await onChanged(); } catch { setError('Players were added. Refresh the registry to see the latest players.'); } }} />}
     <Typography variant="body2" color="text.secondary">Fixed players belong to the regular group. All other players are Subs.</Typography>
     {message && <Alert severity="success">{message}</Alert>}
     {error && !form && !removing && <Alert severity="warning">{error}</Alert>}
@@ -54,8 +60,10 @@ export default function PlayerRegistry({ client, groupId, players, loading, onCh
       {rows.map(player => <Paper key={player.id} variant="outlined" sx={{ p: 2 }}>
         <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
           <Box sx={{ minWidth: 0, flex: 1 }}><Typography sx={{ fontWeight: 700, overflowWrap: 'anywhere' }}>{player.name}</Typography>
-            {player.display_id && <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>{player.display_id}</Typography>}<Chip size="small" label={player.category === 'fixed' ? 'Fixed' : 'Sub'} color={player.category === 'fixed' ? 'primary' : 'default'} sx={{ mt: 0.5 }} /></Box>
-          <Stack direction="row"><Button disabled={busy} aria-label={`Edit ${player.name}`} onClick={() => open(player)}>Edit</Button>
+            {player.display_id && <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>{player.display_id}</Typography>}<Chip size="small" label={player.category === 'fixed' ? 'Fixed' : 'Sub'} color={player.category === 'fixed' ? 'primary' : 'default'} sx={{ mt: 0.5 }} />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>{sexLabel(player.sex)} · {(player.preferred_positions ?? []).length ? player.preferred_positions.map(positionLabel).join(' · ') : 'Positions not specified'}</Typography>
+          </Box>
+          <Stack direction="row" sx={{ flexWrap: 'wrap' }}><Button component="a" href={publicPlayerHref(group?.display_id ?? groupId, player.display_id ?? player.id)} aria-label={`View profile for ${player.name}`}>Profile</Button>
             <Button color="warning" disabled={busy} aria-label={`Delete ${player.name}`} onClick={() => { setError(''); setRemoving(player); }}>Delete</Button></Stack>
         </Stack>
       </Paper>)}

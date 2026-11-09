@@ -390,7 +390,7 @@ Referências: [Material UI](https://mui.com/material-ui/getting-started/installa
 
 A migração [20261108000700_completed_match_sync_and_management.sql](supabase/migrations/20261108000700_completed_match_sync_and_management.sql) substitui o fluxo de revisão pendente: **Save & sync** já finaliza a partida e atualiza os resultados. Fechar o dia não é mais uma etapa de publicação. Partidas offline continuam no aparelho até a confirmação do servidor.
 
-No admin, **Matches** e as partidas de cada **Game day** compartilham pesquisa por data/time/jogador, paginação, estatísticas, edição e exclusão. Nomes novos entram como **Sub**. Correções são imediatas e versionadas; exclusões impedem que uma repetição de sync restaure a partida. Aplicação e verificações: [fluxo de partidas finalizadas](docs/testing-completed-match-sync.md).
+No admin, **Matches** e as partidas de cada **Game day** compartilham pesquisa por data/time/jogador, paginação e estatísticas. Partidas finalizadas são somente leitura no Game day; correções continuam em Matches, com motivo e histórico de versões. Partidas finalizadas não podem ser excluídas, nem pela exclusão do dia. Nomes novos entram como **Sub**. Aplicação e verificações: [fluxo de partidas finalizadas](docs/testing-completed-match-sync.md).
 
 ### Partidas antigas e sets de treino
 
@@ -415,3 +415,30 @@ Para o próximo teste móvel, a versão nativa é **1.2.0 (5)**. O [roteiro do G
 
 
 A [política de privacidade](https://volleyball-scoreboard-results.pages.dev/privacy.html) descreve os dados do app e do site e usa `diogovvb@gmail.com` como contato público autorizado. O Android **1.2.0 (6)** inclui a página no pacote e um link no app; use o novo AAB para atualizar o teste interno. O iOS distribuído continua em 1.2.0 (5).
+
+
+### Temporadas por período e proteção dos resultados
+
+Aplique [20261109000100_season_periods_and_finalized_match_protection.sql](supabase/migrations/20261109000100_season_periods_and_finalized_match_protection.sql) antes de publicar esta interface. A migração acrescenta `public_group_period_summary` e `list_group_period_matches`, preservando as consultas anuais anteriores, e bloqueia exclusões pelas RPCs atuais e antigas, inclusive dias com resultados finalizados.
+
+**Year** filtra o ano civil e **Season** filtra Winter (dezembro, janeiro e fevereiro do ano selecionado), Spring (março–maio), Summer (junho–agosto), Fall (setembro–novembro) ou All periods. O período atual é selecionado inicialmente. Pontos, presença e totais abrangem todo o período escolhido, independentemente da página. Fixed e Sub usam cores distintas nas estatísticas.
+
+**My groups** lista os grupos e oferece **Create group**, que abre um diálogo somente com o nome. Não há configuração nem exibição de timezone; a conversão já existente de datas fica interna para preservar as datas dos resultados históricos. Os registros existentes não são reclassificados ou alterados pela migração.
+
+### Comunidades e permissões
+
+A [migração de comunidades](supabase/migrations/20261109000200_communities_and_scoped_public_access.sql) cria **Montreal Volleyball Community** (Montreal, `C-1`), associa os grupos existentes e atribui a administração da comunidade à conta confirmada `diogovvb@gmail.com`. Os administradores atuais de grupos mantêm apenas seus acessos específicos.
+
+**My communities** permite gerenciar todos os grupos de uma comunidade e seus administradores. Ao criar um grupo, **Players → Add from community** reaproveita jogadores já cadastrados na comunidade com um vínculo próprio por grupo, preservando estatísticas e categorias separadas. Não há associação automática de pessoas apenas por terem o mesmo nome.
+
+A página pública passa a ser por comunidade (`#/communities/C-1`) ou grupo (`#/groups/G-1`). A página inicial não lista comunidades e a API recusa consultas anônimas às tabelas gerais. O workspace autenticado mostra somente comunidades/grupos que a conta administra. [Regras, aplicação e testes](docs/testing-communities.md).
+
+### Perfil e estatísticas por jogador
+
+A [migração de perfis](supabase/migrations/20261109000300_player_profiles_and_statistics.sql) acrescenta sexo e posições preferenciais ao cadastro compartilhado, mantendo os jogadores existentes como não informados até edição. As posições permitem múltipla seleção: Setter (S), Middle Blocker (MB), Outside Hitter (O), Opposite Hitter (OH) e Libero (LB).
+
+**Profile** no cadastro e o nome na tabela de estatísticas abrem a página individual (`#/groups/G-1/players/P-1`). Ela mostra perfil, pontos, partidas, vitórias, aproveitamento, presença, média de pontos e histórico paginado, com filtros de ano/temporada. Estatísticas e edições permanecem por grupo, respeitando os administradores de comunidade e grupo. [Regras e validação](docs/testing-player-profiles.md).
+
+### Encerrar partida histórica como empate
+
+**Finish as draw** permite finalizar uma partida que não pôde ser concluída. Se o último set foi interrompido, marque também **Ended early**: seu placar e pontos são preservados sem conceder uma vitória pelo set incompleto. O resultado aparece como empate nos resultados e no histórico dos jogadores; pontos e presença continuam contabilizados, sem vitória individual. Aplique a [migração de empates](supabase/migrations/20261109000400_historical_draws.sql) antes de publicar. [Regras e validação](docs/testing-historical-matches.md#explicitly-ending-an-incomplete-match-as-a-draw).

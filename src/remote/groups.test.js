@@ -30,3 +30,16 @@ test('permission/network failures propagate and unconfirmed group creation is no
   await assert.rejects(remoteGroups({ rpc: async () => { throw new Error('Offline'); } }).list(), /Offline/);
   await assert.rejects(remoteGroups({ rpc: async () => ({ data: [], error: null }) }).create('Group', 'UTC'), /could not be confirmed/);
 });
+
+test('new community groups require a matching scoped confirmation', async () => {
+  const communityId = 'community-id';
+  const calls = [];
+  const client = { rpc: async (name, args) => {
+    calls.push({ name, args }); return { data: { id: 'new-group', name: 'New group', community_id: args.p_community_id } };
+  } };
+  assert.equal((await remoteGroups(client).createInCommunity(' New group ', communityId)).community_id, communityId);
+  assert.equal(calls[0].name, 'create_community_group'); assert.equal(calls[0].args.p_name, 'New group');
+  assert.equal(calls[0].args.p_community_id, communityId);
+  const wrong = remoteGroups({ rpc: async () => ({ data: { id: 'wrong', community_id: 'another-community' } }) });
+  await assert.rejects(wrong.createInCommunity('Group', communityId), /could not be confirmed/);
+});

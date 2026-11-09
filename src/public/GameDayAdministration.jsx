@@ -50,7 +50,7 @@ export default function GameDayAdministration({ client, group, view = 'days', on
     {view === 'days' && <Typography component="h3" variant="h5">Game days</Typography>}
     {error && <Alert severity="warning">{error}</Alert>}{message && <Alert severity="success">{message}</Alert>}
     {code && view === 'days' && dayView === 'publish' && <Alert severity="info"><Typography>Share this code with the scoreboard operator. Copy it now; it is shown only once.</Typography><TextField label="Game-day code" fullWidth value={code} slotProps={{ input: { readOnly: true }, htmlInput: { style: { fontFamily: 'monospace', letterSpacing: '0.12em', fontSize: '1.2rem' } } }} onFocus={event => event.target.select()} sx={{ mt: 1 }} /><Button onClick={() => { navigator.clipboard?.writeText(code).catch(() => setError('Select the code and copy it manually.')); }}>Copy code</Button></Alert>}
-    <Box hidden={view !== 'players'}><PlayerRegistry client={client} groupId={group.id} players={players} loading={registryLoading}
+    <Box hidden={view !== 'players'}><PlayerRegistry client={client} groupId={group.id} group={group} players={players} loading={registryLoading}
       onChanged={async () => {
         const registry = await rpc('get_group_registry', { p_group_id: group.id });
         setPlayers(registry.players);
@@ -71,7 +71,7 @@ export default function GameDayAdministration({ client, group, view = 'days', on
     </Box>
     {context ? <>
       <Button disabled={busy} onClick={() => { setContext(null); setCreating(false); setLineup(emptyLineup()); setCode(''); }}>Back to game days</Button>
-      <Button color="warning" sx={{ alignSelf: 'start' }} disabled={busy} onClick={() => askDelete(context.day)}>Delete game day</Button>
+      <Button color="warning" sx={{ alignSelf: 'start' }} disabled={busy || context.receipts.some(receipt => receipt.decision === 'approved')} onClick={() => askDelete(context.day)}>Delete game day</Button>
       <Typography component="h4" variant="h6">{context.day.play_date} · {context.day.state} · Version {context.day.version}</Typography>
       <SectionNavigation value={dayView} onChange={setDayView} disabled={busy} label="Game day sections" sections={[
         { id: 'details', label: 'Details' },
@@ -81,7 +81,7 @@ export default function GameDayAdministration({ client, group, view = 'days', on
     </> : <>
       {creating && <><Button disabled={busy} onClick={() => setCreating(false)}>Cancel creation</Button>
       <Typography component="h4" variant="h6">Create game day</Typography>
-      <TextField type="date" label={`Date · ${group.time_zone}`} value={date} disabled={busy} onChange={e => setDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} /></>}
+      <TextField type="date" label="Date" value={date} disabled={busy} onChange={e => setDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} /></>}
     </>}
     {((!context && creating) || (context && dayView === 'lineup')) && <>
       <LineupEditor lineup={lineup} players={players} disabled={busy || context?.day.state === 'closed'} onChange={setLineup} />
@@ -95,7 +95,7 @@ export default function GameDayAdministration({ client, group, view = 'days', on
         await refresh(context.day.id); setReason(''); setMessage('Game day updated.');
       }); }}>
         <Typography component="h4" variant="h6">Edit game day</Typography>
-        <TextField type="date" required label={`Date · ${group.time_zone}`} value={editDate} disabled={busy} onChange={event => setEditDate(event.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+        <TextField type="date" required label="Date" value={editDate} disabled={busy} onChange={event => setEditDate(event.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
         <Typography variant="body2" color="text.secondary">This is the scheduled date. Recorded match dates and season statistics stay unchanged. Use Lineup to edit teams and players; reopen a closed day before changing its lineup.</Typography>
         <TextField required label="Reason for date change" value={reason} disabled={busy} onChange={event => setReason(event.target.value)} slotProps={{ htmlInput: { maxLength: 500 } }} />
         <Button type="submit" variant="contained" disabled={busy || !editDate || !reason.trim() || editDate === context.day.play_date}>Save game day</Button>
@@ -111,7 +111,7 @@ export default function GameDayAdministration({ client, group, view = 'days', on
       </Stack>
       </Stack></Box>
       <Box hidden={dayView !== 'inbox'}><MatchManager client={client} group={group} dayId={context.day.id} initialDate={context.day.play_date} active={view === 'days' && dayView === 'inbox'}
-        onChanged={() => { void run(async () => { setContext(await rpc('get_game_day', { p_day_id: context.day.id })); onRegistryChanged?.(); }); }} /></Box>
+        onChanged={() => { void run(async () => { await refresh(context.day.id); onRegistryChanged?.(); }); }} /></Box>
       <Box hidden={dayView !== 'history'}>
       <Typography component="h4" variant="h6">Private day history &amp; lineup versions</Typography>
         {context.lineups.map(l => <Typography key={l.version}>Lineup {l.version} · {new Date(l.created_at).toLocaleString()}: {['A','B'].map(t => `${l.lineup[t].name}: ${l.lineup[t].players.map(p => p.name).join(', ')}`).join(' / ')}</Typography>)}
@@ -122,7 +122,7 @@ export default function GameDayAdministration({ client, group, view = 'days', on
     <Dialog open={Boolean(deleting)} onClose={() => { if (!busy) setDeleting(null); }} aria-labelledby="delete-game-day-title" fullWidth maxWidth="xs">
       <DialogTitle id="delete-game-day-title">Delete game day {deleting?.play_date}?</DialogTitle>
       <DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
-        <Typography>This permanently deletes the day, its received matches, lineups and published results. Its access code will stop working. Players remain registered.</Typography>
+        <Typography>This permanently deletes the day and its lineups. Days with finalized matches cannot be deleted. Its access code will stop working. Players remain registered.</Typography>
         {error && <Alert severity="warning">{error}</Alert>}
         <TextField required label="Reason for deleting day" value={deleteReason} disabled={busy} onChange={event => setDeleteReason(event.target.value)} slotProps={{ htmlInput: { maxLength: 500 } }} />
       </Stack></DialogContent>
@@ -130,8 +130,8 @@ export default function GameDayAdministration({ client, group, view = 'days', on
         <Button color="warning" disabled={busy || !deleteReason.trim()} onClick={() => run(async () => {
           await rpc('delete_game_day', { p_group_id: group.id, p_day_id: deleting.id, p_expected_version: deleting.version, p_reason: deleteReason });
           setDeleting(null); setContext(null); setCode(''); setReason(''); setLineup(emptyLineup());
-          await refresh(null); onRegistryChanged?.(); setMessage('Game day and its results deleted.');
-        })}>Delete day and results</Button></DialogActions>
+          await refresh(null); onRegistryChanged?.(); setMessage('Game day deleted.');
+        })}>Delete day</Button></DialogActions>
     </Dialog>
   </Stack></Box>;
 }

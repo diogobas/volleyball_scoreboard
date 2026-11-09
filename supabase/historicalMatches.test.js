@@ -123,9 +123,10 @@ test('historical totals preserve the source photo and first-to-three outcomes, w
   const season2027=await rpc('public_group_summary',[group.id,2027,1],null,'anon');assert.equal(season2027.attendance_day_count,0);
   await q('delete from public.matches where id=any($1::uuid[])',[[...extra,unknown.id,known.id,second.id]]);assert.equal((await summary()).attendance_day_count,2);
  });
- await t.test('deleting historical results removes points and wins and hides aggregate rows from public readers',async()=>{
-  const current=await rpc('get_historical_match',[group.id,payload.id]);await rpc('delete_final_match',[group.id,payload.id,current.version,'Remove historical record']);
-  assert.equal((await summary()).match_count,3);assert.equal((await summary()).players.find(p=>p.name==='Omer').points,0);
-  const publicTotals=await as(null,()=>q('select * from public.match_player_totals where match_id=$1',[payload.id]),'anon');assert.equal(publicTotals.rows.length,0);
+ await t.test('finalized historical results cannot be deleted and keep public statistics',async()=>{
+  const current=await rpc('get_historical_match',[group.id,payload.id]);
+  const before=await summary();
+  await assert.rejects(rpc('delete_final_match',[group.id,payload.id,current.version,'Remove historical record']),/Finalized matches cannot be deleted/);
+  assert.deepEqual(await summary(),before);
  });
 });

@@ -11,11 +11,22 @@ async function request(path, body) {
   const data = await response.json();
   return { response, data };
 }
-const groups = await request('groups?select=id,name,time_zone&limit=100');
-if (!groups.response.ok || !Array.isArray(groups.data)) throw new Error(groups.data.message || 'Public groups could not be read.');
+const communityRef = process.env.COMMUNITY_REF ?? 'C-1';
+const community = await request('rpc/public_community', { p_community_ref: communityRef });
+if (!community.response.ok || !Array.isArray(community.data.groups)) throw new Error(community.data.message || 'Apply the community migration.');
+for (const table of ['groups', 'communities', 'players', 'matches']) {
+  const global = await request(`${table}?select=*&limit=1`);
+  if (global.response.ok) throw new Error(`Global anonymous ${table} reads must be denied.`);
+}
+const groups = { data: community.data.groups };
 for (const group of groups.data) {
-  const summary = await request('rpc/public_group_summary', { p_group_id: group.id, p_season: null, p_page: 1 });
+  const summary = await request('rpc/public_group_period_summary', { p_group_id: group.id, p_season: null, p_page: 1, p_period: 'all' });
   if (!summary.response.ok) throw new Error(summary.data.message || 'Apply the public statistics migration.');
+  const player = summary.data.players[0];
+  if (player) {
+    const profile = await request('rpc/public_player_profile', { p_group_id: group.id, p_player_ref: player.id, p_season: summary.data.season, p_period: 'all', p_page: 1, p_page_size: 5 });
+    if (!profile.response.ok || profile.data.player?.id !== player.id || profile.data.statistics?.points !== player.points) throw new Error('Public player profile failed or its statistics disagree with group totals.');
+  }
   const first = summary.data.matches[0];
   if (first) {
     const details = await request('rpc/public_match_details', { p_group_id: group.id, p_match_id: first.id });

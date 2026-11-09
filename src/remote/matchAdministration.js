@@ -64,9 +64,9 @@ export async function matchRevisionHistory(groupId, matchId, page = 1, supplied)
   return data;
 }
 
-export async function listGroupMatches(groupId, { season = null, dayId = null, query = '', page = 1, pageSize = 5 } = {}, supplied) {
-  const data = await rpc('list_group_matches', { p_group_id: groupId, p_season: season, p_day_id: dayId, p_query: query, p_page: page, p_page_size: pageSize }, supplied);
-  if (data?.group?.id !== groupId || !Array.isArray(data.matches) || !Array.isArray(data.seasons) || !Number.isInteger(data.total) || !Number.isInteger(data.page) || data.page_size !== pageSize) throw new Error('Matches could not be loaded. Refresh and try again.');
+export async function listGroupMatches(groupId, { season = null, dayId = null, query = '', page = 1, pageSize = 5, period } = {}, supplied) {
+  const data = await rpc(period ? 'list_group_period_matches' : 'list_group_matches', { p_group_id: groupId, p_season: season, p_day_id: dayId, p_query: query, p_page: page, p_page_size: pageSize, ...(period ? { p_period: period } : {}) }, supplied);
+  if (data?.group?.id !== groupId || !Array.isArray(data.matches) || !Array.isArray(data.seasons) || !Number.isInteger(data.total) || !Number.isInteger(data.page) || data.page_size !== pageSize || (period && data.period !== period)) throw new Error('Matches could not be loaded. Refresh and try again.');
   return data;
 }
 
