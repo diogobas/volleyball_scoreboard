@@ -3,6 +3,7 @@ import { Alert, Button, Container, Stack, TextField, Typography } from '@mui/mat
 import { getAdminClient } from '../remote/client';
 import PrivacyLink from '../components/PrivacyLink';
 import AdministrationWorkspace from '../components/AdministrationWorkspace';
+import AdministrationAccountMenu from '../components/AdministrationAccountMenu';
 
 export default function Administration() {
   const [client] = useState(() => getAdminClient()); const [session, setSession] = useState(null);
@@ -27,7 +28,14 @@ export default function Administration() {
   }
   return <Container component="main" maxWidth="lg" sx={{ py: 3, pb: 6 }}><Stack spacing={2}>
     <Button component="a" href="#/groups" sx={{ alignSelf: 'start' }}>← Community results</Button>
-    <Typography component="h1" variant="h4">Administration</Typography>
+    <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+      <Typography component="h1" variant="h4" sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>Administration</Typography>
+      {session && <AdministrationAccountMenu user={session.user} busy={busy} onSignOut={async () => {
+        setBusy(true);
+        try { const { error } = await client.auth.signOut({ scope: 'local' }); if (error) throw error; setSession(null); }
+        catch (failure) { setError(failure.message); } finally { setBusy(false); }
+      }} />}
+    </Stack>
     {!client && <Alert severity="warning">Online administration is not configured for this build.</Alert>}
     {error && <Alert severity="warning">{error}</Alert>}{message && <Alert severity="info">{message}</Alert>}
     {loading && <Typography role="status">Restoring sign-in…</Typography>}
@@ -38,10 +46,7 @@ export default function Administration() {
       <Button type="submit" variant="contained" disabled={busy}>{signup ? 'Create account' : 'Sign in'}</Button>
       <Button disabled={busy} onClick={() => setSignup(v => !v)}>{signup ? 'Already have an account? Sign in' : 'Create account'}</Button>
     </Stack>}
-    {session && <><Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-      <Typography sx={{ overflowWrap: 'anywhere' }}>{session.user.email}</Typography>
-      <Button disabled={busy} onClick={async () => { setBusy(true); try { const { error } = await client.auth.signOut({ scope: 'local' }); if (error) throw error; setSession(null); } catch (failure) { setError(failure.message); } finally { setBusy(false); } }}>Sign out</Button>
-    </Stack><AdministrationWorkspace key={session.user.id} client={client} userId={session.user.id} busy={busy} setBusy={setBusy} /></>}
+    {session && <AdministrationWorkspace key={session.user.id} client={client} userId={session.user.id} busy={busy} setBusy={setBusy} />}
     <PrivacyLink />
   </Stack></Container>;
 }

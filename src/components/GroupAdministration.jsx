@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Stack, TextField, Typography } from '@mui/material';
 import GameDayAdministration from '../public/GameDayAdministration';
 import SectionNavigation from './SectionNavigation';
+import AdministrationPageHeader from './AdministrationPageHeader';
 import AdminGroupResults from './AdminGroupResults';
 import { publicGroupHref } from '../public/routes';
 import { remoteGroups } from '../remote/groups';
 
-export default function GroupAdministration({ client, userId, busy, setBusy, communities = [], community = null }) {
+export default function GroupAdministration({ client, userId, busy, setBusy, communities = [], community = null, onSelectionChange }) {
   const [view, setView] = useState('overview');
   const [playersView, setPlayersView] = useState('registry');
   const [registryVersion, setRegistryVersion] = useState(0);
@@ -20,6 +21,10 @@ export default function GroupAdministration({ client, userId, busy, setBusy, com
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [attempt, setAttempt] = useState(0);
+  function selectGroup(group) {
+    setSelected(group);
+    onSelectionChange?.(Boolean(group));
+  }
 
   useEffect(() => {
     let active = true;
@@ -51,24 +56,22 @@ export default function GroupAdministration({ client, userId, busy, setBusy, com
     run(async api => {
       const group = await api.createInCommunity(name, communityId);
       setGroups(previous => [...(previous ?? []), group]);
-      setName(''); setCreating(false); setView('overview'); setSelected(group); setMessage('Group created. You are its first administrator.');
+      setName(''); setCreating(false); setView('overview'); selectGroup(group); setMessage('Group created. You are its first administrator.');
     });
   }
 
   const selectedGroup = selected ? { ...selected, can_import_community_players: communities.some(item => item.id === selected.community_id) } : null;
   return <Stack spacing={2}>
+    {selected && <SectionNavigation sticky value={view} onChange={setView} disabled={busy} label="Administration sections" sections={[
+      { id: 'overview', label: 'Overview' }, { id: 'players', label: 'Players' }, { id: 'matches', label: 'Matches' },
+      { id: 'days', label: 'Game days' }, { id: 'access', label: 'Access' },
+    ]} />}
     {error && <Alert severity="error">{error}</Alert>}
     {message && <Alert severity="success">{message}</Alert>}
-    {!selected && <Button disabled={busy} onClick={() => setAttempt(value => value + 1)}>Refresh groups</Button>}
     {selected ? <>
-      <Button sx={{ alignSelf: 'start' }} disabled={busy} onClick={() => { setSelected(null); setError(''); setMessage(''); }}>Back to my groups</Button>
-      <Typography component="h3" variant="h6">{selected.name}</Typography>
-      <Typography variant="body2" color="text.secondary">{selected.display_id}</Typography>
-      <Button component="a" href={publicGroupHref(selected.display_id ?? selected.id)} sx={{ alignSelf: 'start' }}>Public group page</Button>
-      <SectionNavigation value={view} onChange={setView} disabled={busy} label="Administration sections" sections={[
-        { id: 'overview', label: 'Overview' }, { id: 'players', label: 'Players' }, { id: 'matches', label: 'Matches' },
-        { id: 'days', label: 'Game days' }, { id: 'access', label: 'Access' },
-      ]} />
+      <AdministrationPageHeader title={selected.name} subtitle={selected.display_id} backLabel="Back to my groups" disabled={busy}
+        onBack={() => { selectGroup(null); setError(''); setMessage(''); }}
+        action={<Button component="a" href={publicGroupHref(selected.display_id ?? selected.id)}>Public group page</Button>} />
       {view === 'players' && <SectionNavigation value={playersView} onChange={setPlayersView} label="Player sections" sections={[
         { id: 'registry', label: 'Registry' }, { id: 'statistics', label: 'Statistics' },
       ]} />}
@@ -85,7 +88,7 @@ export default function GroupAdministration({ client, userId, busy, setBusy, com
           <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>{admin.email}{admin.user_id === userId ? ' (you)' : ''}</Typography>
           <Button color="warning" size="small" disabled={busy || admins.length <= 1} onClick={() => run(async api => {
             await api.revoke(selected.id, admin.user_id);
-            if (admin.user_id === userId) setSelected(null);
+            if (admin.user_id === userId) selectGroup(null);
             setAttempt(value => value + 1);
             setMessage('Administrator access removed.');
           })}>Remove access</Button>
@@ -101,13 +104,14 @@ export default function GroupAdministration({ client, userId, busy, setBusy, com
       </Stack>
       </Stack></Box>
     </> : <>
-      <Typography component="h3" variant="h6">{community ? `${community.name} groups` : 'My groups'}</Typography>
+      <AdministrationPageHeader title={community ? `${community.name} groups` : 'My groups'}
+        action={<Button disabled={busy} onClick={() => setAttempt(value => value + 1)}>Refresh groups</Button>} />
       {groups === null && !error && <Typography role="status">Loading groups…</Typography>}
       {groups?.length === 0 && <Typography variant="body2">You do not administer a group yet. Create one or ask a group administrator to authorize your email.</Typography>}
       {groups?.map(group => <Paper key={group.id} variant="outlined" sx={{ p: 2 }}>
         <Typography sx={{ overflowWrap: 'anywhere' }}>{group.name}</Typography>
         <Typography variant="body2" color="text.secondary">{group.display_id}</Typography>
-        <Button disabled={busy} onClick={() => { setView('overview'); setSelected(group); setError(''); setMessage(''); }}>Manage group</Button>
+        <Button disabled={busy} onClick={() => { setView('overview'); selectGroup(group); setError(''); setMessage(''); }}>Manage group</Button>
       </Paper>)}
       <Button variant="contained" sx={{ alignSelf: 'start' }} disabled={busy || groups === null || !communities.length} onClick={() => { setName(''); setCommunityId(community?.id ?? communities[0]?.id ?? ''); setCreating(true); }}>Create group</Button>
       {!communities.length && <Typography variant="body2" color="text.secondary">A community administrator can create a group. To start your own community, open My communities.</Typography>}

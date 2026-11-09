@@ -76,8 +76,12 @@ try {
   await page.locator('input[type="password"]').fill('test-password');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   const workspace = page.getByRole('tablist', { name: 'Workspace sections' });
+  await page.getByRole('button', { name: 'Administration · My groups', exact: true }).click();
   await workspace.getByRole('tab', { name: 'My communities', exact: true }).click();
   await page.getByRole('button', { name: 'Manage community', exact: true }).click();
+  const communityNav = page.getByRole('tablist', { name: 'Community sections' });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const communityNavTop = (await communityNav.boundingBox()).y;
   await page.getByRole('tablist', { name: 'Community sections' }).getByRole('tab', { name: 'Community access', exact: true }).click();
   await page.getByRole('heading', { name: 'Community administrators', exact: true }).waitFor();
   await page.getByText('diogovvb@gmail.com (you)', { exact: true }).waitFor();
@@ -88,6 +92,10 @@ try {
   await create.getByRole('textbox', { name: 'Group name', exact: true }).fill('New Montreal group');
   await create.getByRole('button', { name: 'Create group', exact: true }).click();
   await page.getByRole('heading', { name: 'New Montreal group', exact: true }).waitFor();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const groupNavTop = (await page.getByRole('tablist', { name: 'Administration sections' }).boundingBox()).y;
+  assert.ok(Math.abs(groupNavTop - communityNavTop) < 2, 'Community and nested group tabs share the same position');
+  assert.equal(await communityNav.count(), 0, 'Only the active context has a primary tab bar');
   await page.getByRole('tablist', { name: 'Administration sections' }).getByRole('tab', { name: 'Players', exact: true }).click();
   await page.getByRole('button', { name: 'Add from community', exact: true }).click();
   const picker = page.getByRole('dialog', { name: 'Add players from community', exact: true });
@@ -103,6 +111,9 @@ try {
   assert.deepEqual(registries.get(groups.at(-1).id)[0].preferred_positions, ['MB', 'O']);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await page.screenshot({ path: 'artifacts/communities/community-player-import-mobile.png', fullPage: true });
+  await page.getByRole('button', { name: 'Back to my groups', exact: true }).click();
+  await communityNav.waitFor();
+  await page.getByRole('button', { name: 'Back to my communities', exact: true }).waitFor();
   const regular = await newPage('group');
   await regular.page.goto(`${baseUrl}/#/admin`);
   await regular.page.getByRole('textbox', { name: 'Email', exact: true }).fill(regular.user.email);
@@ -116,6 +127,7 @@ try {
   await regular.page.getByRole('tablist', { name: 'Administration sections' }).getByRole('tab', { name: 'Players', exact: true }).click();
   await regular.page.getByRole('link', { name: `View profile for ${sourcePerson.name}`, exact: true }).waitFor();
   assert.equal(await regular.page.getByRole('button', { name: 'Add from community', exact: true }).count(), 0);
+  await regular.page.getByRole('button', { name: 'Administration · My groups', exact: true }).click();
   await regular.page.getByRole('tablist', { name: 'Workspace sections' }).getByRole('tab', { name: 'My communities', exact: true }).click();
   await regular.page.getByText('You do not administer a community yet.', { exact: true }).waitFor();
   assert.equal(await regular.page.getByRole('button', { name: 'Manage community', exact: true }).count(), 0);
