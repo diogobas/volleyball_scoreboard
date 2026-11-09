@@ -1,5 +1,13 @@
 apply plugin: 'com.android.application'
 
+def uploadSigning = new Properties()
+def uploadSigningFile = rootProject.file('keystore.properties')
+if (uploadSigningFile.exists()) {
+    uploadSigningFile.withInputStream { uploadSigning.load(it) }
+} else if (gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }) {
+    throw new GradleException('Release signing is missing. Run python3 scripts/create-android-upload-key.py from the repository root, or configure android/keystore.properties with your existing upload key.')
+}
+
 android {
     namespace = "com.diogobastos.volleyballscoreboard"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +15,8 @@ android {
         applicationId "com.diogobastos.volleyballscoreboard"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 4
+        versionName "1.2.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +24,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (uploadSigningFile.exists()) {
+            upload {
+                storeFile rootProject.file(uploadSigning['storeFile'])
+                storePassword uploadSigning['storePassword']
+                keyAlias uploadSigning['keyAlias']
+                keyPassword uploadSigning['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (uploadSigningFile.exists()) signingConfig signingConfigs.upload
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

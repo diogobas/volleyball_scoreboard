@@ -1,0 +1,10 @@
+Volleyball Scoreboard 1.2.0 (4)
+
+Simple offline scoreboard with free-name editing, like the original app.
+No Account & Groups, Players & sync or Public results menus in the app.
+Load a game-day lineup using an administrator-provided code; no operator account needed.
+Save locally, or explicitly Save & sync when connected. No automatic upload on reconnect.
+Restart offline and recover saved matches. Link a game-day code later and sync manually.
+Local match data is removed only after the server confirms durable receipt.
+Review names, substitutions and results in website Administration; publish by closing the day.
+Test upgrading with an active match and pending local matches; do not clear app data.
