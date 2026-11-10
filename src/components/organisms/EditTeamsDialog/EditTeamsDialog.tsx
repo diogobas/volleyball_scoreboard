@@ -11,17 +11,26 @@ import {
   Typography,
 } from '@mui/material';
 import { Alert } from '@mui/material';
-import DayCodeDialog from './DayCodeDialog';
-import { applyDayLineup } from '../game/gameDay';
-import { TEAM_IDS } from '../game/match';
+import { errorMessage } from '../../../game/errors';
+import { DayCodeDialog } from '../DayCodeDialog';
+import { applyDayLineup } from '../../../game/gameDay';
+import { TEAM_IDS } from '../../../game/match';
+import type { DayContext, MatchState, Team, TeamId, TeamMap } from '../../../game/types';
 
-export default function EditTeamsDialog({ state, teamOrder, onClose, onSave }) {
+export interface EditTeamsDialogProps {
+  state: MatchState;
+  teamOrder: TeamId[];
+  onClose: () => void;
+  onSave: (teams: TeamMap<Team>, context: DayContext | undefined, imported: boolean) => void;
+}
+
+export const EditTeamsDialog = ({ state, teamOrder, onClose, onSave }: EditTeamsDialogProps) => {
   const [draft, setDraft] = useState(() => structuredClone(state.teams));
   const [loadingDay, setLoadingDay] = useState(false);
   const [imported, setImported] = useState(false);
   const [dayContext, setDayContext] = useState(state.dayContext);
   const [error, setError] = useState('');
-  const update = (id, name, index) =>
+  const update = (id: TeamId, name: string, index?: number) =>
     setDraft((previous) => ({
       ...previous,
       [id]: {
@@ -45,7 +54,7 @@ export default function EditTeamsDialog({ state, teamOrder, onClose, onSave }) {
           Load lineup
         </Button>
         {state.log.some((entry) => entry.type === 'point') && (
-          <Typography variant="caption" display="block">
+          <Typography variant="caption" sx={{ display: 'block' }}>
             Save or reset this match before loading another lineup.
           </Typography>
         )}
@@ -93,7 +102,7 @@ export default function EditTeamsDialog({ state, teamOrder, onClose, onSave }) {
                 setImported(true);
                 setLoadingDay(false);
               } catch (failure) {
-                setError(failure.message);
+                setError(errorMessage(failure));
               }
             }}
           />
@@ -107,4 +116,4 @@ export default function EditTeamsDialog({ state, teamOrder, onClose, onSave }) {
       </DialogActions>
     </Dialog>
   );
-}
+};

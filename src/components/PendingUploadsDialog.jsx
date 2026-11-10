@@ -13,7 +13,7 @@ import {
   Typography,
 } from '@mui/material';
 import { listStoredMatches } from '../game/storage';
-import EditTeamsDialog from './EditTeamsDialog';
+import { EditTeamsDialog } from './organisms/EditTeamsDialog';
 import { registryCache } from '../game/registryCache';
 import { isPendingSyncRunning, syncPendingMatches } from '../remote/matchSync';
 import { readMatchUploadStates } from '../remote/matchUploadState';

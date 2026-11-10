@@ -1,5 +1,8 @@
 import { matchResult } from './matchResult.js';
 export const STORAGE_KEY = 'volleyball-scoreboard:v1';
+/**
+ * @type {['A', 'B']}
+ */
 export const TEAM_IDS = ['A', 'B'];
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const rosters = {
@@ -7,6 +10,9 @@ const rosters = {
   B: ['Chicó', 'Denilson', 'Diogo', 'Dimitri', 'Gaëtan', 'Omer'],
 };
 
+/**
+ * @returns {import('./types').MatchState}
+ */
 export function createMatch() {
   return {
     currentSet: 1,
@@ -28,10 +34,18 @@ export function createMatch() {
   };
 }
 
+/**
+ * @param {import('./types').Team} team
+ * @returns {number}
+ */
 export function teamScore(team) {
   return team.players.reduce((sum, player) => sum + player.setPoints, 0);
 }
 
+/**
+ * @param {import('./types').MatchState} state
+ * @returns {boolean}
+ */
 export function canCloseMatch(state) {
   return (
     state.log.some((entry) => entry.type === 'set') &&
@@ -99,6 +113,10 @@ function applyRoster(state, rosters) {
 }
 
 // Include everyone who played a set with points, even if they later left the court.
+/**
+ * @param {import('./types').MatchState} state
+ * @returns {import('./types').MatchPlayerStatistics[]}
+ */
 export function matchPlayerStats(state) {
   if (!state.groupId)
     return TEAM_IDS.flatMap((id) =>
@@ -146,6 +164,11 @@ export function matchPlayerStats(state) {
   }));
 }
 
+/**
+ * @param {import('./types').MatchState} state
+ * @param {import('./types').TeamId} teamId
+ * @returns {import('./types').PlayerTotals[]}
+ */
 export function teamMatchPlayers(state, teamId) {
   if (!state.groupId) return state.teams[teamId].players;
   return [
@@ -195,6 +218,11 @@ function addPoint(state, action) {
   };
 }
 
+/**
+ * @param {import('./types').MatchState} state
+ * @param {number} setNumber
+ * @returns {import('./types').RankedPlayer[]}
+ */
 export function setRanking(state, setNumber) {
   let currentSet = 1;
   const players = new Map();
@@ -416,6 +444,11 @@ function reduceMatch(state, action) {
   }
 }
 
+/**
+ * @param {import('./types').MatchState} state
+ * @param {import('./types').MatchAction} action
+ * @returns {import('./types').MatchState}
+ */
 export function matchReducer(state, action) {
   const next = reduceMatch(state, action);
   // Name edits remain in effect after Undo, just as in the original app.
@@ -435,6 +468,10 @@ export function matchReducer(state, action) {
 }
 
 // Replaying the log validates saved counters and set snapshots instead of trusting them.
+/**
+ * @param {string | null} raw
+ * @returns {import('./types').MatchState}
+ */
 export function restoreMatch(raw) {
   if (!raw) return createMatch();
   const saved = JSON.parse(raw);
@@ -589,6 +626,10 @@ export function restoreMatch(raw) {
   return restored;
 }
 
+/**
+ * @param {import('./types').MatchState} state
+ * @returns {import('./types').MatchState}
+ */
 export function enableCourtMode(state) {
   return state.court
     ? state

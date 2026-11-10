@@ -10,37 +10,51 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { redeemDayCode } from '../remote/gameDays';
+import { TEAM_IDS } from '../../../game/match';
+import { errorMessage } from '../../../game/errors';
+import { redeemDayCode } from '../../../remote/gameDays';
+import type { SubmitEvent } from 'react';
+import type { DayContext } from '../../../game/types';
 
-export default function DayCodeDialog({ onClose, onConfirm, confirmLabel = 'Use this day' }) {
+export interface DayCodeDialogProps {
+  onClose: () => void;
+  onConfirm: (context: DayContext) => void | Promise<void>;
+  confirmLabel?: string;
+}
+
+export const DayCodeDialog = ({
+  onClose,
+  onConfirm,
+  confirmLabel = 'Use this day',
+}: DayCodeDialogProps) => {
   const [code, setCode] = useState('');
-  const [preview, setPreview] = useState(null);
+  const [preview, setPreview] = useState<DayContext | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  async function load(event) {
+  const load = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setBusy(true);
     setError('');
     try {
       setPreview(await redeemDayCode(code));
     } catch (failure) {
-      setError(failure.message);
+      setError(errorMessage(failure));
     } finally {
       setBusy(false);
     }
-  }
-  async function confirm() {
+  };
+  const confirm = async () => {
     if (busy || !preview) return;
     setBusy(true);
     setError('');
     try {
       await onConfirm(preview);
     } catch (failure) {
-      setError(failure.message || 'The lineup could not be saved. Please retry.');
+      setError(errorMessage(failure) || 'The lineup could not be saved. Please retry.');
     } finally {
       setBusy(false);
     }
-  }
+  };
   return (
     <Dialog
       open
@@ -81,7 +95,7 @@ export default function DayCodeDialog({ onClose, onConfirm, confirmLabel = 'Use 
               <Typography variant="h6">
                 {preview.group_name} · {preview.play_date}
               </Typography>
-              {['A', 'B'].map((team) => (
+              {TEAM_IDS.map((team) => (
                 <Typography key={team}>
                   {preview.lineup[team].name}:{' '}
                   {preview.lineup[team].players.map((p) => p.name).join(', ')}
@@ -102,4 +116,4 @@ export default function DayCodeDialog({ onClose, onConfirm, confirmLabel = 'Use 
       </DialogActions>
     </Dialog>
   );
-}
+};

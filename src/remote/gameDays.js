@@ -13,6 +13,11 @@ export async function dayRpc(name, args, supplied, signal) {
   if (error) throw error;
   return data;
 }
+/**
+ * @param {string} code
+ * @param {import('@supabase/supabase-js').SupabaseClient} [client]
+ * @returns {Promise<import('../game/types').DayContext>}
+ */
 export async function redeemDayCode(code, client) {
   const trimmed = code.trim();
   const day = await dayRpc('redeem_day_code', { p_code: trimmed }, client);
@@ -20,12 +25,22 @@ export async function redeemDayCode(code, client) {
 }
 const uploads = new WeakMap();
 
+/**
+ * @param {IDBDatabase} database
+ * @returns {Promise<void>}
+ */
 export async function closeDayDatabaseWhenUploadsFinish(database) {
   const active = uploads.get(database);
   while (active?.size) await Promise.allSettled([...active]);
   database.close();
 }
 
+/**
+ * @param {IDBDatabase} database
+ * @param {string} id
+ * @param {import('@supabase/supabase-js').SupabaseClient} [supplied]
+ * @returns {Promise<import('./types').MatchUploadReceipt>}
+ */
 export function uploadReceivedMatch(database, id, supplied) {
   let active = uploads.get(database);
   if (!active) {

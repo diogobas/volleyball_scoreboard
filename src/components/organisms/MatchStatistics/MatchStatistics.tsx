@@ -1,8 +1,14 @@
-import { matchResult } from '../game/matchResult';
-import { matchPlayerStats, setRanking, teamMatchPlayers } from '../game/match';
-import StatisticsView from './StatisticsView';
+import { matchResult } from '../../../game/matchResult';
+import { matchPlayerStats, setRanking, teamMatchPlayers } from '../../../game/match';
+import { StatisticsView } from '../StatisticsView';
+import type { MatchState, TeamId } from '../../../game/types';
 
-export default function Statistics({ state, teamOrder }) {
+export interface MatchStatisticsProps {
+  state: MatchState;
+  teamOrder: TeamId[];
+}
+
+export const MatchStatistics = ({ state, teamOrder }: MatchStatisticsProps) => {
   const topPlayers = matchPlayerStats(state)
     .filter((player) => player.matchPoints > 0)
     .sort((a, b) => b.matchPoints - a.matchPoints)
@@ -24,4 +30,4 @@ export default function Statistics({ state, teamOrder }) {
     .filter((entry) => entry.type === 'set')
     .map((entry) => ({ ...entry, ranking: setRanking(state, entry.setNumber) }));
   return <StatisticsView topPlayers={topPlayers} teams={teams} sets={matchResult(sets).sets} />;
-}
+};

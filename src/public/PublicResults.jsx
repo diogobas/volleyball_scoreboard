@@ -9,7 +9,7 @@ import {
   publicMatchDetails,
   publicPlayerProfile,
 } from '../remote/publicStats';
-import PrivacyLink from '../components/PrivacyLink';
+import { PrivacyLink } from '../components/atoms/PrivacyLink';
 import { publicCommunityHref, publicGroupHref } from './routes';
 import { GroupSeason, MatchDetails } from '../components/GroupResults';
 
