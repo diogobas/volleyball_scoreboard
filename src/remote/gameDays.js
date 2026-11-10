@@ -28,23 +28,54 @@ export async function closeDayDatabaseWhenUploadsFinish(database) {
 
 export function uploadReceivedMatch(database, id, supplied) {
   let active = uploads.get(database);
-  if (!active) { active = new Set(); uploads.set(database, active); }
-  const operation = withMatchUploadAttempt(database, id, async guard => {
-    if (globalThis.navigator?.onLine === false) throw new Error('Offline. Reconnect and sync this saved match later.');
+  if (!active) {
+    active = new Set();
+    uploads.set(database, active);
+  }
+  const operation = withMatchUploadAttempt(database, id, async (guard) => {
+    if (globalThis.navigator?.onLine === false)
+      throw new Error('Offline. Reconnect and sync this saved match later.');
     const archive = await readClosedMatch(database, id);
     if (!archive) return { status: 'not_local' };
     const context = archive.dayContext ?? archive.state.dayContext;
     const payload = receivedMatchPayload(archive);
-    const receipt = await dayRpc('receive_day_match', { p_code: context.code, p_match: payload }, supplied, guard.signal);
+    const receipt = await dayRpc(
+      'receive_day_match',
+      { p_code: context.code, p_match: payload },
+      supplied,
+      guard.signal,
+    );
     await guard.check();
-    if (!['received', 'already_received'].includes(receipt?.status) || receipt.match_id !== id || receipt.day_id !== context.day_id || !samePayload(receipt.submission, payload)) throw new Error('Receipt did not match this match. Local data kept.');
-    if (receipt.published !== true && receipt.deleted !== true) throw new Error('The server has not confirmed this match as completed. Your local copy was kept.');
-    const tx = database.transaction([CLOSED_STORE, SETTINGS_STORE], 'readwrite'); const done = transactionDone(tx);
-    const store = tx.objectStore(CLOSED_STORE); const settings = tx.objectStore(SETTINGS_STORE);
-    const stored = store.get(id); const lease = settings.get(uploadStateKey(id)); let changed = false;
+    if (
+      !['received', 'already_received'].includes(receipt?.status) ||
+      receipt.match_id !== id ||
+      receipt.day_id !== context.day_id ||
+      !samePayload(receipt.submission, payload)
+    )
+      throw new Error('Receipt did not match this match. Local data kept.');
+    if (receipt.published !== true && receipt.deleted !== true)
+      throw new Error(
+        'The server has not confirmed this match as completed. Your local copy was kept.',
+      );
+    const tx = database.transaction([CLOSED_STORE, SETTINGS_STORE], 'readwrite');
+    const done = transactionDone(tx);
+    const store = tx.objectStore(CLOSED_STORE);
+    const settings = tx.objectStore(SETTINGS_STORE);
+    const stored = store.get(id);
+    const lease = settings.get(uploadStateKey(id));
+    let changed = false;
     lease.onsuccess = () => {
-      if (guard.signal.aborted || lease.result?.owner !== guard.owner || lease.result?.state !== 'sending' || !samePayload(stored.result, archive)) { changed = true; return; }
-      store.delete(id); settings.delete(uploadStateKey(id));
+      if (
+        guard.signal.aborted ||
+        lease.result?.owner !== guard.owner ||
+        lease.result?.state !== 'sending' ||
+        !samePayload(stored.result, archive)
+      ) {
+        changed = true;
+        return;
+      }
+      store.delete(id);
+      settings.delete(uploadStateKey(id));
     };
     await done;
     if (changed) throw new Error('Local match changed during upload. Its data was kept.');

@@ -6,11 +6,13 @@ Migração do arquivo `Volleyball Scoreboard.html` para React, Material UI e Vit
 
 ## Executar localmente
 
-Use Node.js 22.12 ou superior na versão 22, ou Node.js 24 ou superior.
+Use Node.js 22.13 ou superior na versão 22, ou Node.js 24 ou superior. O ESLint 10 exige esse mínimo na linha 22. Use pnpm 10.27.0, fixado no campo `packageManager`.
+
+Com Corepack disponível, execute `corepack enable` e `corepack install` para selecionar a versão do projeto. Alternativamente, instale pnpm 10.27.0 pelo método adequado ao seu ambiente. Depois:
 
 ```sh
-npm ci
-npm run dev
+pnpm install --frozen-lockfile
+pnpm run dev
 ```
 
 Abra o endereço exibido pelo Vite, normalmente `http://localhost:5173`.
@@ -18,7 +20,7 @@ Abra o endereço exibido pelo Vite, normalmente `http://localhost:5173`.
 Para testar no celular conectado à mesma rede:
 
 ```sh
-npm run dev -- --host 0.0.0.0
+pnpm run dev --host 0.0.0.0
 ```
 
 Acesse o IP do computador e a porta mostrada no terminal. Esse servidor é para desenvolvimento.
@@ -209,25 +211,44 @@ Rascunhos ficam em memória enquanto as ferramentas estão abertas. Não há sal
 
 Roteiro de aprovação: [testar a subfase 4.2](docs/testing-admin-corrections-4.2.md).
 
+## Ferramentas e migração para TypeScript
+
+O gerenciador de pacotes é pnpm; mantenha somente `pnpm-lock.yaml` e use `pnpm install --frozen-lockfile` para reproduzir a instalação. Para adicionar dependências, use `pnpm add` ou `pnpm add -D`. Comandos de ferramentas locais usam `pnpm exec`.
+
+```sh
+pnpm run typecheck
+pnpm run lint
+pnpm run format:check
+pnpm run format
+```
+
+O último comando aplica a formatação. Prettier cobre `src`, configurações de ferramentas e o workflow CI; arquivos nativos, artefatos, scripts operacionais e documentação histórica ficam fora desse comando.
+
+TypeScript usa `strict: true`, `allowJs: true` e `checkJs: false` durante a migração: os arquivos TypeScript são checados estritamente; o JavaScript legado ainda não passa por checagem de tipos. `vite.config.ts` já é checado, e `src/vite-env.d.ts` declara as variáveis públicas do Vite. Ambos os builds executam `typecheck` antes de compilar.
+
+ESLint verifica regras de hooks no código existente. Dependências incompletas de efeitos são avisos temporários no JavaScript legado; nos arquivos migrados são erros. Arrow functions, imports de tipos, ausência de `any` explícito e variáveis não utilizadas são exigidos no TypeScript. A checagem de variáveis não utilizadas no JavaScript legado será ativada com sua conversão para TypeScript.
+
+A implementação é validada em quatro fases: ferramentas; organização e App; restante de `src`; consolidação. Ao fim de cada fase, a próxima aguarda validação explícita. Esta primeira fase aplica somente ferramentas e formatação, sem alterar regras, dados ou interface. Veja o [roteiro de validação da Fase 1](docs/testing-modernization-phase-1.md).
+
 ## Verificar e gerar o build
 
 ```sh
-npm test
-npm run build
-npm run preview
+pnpm test
+pnpm run build
+pnpm run preview
 ```
 
 Os testes cobrem regras de jogo, persistência, elencos, temporadas, configuração online e o contrato das RPCs. Também executam as migrações e as permissões SQL em PostgreSQL embarcado, sem depender de credenciais ou Docker. E-mail/Auth/Data API hospedados ainda precisam ser validados no Supabase real. O build é gerado em `dist/`; `preview` permite verificá-lo localmente.
 
 ## Atualizações e segurança das dependências
 
-O Dependabot verifica npm, Gradle (`android/`) e GitHub Actions mensalmente, às 07:00 no fuso `America/Toronto`, e abre PRs contra a branch padrão. Cada ecossistema tem limite de três PRs de atualização de versão abertos. React, Vite, Capacitor e Material UI/Emotion são agrupados por família em qualquer versão; as demais atualizações minor/patch são agrupadas, e majors ficam separadas para revisão.
+O Dependabot verifica dependências JavaScript e o lockfile pnpm pelo ecossistema `npm`, Gradle (`android/`) e GitHub Actions mensalmente, às 07:00 no fuso `America/Toronto`, e abre PRs contra a branch padrão. Cada ecossistema tem limite de três PRs de atualização de versão abertos. React, Vite, Capacitor e Material UI/Emotion são agrupados por família em qualquer versão; as demais atualizações minor/patch são agrupadas, e majors ficam separadas para revisão.
 
 O Gradle Wrapper é uma exceção: atualizações automáticas de major ficam desativadas enquanto o projeto usa Android Gradle Plugin (AGP) 8.13.0. O PR #11 propôs Gradle 9.8.2 isoladamente, mas o AGP atual depende de uma API interna removida no Gradle 9.6. Atualizações minor/patch do Gradle 8 continuam habilitadas; a migração para Gradle 9 deve atualizar também o AGP, validar a compatibilidade com Capacitor e passar no build Android antes de remover essa exceção.
 
-O workflow `CI` executa `npm ci`, testes e build web com Node 22 e 24, verifica se o manifesto iOS está sincronizado e compila o APK Android de debug com Java 21. Cada PR deve ser revisado antes do merge, especialmente mudanças de versão major. O CI não compila nem assina o app iOS; valide atualizações nativas também no Xcode e nos dispositivos.
+O workflow `CI` executa `pnpm install --frozen-lockfile`, lint, verificação de formatação e tipos, testes e os builds do app e do site público com Node 22 e 24, verifica se o manifesto iOS está sincronizado e compila o APK Android de debug com Java 21. Cada PR deve ser revisado antes do merge, especialmente mudanças de versão major. O CI não compila nem assina o app iOS; valide atualizações nativas também no Xcode e nos dispositivos.
 
-O manifesto `ios/App/CapApp-SPM/Package.swift` é gerado pelo Capacitor e não recebe atualizações Swift independentes. Em PRs de `@capacitor/*`, execute `npm ci`, `npm run ios:sync` e `npm run android:sync`, atualize os arquivos nativos gerados e resolva as dependências no Xcode antes do merge.
+O manifesto `ios/App/CapApp-SPM/Package.swift` é gerado pelo Capacitor e não recebe atualizações Swift independentes. Em PRs de `@capacitor/*`, execute `pnpm install --frozen-lockfile`, `pnpm run ios:sync` e `pnpm run android:sync`, atualize os arquivos nativos gerados e resolva as dependências no Xcode antes do merge.
 
 Alertas e correções automáticas de segurança devem permanecer ativados em **Settings > Advanced Security > Dependabot**. Correções de segurança não aguardam a agenda mensal. Para dependências Gradle, alertas de segurança exigem envio do grafo de dependências pela Dependency Submission API; a configuração atual cobre suas atualizações de versão.
 
@@ -263,8 +284,8 @@ Instale o Android Studio, o JDK 21 e o SDK Android 36. No SDK Manager, instale t
 ### Gerar um APK instalável de teste
 
 ```sh
-npm ci
-npm run android:apk
+pnpm install --frozen-lockfile
+pnpm run android:apk
 ```
 
 Esse comando gera o build web, sincroniza o Capacitor e executa `assembleDebug`. Na primeira execução, o Gradle precisa de internet para baixar as ferramentas e dependências.
@@ -288,11 +309,11 @@ Os dados da versão web não são transferidos automaticamente para o app Androi
 ### Abrir no Android Studio
 
 ```sh
-npm run android:sync
-npm run android:open
+pnpm run android:sync
+pnpm run android:open
 ```
 
-Após qualquer alteração na interface, execute `npm run android:sync` antes de compilar pelo Android Studio. O comando `npm run android:apk` já faz isso automaticamente.
+Após qualquer alteração na interface, execute `pnpm run android:sync` antes de compilar pelo Android Studio. O comando `pnpm run android:apk` já faz isso automaticamente.
 
 Mantenha `android/` no Git, incluindo o Gradle Wrapper e seus arquivos nativos. Builds, `local.properties`, arquivos web copiados e chaves de assinatura ficam ignorados.
 
@@ -300,7 +321,7 @@ Mantenha `android/` no Git, incluindo o Gradle Wrapper e seus arquivos nativos. 
 
 O teste interno permite distribuir pela Play Store para até 100 testadores, por convite. Requer uma conta no Google Play Console. O arquivo enviado é um Android App Bundle (`.aab`) assinado com uma chave de upload.
 
-1. Execute `npm test`, `npm run android:sync` e `npm run android:open`.
+1. Execute `pnpm test`, `pnpm run android:sync` e `pnpm run android:open`.
 2. No Android Studio, aguarde a sincronização do Gradle e abra **Build > Generate Signed Bundle / APK**. Selecione **Android App Bundle**, módulo **app**.
 3. No primeiro envio, use **Create new** para criar um keystore, por exemplo `volleyball-upload.jks`, com alias `upload`. Defina as senhas no próprio Android Studio, validade de pelo menos 25 anos e os dados do certificado. Guarde uma cópia do keystore e as senhas em local seguro, fora do Git. Nos próximos envios, selecione essa mesma chave.
 4. Escolha a variante **release** e gere o bundle. Use **Locate** na notificação de conclusão para encontrar o `.aab` assinado; o destino depende da pasta escolhida no assistente. O build release usa a chave configurada em `android/keystore.properties`; veja o guia 4.3.
@@ -335,9 +356,9 @@ Os recursos Android são vetoriais e não exigem gerar imagens por densidade. A 
 O projeto inclui a plataforma iOS do Capacitor 8, com dependências nativas via Swift Package Manager. Requer um Mac com Xcode 26 ou superior e iPhone com iOS 15 ou superior. O app inclui os arquivos web e as fontes para funcionar offline.
 
 ```sh
-npm ci
-npm run ios:sync
-npm run ios:open
+pnpm install --frozen-lockfile
+pnpm run ios:sync
+pnpm run ios:open
 ```
 
 ### Primeira instalação
@@ -354,7 +375,7 @@ Se o Xcode informar que não há destinos disponíveis ou que “iOS 26.5 is not
 
 A conta gratuita não permite usar TestFlight. O provisionamento para testes pessoais expira após sete dias; conecte o iPhone e execute novamente pelo Xcode para renovar. Para preservar a partida, atualize o app mantendo o identificador em vez de desinstalá-lo. Os dados do Safari e do app Android não são transferidos automaticamente.
 
-Após alterações na interface, execute `npm run ios:sync` antes de usar **Run** no Xcode. Mantenha `ios/` no Git; arquivos web copiados, builds e configurações pessoais do Xcode ficam ignorados. A equipe de assinatura deve ser selecionada localmente no Xcode.
+Após alterações na interface, execute `pnpm run ios:sync` antes de usar **Run** no Xcode. Mantenha `ios/` no Git; arquivos web copiados, builds e configurações pessoais do Xcode ficam ignorados. A equipe de assinatura deve ser selecionada localmente no Xcode.
 
 ### Ícone e tela de abertura iOS
 
@@ -370,7 +391,7 @@ O target iOS está configurado com o identificador `ca.itelligent.volleyballscor
 
 - Versão iOS preparada: **1.1.0, build 3**. O build fica em `CURRENT_PROJECT_VERSION`, nas configurações Debug e Release do projeto Xcode. Aumente esse número antes de cada novo envio; a versão Android é independente.
 - O app declara `ITSAppUsesNonExemptEncryption = NO`: o código atual não implementa criptografia própria. Reavalie essa declaração se adicionar recursos de criptografia.
-- Execute `npm test` e `npm run ios:sync`. No Xcode, selecione o scheme **App**, destino **Any iOS Device** e **Product > Archive**.
+- Execute `pnpm test` e `pnpm run ios:sync`. No Xcode, selecione o scheme **App**, destino **Any iOS Device** e **Product > Archive**.
 - No Organizer, selecione o archive e use **Distribute App > App Store Connect > Upload**, com a equipe de distribuição que possui o cadastro do app.
 - Após o processamento da Apple, abra **App Store Connect > Volleyball Scoreboard > TestFlight** para configurar o grupo de teste e as informações da versão.
 

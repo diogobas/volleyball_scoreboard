@@ -4,7 +4,7 @@ Branch: `feat/local-match-history`.
 
 ## Preparação
 
-1. Execute `npm ci`, `npm test` e `npm run dev`.
+1. Execute `pnpm install --frozen-lockfile`, `pnpm test` e `pnpm run dev`.
 2. Abra no mesmo navegador, endereço e porta utilizados na subfase 1.1 para manter a partida existente.
 3. Para testes que não devem alterar sua partida real, use outro perfil do navegador. Não limpe os dados da sua instalação.
 
@@ -67,7 +67,7 @@ A tela de histórico só será entregue na subfase 1.3. Nesta entrega, confira o
 
 ## Android e iOS
 
-1. Execute `npm run android:sync` ou `npm run ios:sync` e compile/instale mantendo o identificador e a instalação existentes.
+1. Execute `pnpm run android:sync` ou `pnpm run ios:sync` e compile/instale mantendo o identificador e a instalação existentes.
 2. Repita cancelamento, fechamento e conferência dos nomes/lados; feche também uma partida em modo avião.
 3. Aguarde a confirmação, encerre e reabra o aplicativo. A nova partida deve continuar salva.
 

@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMatch, matchReducer, restoreMatch, setRanking, teamScore } from './match.js';
 
-const point = (state, team = 'A', playerId = 'p1') => matchReducer(state, { type: 'point', team, playerId });
-const close = state => matchReducer(state, { type: 'closeSet' });
-const undo = state => matchReducer(state, { type: 'undo' });
+const point = (state, team = 'A', playerId = 'p1') =>
+  matchReducer(state, { type: 'point', team, playerId });
+const close = (state) => matchReducer(state, { type: 'closeSet' });
+const undo = (state) => matchReducer(state, { type: 'undo' });
 
 test('points and opponent errors count for the selected team without mutating previous state', () => {
   const initial = createMatch();
@@ -171,8 +172,13 @@ test('deuce has no upper limit and opponent errors can close a set for team B', 
 test('old saved matches above 25 keep their original points and set boundaries', () => {
   // Simulate history from the previous version, where only manual closure existed.
   const legacy = createMatch();
-  legacy.log = Array.from({ length: 30 }, () => ({ type: 'point', team: 'A',
-    playerId: 'p1', playerName: 'Anderson', teamName: 'Team 1' }));
+  legacy.log = Array.from({ length: 30 }, () => ({
+    type: 'point',
+    team: 'A',
+    playerId: 'p1',
+    playerName: 'Anderson',
+    teamName: 'Team 1',
+  }));
   const open = restoreMatch(JSON.stringify(legacy));
   assert.equal(open.currentSet, 1);
   assert.equal(teamScore(open.teams.A), 30);
@@ -181,25 +187,37 @@ test('old saved matches above 25 keep their original points and set boundaries',
   assert.equal(point(open).currentSet, 2);
 });
 
-
 test('set rankings isolate each set, exclude errors and preserve historical names and ties', () => {
   let state = point(point(point(createMatch()), 'B', 'p2'), 'A', 'p2');
   state = close(point(state, 'B', 'err'));
   const firstRanking = setRanking(state, 1);
-  assert.deepEqual(firstRanking.map(p => [p.teamId, p.id, p.points]), [
-    ['A', 'p1', 1], ['A', 'p2', 1], ['B', 'p2', 1],
-  ]);
+  assert.deepEqual(
+    firstRanking.map((p) => [p.teamId, p.id, p.points]),
+    [
+      ['A', 'p1', 1],
+      ['A', 'p2', 1],
+      ['B', 'p2', 1],
+    ],
+  );
   const draft = structuredClone(state.teams);
   draft.A.players[0].name = 'Renamed';
   state = matchReducer(state, { type: 'edit', teams: draft });
   state = close(scorePoints(point(state), 2, 'B', 'p3'));
   assert.deepEqual(setRanking(state, 1), firstRanking);
-  assert.deepEqual(setRanking(state, 2).map(p => [p.name, p.points]), [['Diogo', 2], ['Renamed', 1]]);
+  assert.deepEqual(
+    setRanking(state, 2).map((p) => [p.name, p.points]),
+    [
+      ['Diogo', 2],
+      ['Renamed', 1],
+    ],
+  );
   assert.deepEqual(setRanking(restoreMatch(JSON.stringify(state)), 1), firstRanking);
-  assert.deepEqual(setRanking(matchReducer(state, { type: 'switchSides' }), 2), setRanking(state, 2));
+  assert.deepEqual(
+    setRanking(matchReducer(state, { type: 'switchSides' }), 2),
+    setRanking(state, 2),
+  );
   assert.deepEqual(setRanking(close(point(createMatch(), 'B', 'err')), 1), []);
 });
-
 
 test('manual and automatic set closures swap sides and undo restores them after reload', () => {
   const before = point(createMatch());

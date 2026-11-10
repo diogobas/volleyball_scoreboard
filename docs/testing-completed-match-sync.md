@@ -24,10 +24,10 @@ Closing/reopening a game day now only changes its state and does not publish or 
 
 ## Validation
 
-- `npm test`: 190 tests, including PostgreSQL execution of the migration against existing pending data; automatic completion with substitutions and newly registered Subs; exact receipt retries; immediate corrections, version conflicts and immutable original submissions; search/filter/pagination/permissions; closed-day uploads; individual deletion without resurrection; legacy upload compatibility; invalid-data rollback; and retaining local archives when an old server has not confirmed completion.
-- `npm run test:court:browser`: offline play/save/delete/restart, manual sync and immediate finalized match details in the admin, without the old association/approval/publication steps.
-- `npm run test:admin:browser`: search, edit team name with correction confirmation, deletion protection, pagination, year/period filters and existing player/day administration.
-- `npm run test:public:browser`: public navigation, shared cards, scorer calculations, pagination and Statistics.
-- `npm run build` and `npm run build:public`.
+- `pnpm test`: 190 tests, including PostgreSQL execution of the migration against existing pending data; automatic completion with substitutions and newly registered Subs; exact receipt retries; immediate corrections, version conflicts and immutable original submissions; search/filter/pagination/permissions; closed-day uploads; individual deletion without resurrection; legacy upload compatibility; invalid-data rollback; and retaining local archives when an old server has not confirmed completion.
+- `pnpm run test:court:browser`: offline play/save/delete/restart, manual sync and immediate finalized match details in the admin, without the old association/approval/publication steps.
+- `pnpm run test:admin:browser`: search, edit team name with correction confirmation, deletion protection, pagination, year/period filters and existing player/day administration.
+- `pnpm run test:public:browser`: public navigation, shared cards, scorer calculations, pagination and Statistics.
+- `pnpm run build` and `pnpm run build:public`.
 
 The browser scenarios use fixtures and make no real account/group changes. Existing docs about pending private reviews describe the earlier workflow, superseded by migration 007.

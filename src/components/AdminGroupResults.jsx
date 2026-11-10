@@ -7,25 +7,76 @@ import { GroupSeason } from './GroupResults';
 import MatchManager from './MatchManager';
 
 export default function AdminGroupResults({ client, group, view, onViewChange, refreshKey }) {
-  const [route, setRoute] = useState({ groupId: group.id, season: null, period: currentPeriod(), page: 1, pageSize: 5 });
-  const [data, setData] = useState(null); const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(''); const [attempt, setAttempt] = useState(0);
-  const refresh = () => setAttempt(value => value + 1);
+  const [route, setRoute] = useState({
+    groupId: group.id,
+    season: null,
+    period: currentPeriod(),
+    page: 1,
+    pageSize: 5,
+  });
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
+  const refresh = () => setAttempt((value) => value + 1);
   useEffect(() => {
     if (!['overview', 'players'].includes(view)) return;
-    let active = true; setLoading(true); setError('');
-    publicGroupSummary(group.id, route.season, 1, client, 25, route.period).then(result => { if (active) setData(result); })
-      .catch(failure => { if (active) setError(failure.message); }).finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+    let active = true;
+    setLoading(true);
+    setError('');
+    publicGroupSummary(group.id, route.season, 1, client, 25, route.period)
+      .then((result) => {
+        if (active) setData(result);
+      })
+      .catch((failure) => {
+        if (active) setError(failure.message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [client, group.id, route.season, route.period, view, attempt, refreshKey]);
-  function navigate(href) { const next = readRoute(href); next.season ??= data?.season ?? null; setRoute(next); onViewChange(next.view); }
-  return <Stack spacing={2}>
-    <Box hidden={view === 'matches'}>
-      {error && <Alert severity="warning" action={<Button onClick={refresh}>Retry</Button>}>{error}</Alert>}
-      {loading && <Typography role="status">Loading results…</Typography>}
-      {data && ['overview', 'players'].includes(view) && <GroupSeason data={data} route={{ ...route, view }} loading={loading} refresh={refresh} client={client} hideNavigation onNavigate={navigate} />}
-    </Box>
-    <Box hidden={view !== 'matches'}><MatchManager client={client} group={group} active={view === 'matches'} season={route.season} period={route.period} onPeriodChange={period => setRoute(previous => ({ ...previous, period }))}
-      onSeasonChange={season => setRoute(previous => ({ ...previous, season }))} refreshKey={refreshKey} /></Box>
-  </Stack>;
+  function navigate(href) {
+    const next = readRoute(href);
+    next.season ??= data?.season ?? null;
+    setRoute(next);
+    onViewChange(next.view);
+  }
+  return (
+    <Stack spacing={2}>
+      <Box hidden={view === 'matches'}>
+        {error && (
+          <Alert severity="warning" action={<Button onClick={refresh}>Retry</Button>}>
+            {error}
+          </Alert>
+        )}
+        {loading && <Typography role="status">Loading results…</Typography>}
+        {data && ['overview', 'players'].includes(view) && (
+          <GroupSeason
+            data={data}
+            route={{ ...route, view }}
+            loading={loading}
+            refresh={refresh}
+            client={client}
+            hideNavigation
+            onNavigate={navigate}
+          />
+        )}
+      </Box>
+      <Box hidden={view !== 'matches'}>
+        <MatchManager
+          client={client}
+          group={group}
+          active={view === 'matches'}
+          season={route.season}
+          period={route.period}
+          onPeriodChange={(period) => setRoute((previous) => ({ ...previous, period }))}
+          onSeasonChange={(season) => setRoute((previous) => ({ ...previous, season }))}
+          refreshKey={refreshKey}
+        />
+      </Box>
+    </Stack>
+  );
 }

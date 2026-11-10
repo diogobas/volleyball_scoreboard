@@ -4,32 +4,36 @@
   "version": "1.2.0",
   "type": "module",
   "engines": {
-    "node": "^22.12.0 || >=24.0.0"
+    "node": "^22.13.0 || >=24.0.0"
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "pnpm run typecheck && vite build",
     "preview": "vite preview",
     "test:admin:browser": "node scripts/check-admin-navigation.mjs",
     "test:public:browser": "node scripts/check-public-navigation.mjs",
     "test:court:browser": "node scripts/check-court-flow.mjs",
     "test": "node --test src/game/*.test.js src/remote/*.test.js supabase/*.test.js",
-    "android:sync": "npm run build && cap sync android",
+    "android:sync": "pnpm run build && cap sync android",
     "android:open": "cap open android",
-    "android:apk": "npm run android:sync && cd android && ./gradlew assembleDebug",
-    "ios:sync": "npm run build && cap sync ios",
+    "android:apk": "pnpm run android:sync && cd android && ./gradlew assembleDebug",
+    "ios:sync": "pnpm run build && cap sync ios",
     "ios:open": "cap open ios",
-    "build:public": "vite build --mode public",
+    "build:public": "pnpm run typecheck && vite build --mode public",
     "preview:public": "vite preview --outDir dist-public",
-    "android:bundle": "npm run android:sync && cd android && ./gradlew bundleRelease",
-    "site:prepare": "npm run build:public && node scripts/prepare-cloudflare.mjs",
-    "site:check": "npm exec --yes --package=cf@1.0.0-beta.28 -- cf deploy --prebuilt --mode public --dry-run",
-    "site:deploy": "npm exec --yes --package=cf@1.0.0-beta.28 -- cf deploy --prebuilt --mode public",
+    "android:bundle": "pnpm run android:sync && cd android && ./gradlew bundleRelease",
+    "site:prepare": "pnpm run build:public && node scripts/prepare-cloudflare.mjs",
+    "site:check": "pnpm --package=cf@1.0.0-beta.28 dlx cf deploy --prebuilt --mode public --dry-run",
+    "site:deploy": "pnpm --package=cf@1.0.0-beta.28 dlx cf deploy --prebuilt --mode public",
     "site:publish:github": "python3 scripts/publish-github-pages.py",
     "verify:remote": "node scripts/check-public-backend.mjs",
     "site:pages:check": "node scripts/publish-pages.mjs",
     "site:pages:deploy": "node scripts/publish-pages.mjs --upload",
-    "test:communities:browser": "node scripts/check-communities.mjs"
+    "test:communities:browser": "node scripts/check-communities.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src vite.config.ts eslint.config.js",
+    "format": "prettier --write src vite.config.ts eslint.config.js tsconfig.json package.json .prettierrc.json .github/workflows/ci.yml",
+    "format:check": "prettier --check src vite.config.ts eslint.config.js tsconfig.json package.json .prettierrc.json .github/workflows/ci.yml"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",
@@ -48,8 +52,20 @@
   "devDependencies": {
     "@capacitor/cli": "^8.6.0",
     "@electric-sql/pglite": "^0.5.15",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "fake-indexeddb": "^6.2.7",
+    "globals": "^16.5.0",
+    "prettier": "^3.9.10",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.72.2",
     "vite": "^8.3.5"
-  }
+  },
+  "packageManager": "pnpm@10.27.0"
 }

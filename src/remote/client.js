@@ -27,7 +27,12 @@ export function getPublicClient() {
   const config = configuration();
   if (!config.configured) return null;
   publicClient = createClient(config.url, config.key, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'volleyball-public-view' },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storageKey: 'volleyball-public-view',
+    },
   });
   return publicClient;
 }
@@ -37,7 +42,12 @@ export function getAdminClient() {
   const config = configuration();
   if (!config.configured) return null;
   adminClient = createClient(config.url, config.key, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'volleyball-web-admin' },
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false,
+      storageKey: 'volleyball-web-admin',
+    },
   });
   return adminClient;
 }

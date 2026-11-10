@@ -2,9 +2,26 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { IDBFactory } from 'fake-indexeddb';
 import { createMatch, matchReducer, restoreMatch } from './match.js';
-import { ACTIVE_STORE, CLOSED_STORE, GROUP_STORE, closeStoredMatch, createLocalId,
-  listStoredMatches, loadStoredMatch, openMatchDatabase, saveStoredMatch, transactionDone } from './storage.js';
-import { assignMatchPlayers, listPlayers, loadDevelopmentGroup, normalizeName, registerPlayer, saveMatchPlayers } from './registry.js';
+import {
+  ACTIVE_STORE,
+  CLOSED_STORE,
+  GROUP_STORE,
+  closeStoredMatch,
+  createLocalId,
+  listStoredMatches,
+  loadStoredMatch,
+  openMatchDatabase,
+  saveStoredMatch,
+  transactionDone,
+} from './storage.js';
+import {
+  assignMatchPlayers,
+  listPlayers,
+  loadDevelopmentGroup,
+  normalizeName,
+  registerPlayer,
+  saveMatchPlayers,
+} from './registry.js';
 
 async function setup(t) {
   const factory = new IDBFactory();
@@ -17,16 +34,17 @@ async function setup(t) {
 async function roster(database, group, state = createMatch()) {
   const players = [];
   const teams = structuredClone(state.teams);
-  for (const id of ['A', 'B']) for (let i = 0; i < 6; i++) {
-    const player = await registerPlayer(database, group.id, `${id} Player ${i + 1}`);
-    players.push(player);
-    teams[id].players[i].personId = player.id;
-  }
+  for (const id of ['A', 'B'])
+    for (let i = 0; i < 6; i++) {
+      const player = await registerPlayer(database, group.id, `${id} Player ${i + 1}`);
+      players.push(player);
+      teams[id].players[i].personId = player.id;
+    }
   return { teams, players };
 }
-const point = state => matchReducer(state, { type: 'point', team: 'A', playerId: 'p1' });
+const point = (state) => matchReducer(state, { type: 'point', team: 'A', playerId: 'p1' });
 
-test('database v1 upgrades preserve active and closed matches without assigning identities', async t => {
+test('database v1 upgrades preserve active and closed matches without assigning identities', async (t) => {
   const factory = new IDBFactory();
   const legacy = await new Promise((resolve, reject) => {
     const request = factory.open('volleyball-scoreboard', 1);
@@ -57,13 +75,16 @@ test('database v1 upgrades preserve active and closed matches without assigning 
   assert.deepEqual(await listPlayers(database, (await loadDevelopmentGroup(database)).id), []);
 });
 
-test('group and UUID identities survive database reopen; names normalize without merging people', async t => {
+test('group and UUID identities survive database reopen; names normalize without merging people', async (t) => {
   const { database, factory, group } = await setup(t);
   assert.equal(normalizeName('  JOÃO   Sílva '), 'joao silva');
   const player = await registerPlayer(database, group.id, '  João   Silva ');
   assert.equal(player.name, 'João Silva');
   assert.match(player.id, /^[0-9a-f-]{36}$/);
-  await assert.rejects(registerPlayer(database, group.id, 'joao silva'), error => error.existingPlayer.id === player.id);
+  await assert.rejects(
+    registerPlayer(database, group.id, 'joao silva'),
+    (error) => error.existingPlayer.id === player.id,
+  );
   await assert.rejects(registerPlayer(database, group.id, 'João'), /surname/);
   await assert.rejects(registerPlayer(database, group.id, '  '));
   await assert.rejects(registerPlayer(database, group.id, 'x'.repeat(61)));
@@ -73,13 +94,19 @@ test('group and UUID identities survive database reopen; names normalize without
   const reopened = await openMatchDatabase(factory);
   t.after(() => reopened.close());
   assert.deepEqual(await loadDevelopmentGroup(reopened), group);
-  assert.deepEqual((await listPlayers(reopened, group.id)).map(p => p.id).sort(), [player.id, another.id].sort());
+  assert.deepEqual(
+    (await listPlayers(reopened, group.id)).map((p) => p.id).sort(),
+    [player.id, another.id].sort(),
+  );
 });
 
-test('simultaneous duplicate registrations commit only one player; groups stay independent', async t => {
+test('simultaneous duplicate registrations commit only one player; groups stay independent', async (t) => {
   const { database, group } = await setup(t);
-  const results = await Promise.allSettled([registerPlayer(database, group.id, 'Ana'), registerPlayer(database, group.id, 'ÁNA')]);
-  assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
+  const results = await Promise.allSettled([
+    registerPlayer(database, group.id, 'Ana'),
+    registerPlayer(database, group.id, 'ÁNA'),
+  ]);
+  assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1);
   const other = { ...group, id: createLocalId(), name: 'Another group' };
   const transaction = database.transaction(GROUP_STORE, 'readwrite');
   const done = transactionDone(transaction);
@@ -91,7 +118,7 @@ test('simultaneous duplicate registrations commit only one player; groups stay i
   await assert.rejects(registerPlayer(database, createLocalId(), 'Missing group'));
 });
 
-test('explicit association preserves scores, historical names, Undo and permanent IDs after reload/reset/close', async t => {
+test('explicit association preserves scores, historical names, Undo and permanent IDs after reload/reset/close', async (t) => {
   const { database, group } = await setup(t);
   const state = matchReducer(point(point(createMatch())), { type: 'closeSet' });
   const { teams } = await roster(database, group, state);
@@ -113,17 +140,28 @@ test('explicit association preserves scores, historical names, Undo and permanen
   const scored = point(next);
   assert.equal(scored.log[0].personId, bound.teams.A.players[0].personId);
   const rearranged = structuredClone(next.teams);
-  [rearranged.A.players[0].personId, rearranged.B.players[0].personId] = [rearranged.B.players[0].personId, rearranged.A.players[0].personId];
-  const moved = assignMatchPlayers(next, group.id, rearranged, await listPlayers(database, group.id));
+  [rearranged.A.players[0].personId, rearranged.B.players[0].personId] = [
+    rearranged.B.players[0].personId,
+    rearranged.A.players[0].personId,
+  ];
+  const moved = assignMatchPlayers(
+    next,
+    group.id,
+    rearranged,
+    await listPlayers(database, group.id),
+  );
   assert.equal(moved.teams.B.players[0].personId, bound.teams.A.players[0].personId);
   assert.equal(moved.teams.B.players[0].name, bound.teams.A.players[0].name);
-  assert.equal((await listStoredMatches(database))[0].state.teams.A.players[0].personId, bound.teams.A.players[0].personId);
+  assert.equal(
+    (await listStoredMatches(database))[0].state.teams.A.players[0].personId,
+    bound.teams.A.players[0].personId,
+  );
   const corrupt = structuredClone(scored);
   corrupt.log[0].personId = createLocalId();
   assert.throws(() => restoreMatch(JSON.stringify(corrupt)), /identity/);
 });
 
-test('incomplete, duplicate, cross-group and in-progress identity changes cannot be saved', async t => {
+test('incomplete, duplicate, cross-group and in-progress identity changes cannot be saved', async (t) => {
   const { database, group } = await setup(t);
   const state = createMatch();
   const { teams, players } = await roster(database, group);
@@ -135,13 +173,16 @@ test('incomplete, duplicate, cross-group and in-progress identity changes cannot
   const bound = assignMatchPlayers(state, group.id, teams, players);
   const scored = point(bound);
   const swapped = structuredClone(teams);
-  [swapped.A.players[0].personId, swapped.B.players[0].personId] = [swapped.B.players[0].personId, swapped.A.players[0].personId];
+  [swapped.A.players[0].personId, swapped.B.players[0].personId] = [
+    swapped.B.players[0].personId,
+    swapped.A.players[0].personId,
+  ];
   assert.throws(() => assignMatchPlayers(scored, group.id, swapped, players), /between sets/);
   const unchanged = assignMatchPlayers(scored, group.id, teams, players);
   assert.deepEqual(unchanged, scored);
 });
 
-test('associating an old archive keeps all original names, scores and metadata without changing current match', async t => {
+test('associating an old archive keeps all original names, scores and metadata without changing current match', async (t) => {
   const { database, group } = await setup(t);
   const state = matchReducer(point(createMatch()), { type: 'closeSet' });
   await saveStoredMatch(database, state);
@@ -157,10 +198,13 @@ test('associating an old archive keeps all original names, scores and metadata w
   assert.equal(after.state.log[0].playerName, 'Anderson');
   assert.equal(after.state.groupId, group.id);
   assert.deepEqual(await loadStoredMatch(database), current);
-  await assert.rejects(saveMatchPlayers(database, after.state, group.id, teams, 'legacy'), /already associated/);
+  await assert.rejects(
+    saveMatchPlayers(database, after.state, group.id, teams, 'legacy'),
+    /already associated/,
+  );
 });
 
-test('failed association rolls back and stale views cannot overwrite a changed match', async t => {
+test('failed association rolls back and stale views cannot overwrite a changed match', async (t) => {
   const { database, group } = await setup(t);
   const state = createMatch();
   const { teams } = await roster(database, group);
@@ -181,7 +225,7 @@ test('failed association rolls back and stale views cannot overwrite a changed m
   assert.equal((await listPlayers(database, group.id)).length, 12);
 });
 
-test('failed registration leaves no partial player and can be retried', async t => {
+test('failed registration leaves no partial player and can be retried', async (t) => {
   const { database, group } = await setup(t);
   const original = database.transaction.bind(database);
   database.transaction = (...args) => {

@@ -5,7 +5,7 @@ Branch: `feat/supabase-sync`. Esta entrega sincroniza grupos e jogadores. Partid
 ## Preparação
 
 1. No Supabase do projeto já configurado, abra **SQL Editor → New query**, copie todo o conteúdo de [20261106000200_player_registry_sync.sql](../supabase/migrations/20261106000200_player_registry_sync.sql) e execute **Run**. Resultado esperado: sucesso sem linhas retornadas. Execute somente esta nova migração; a primeira, da 3.1, já foi aplicada. O código não aplica SQL automaticamente no projeto remoto.
-2. Na branch indicada, execute `npm ci` e `npm run dev`. A configuração existente de `.env.local` continua válida. Use o mesmo endereço e porta que guardam suas partidas; outro endereço usa outro banco local.
+2. Na branch indicada, execute `pnpm install --frozen-lockfile` e `pnpm run dev`. A configuração existente de `.env.local` continua válida. Use o mesmo endereço e porta que guardam suas partidas; outro endereço usa outro banco local.
 3. Feche outras abas do aplicativo e recarregue. O IndexedDB será atualizado da versão 2 para a 3, preservando partida, histórico, cadastros e Undo. Não limpe os dados do site nem desinstale o app. Em atualização bloqueada, feche as outras abas e tente novamente.
 4. Entre em **Account & groups** com uma conta administradora do grupo. Para testar conflitos, prepare outra instalação/perfil de navegador com uma conta também autorizada. Duas abas do mesmo perfil compartilham o banco e não representam dois aparelhos.
 
@@ -53,8 +53,8 @@ Uma união que colocaria a mesma pessoa duas vezes em qualquer escalação é re
 
 ## Verificações da implementação
 
-- `npm test`: regras, persistência, migração do IndexedDB, dois bancos locais independentes, tentativas após resposta perdida, conflitos, remapeamento transacional, Undo, troca de conta, permissões e RPCs SQL em PostgreSQL embarcado.
-- `npm run build`: build web de produção.
+- `pnpm test`: regras, persistência, migração do IndexedDB, dois bancos locais independentes, tentativas após resposta perdida, conflitos, remapeamento transacional, Undo, troca de conta, permissões e RPCs SQL em PostgreSQL embarcado.
+- `pnpm run build`: build web de produção.
 - Chrome com viewport de celular e o SDK Supabase real contra respostas simuladas: ligação de dados antigos, envio do cadastro, duas opções de conciliação, uso offline, atualização ao fechar partida, histórico preservado e totais do grupo após recarregar.
 
 O SQL novo ainda precisa ser aplicado e aprovado no projeto Supabase real. Os testes de navegador usam dados simulados, sem gravar no seu projeto. Android/iOS físicos e o roteiro com dois aparelhos reais dependem da sua validação. Nenhum merge na `master` é feito nesta entrega. A subfase 3.3 só começa após aprovação explícita.

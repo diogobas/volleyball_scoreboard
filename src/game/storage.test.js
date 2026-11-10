@@ -2,8 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { IDBFactory } from 'fake-indexeddb';
 import { createMatch, matchReducer } from './match.js';
-import { ACTIVE_STORE, CLOSED_STORE, GROUP_STORE, PLAYER_STORE, SETTINGS_STORE, DATABASE_NAME, DATABASE_VERSION, closeStoredMatch,
-  listStoredMatches, loadStoredMatch, openMatchDatabase, saveStoredMatch } from './storage.js';
+import {
+  ACTIVE_STORE,
+  CLOSED_STORE,
+  GROUP_STORE,
+  PLAYER_STORE,
+  SETTINGS_STORE,
+  DATABASE_NAME,
+  DATABASE_VERSION,
+  closeStoredMatch,
+  listStoredMatches,
+  loadStoredMatch,
+  openMatchDatabase,
+  saveStoredMatch,
+} from './storage.js';
 
 const point = (state, team = 'A') => matchReducer(state, { type: 'point', team, playerId: 'p1' });
 
@@ -16,18 +28,21 @@ function storedValue(database, storeName, key) {
   });
 }
 
-test('creates a versioned database with separate active and closed match stores', async t => {
+test('creates a versioned database with separate active and closed match stores', async (t) => {
   const database = await openMatchDatabase(new IDBFactory());
   t.after(() => database.close());
   assert.equal(database.name, DATABASE_NAME);
   assert.equal(database.version, DATABASE_VERSION);
-  assert.deepEqual([...database.objectStoreNames], [ACTIVE_STORE, CLOSED_STORE, GROUP_STORE, PLAYER_STORE, SETTINGS_STORE]);
+  assert.deepEqual(
+    [...database.objectStoreNames],
+    [ACTIVE_STORE, CLOSED_STORE, GROUP_STORE, PLAYER_STORE, SETTINGS_STORE],
+  );
   assert.deepEqual(await loadStoredMatch(database, () => null), createMatch());
   assert.equal((await storedValue(database, ACTIVE_STORE, 'current')).formatVersion, 1);
   assert.equal(await storedValue(database, CLOSED_STORE, 'current'), undefined);
 });
 
-test('migrates names, scores, side changes, set history and undo, retaining the legacy copy', async t => {
+test('migrates names, scores, side changes, set history and undo, retaining the legacy copy', async (t) => {
   const factory = new IDBFactory();
   let database = await openMatchDatabase(factory);
   t.after(() => database.close());
@@ -41,7 +56,9 @@ test('migrates names, scores, side changes, set history and undo, retaining the 
   assert.deepEqual(await loadStoredMatch(database, () => legacy), state);
   database.close();
   database = await openMatchDatabase(factory);
-  const restored = await loadStoredMatch(database, () => { throw new Error('Must not access legacy again'); });
+  const restored = await loadStoredMatch(database, () => {
+    throw new Error('Must not access legacy again');
+  });
   assert.deepEqual(restored, state);
   assert.deepEqual(matchReducer(restored, { type: 'undo' }), matchReducer(state, { type: 'undo' }));
   const undone = matchReducer(matchReducer(restored, { type: 'undo' }), { type: 'undo' });
@@ -49,7 +66,7 @@ test('migrates names, scores, side changes, set history and undo, retaining the 
   assert.equal(undone.teams.A.players[0].setPoints, 1);
 });
 
-test('commits consecutive saves in order and leaves archived matches untouched', async t => {
+test('commits consecutive saves in order and leaves archived matches untouched', async (t) => {
   const database = await openMatchDatabase(new IDBFactory());
   t.after(() => database.close());
   const archive = { id: 'previous', data: 'preserved' };
@@ -62,18 +79,20 @@ test('commits consecutive saves in order and leaves archived matches untouched',
   assert.deepEqual(await storedValue(database, CLOSED_STORE, archive.id), archive);
 });
 
-test('concurrent initializations use the first committed match without reimporting legacy data', async t => {
+test('concurrent initializations use the first committed match without reimporting legacy data', async (t) => {
   const database = await openMatchDatabase(new IDBFactory());
   t.after(() => database.close());
   const state = point(createMatch());
   const results = await Promise.all([
     loadStoredMatch(database, () => JSON.stringify(state)),
-    loadStoredMatch(database, () => { throw new Error('Must not import twice'); }),
+    loadStoredMatch(database, () => {
+      throw new Error('Must not import twice');
+    }),
   ]);
-  results.forEach(result => assert.deepEqual(result, state));
+  results.forEach((result) => assert.deepEqual(result, state));
 });
 
-test('invalid legacy data never creates or overwrites an active match', async t => {
+test('invalid legacy data never creates or overwrites an active match', async (t) => {
   const database = await openMatchDatabase(new IDBFactory());
   t.after(() => database.close());
   for (const raw of ['{', '{}', 'null']) {
@@ -84,14 +103,19 @@ test('invalid legacy data never creates or overwrites an active match', async t 
   assert.deepEqual(await loadStoredMatch(database, () => JSON.stringify(state)), state);
 });
 
-test('unavailable legacy storage does not silently start an empty match', async t => {
+test('unavailable legacy storage does not silently start an empty match', async (t) => {
   const database = await openMatchDatabase(new IDBFactory());
   t.after(() => database.close());
-  await assert.rejects(loadStoredMatch(database, () => { throw new Error('Storage denied'); }), /Storage denied/);
+  await assert.rejects(
+    loadStoredMatch(database, () => {
+      throw new Error('Storage denied');
+    }),
+    /Storage denied/,
+  );
   assert.equal(await storedValue(database, ACTIVE_STORE, 'current'), undefined);
 });
 
-test('aborted save rejects and preserves the previous committed match for a retry', async t => {
+test('aborted save rejects and preserves the previous committed match for a retry', async (t) => {
   const database = await openMatchDatabase(new IDBFactory());
   t.after(() => database.close());
   const previous = point(createMatch());
@@ -109,10 +133,13 @@ test('aborted save rejects and preserves the previous committed match for a retr
   assert.deepEqual(await loadStoredMatch(database), point(previous));
 });
 
-test('unsupported or corrupt IndexedDB records are preserved instead of falling back to stale legacy', async t => {
+test('unsupported or corrupt IndexedDB records are preserved instead of falling back to stale legacy', async (t) => {
   const database = await openMatchDatabase(new IDBFactory());
   t.after(() => database.close());
-  for (const record of [{ formatVersion: 2, state: createMatch() }, { formatVersion: 1, state: {} }]) {
+  for (const record of [
+    { formatVersion: 2, state: createMatch() },
+    { formatVersion: 1, state: {} },
+  ]) {
     const transaction = database.transaction(ACTIVE_STORE, 'readwrite');
     transaction.objectStore(ACTIVE_STORE).put(record, 'current');
     await assert.rejects(loadStoredMatch(database, () => JSON.stringify(createMatch())));
@@ -124,9 +151,10 @@ test('unavailable IndexedDB reports failure', async () => {
   await assert.rejects(openMatchDatabase(null), /unavailable/);
 });
 
-const closedSet = (state = createMatch(), team = 'A') => matchReducer(point(state, team), { type: 'closeSet' });
+const closedSet = (state = createMatch(), team = 'A') =>
+  matchReducer(point(state, team), { type: 'closeSet' });
 
-test('closing archives the full match and starts a persisted empty match preserving names and sides', async t => {
+test('closing archives the full match and starts a persisted empty match preserving names and sides', async (t) => {
   const factory = new IDBFactory();
   let database = await openMatchDatabase(factory);
   t.after(() => database.close());
@@ -153,7 +181,7 @@ test('closing archives the full match and starts a persisted empty match preserv
   database.close();
   database = await openMatchDatabase(factory);
   assert.deepEqual(await loadStoredMatch(database), next);
-  const archives = await new Promise(resolve => {
+  const archives = await new Promise((resolve) => {
     const request = database.transaction(CLOSED_STORE).objectStore(CLOSED_STORE).getAll();
     request.onsuccess = () => resolve(request.result);
   });
@@ -169,7 +197,7 @@ test('closing archives the full match and starts a persisted empty match preserv
   assert.deepEqual(matchReducer(next, { type: 'undo' }), next);
 });
 
-test('empty matches and matches with an open set cannot be closed, even after completed sets', async t => {
+test('empty matches and matches with an open set cannot be closed, even after completed sets', async (t) => {
   const database = await openMatchDatabase(new IDBFactory());
   t.after(() => database.close());
   for (const state of [createMatch(), point(createMatch()), point(closedSet())]) {
@@ -179,7 +207,7 @@ test('empty matches and matches with an open set cannot be closed, even after co
   }
 });
 
-test('draws and manually closed tied sets are valid completed matches', async t => {
+test('draws and manually closed tied sets are valid completed matches', async (t) => {
   const database = await openMatchDatabase(new IDBFactory());
   t.after(() => database.close());
   const state = matchReducer(point(point(createMatch()), 'B'), { type: 'closeSet' });
@@ -189,7 +217,7 @@ test('draws and manually closed tied sets are valid completed matches', async t 
   assert.deepEqual((await storedValue(database, CLOSED_STORE, 'draw')).state, state);
 });
 
-test('an abort after the archive write rolls back both stores, allowing a later retry', async t => {
+test('an abort after the archive write rolls back both stores, allowing a later retry', async (t) => {
   const database = await openMatchDatabase(new IDBFactory());
   t.after(() => database.close());
   const state = closedSet();
@@ -216,7 +244,7 @@ test('an abort after the archive write rolls back both stores, allowing a later 
   assert.deepEqual((await storedValue(database, CLOSED_STORE, 'retry')).state, state);
 });
 
-test('duplicate archive IDs cannot replace archives or reset the current match', async t => {
+test('duplicate archive IDs cannot replace archives or reset the current match', async (t) => {
   const database = await openMatchDatabase(new IDBFactory());
   t.after(() => database.close());
   const state = closedSet();
@@ -230,7 +258,7 @@ test('duplicate archive IDs cannot replace archives or reset the current match',
   assert.deepEqual(await storedValue(database, CLOSED_STORE, 'existing'), previous);
 });
 
-test('concurrent closures cannot archive the same saved match twice', async t => {
+test('concurrent closures cannot archive the same saved match twice', async (t) => {
   const database = await openMatchDatabase(new IDBFactory());
   t.after(() => database.close());
   const state = closedSet();
@@ -244,7 +272,7 @@ test('concurrent closures cannot archive the same saved match twice', async t =>
   assert.equal(await storedValue(database, CLOSED_STORE, 'second'), undefined);
 });
 
-test('closing a stale view does not discard changes saved by another tab', async t => {
+test('closing a stale view does not discard changes saved by another tab', async (t) => {
   const database = await openMatchDatabase(new IDBFactory());
   t.after(() => database.close());
   const state = closedSet();
@@ -255,14 +283,14 @@ test('closing a stale view does not discard changes saved by another tab', async
   assert.equal(await storedValue(database, CLOSED_STORE, 'stale'), undefined);
 });
 
-test('history starts empty and excludes the current match', async t => {
+test('history starts empty and excludes the current match', async (t) => {
   const database = await openMatchDatabase(new IDBFactory());
   t.after(() => database.close());
   await saveStoredMatch(database, closedSet());
   assert.deepEqual(await listStoredMatches(database), []);
 });
 
-test('history reads persisted archives newest first without changing either store', async t => {
+test('history reads persisted archives newest first without changing either store', async (t) => {
   const factory = new IDBFactory();
   let database = await openMatchDatabase(factory);
   t.after(() => database.close());
@@ -277,15 +305,19 @@ test('history reads persisted archives newest first without changing either stor
   database.close();
   database = await openMatchDatabase(factory);
   const matches = await listStoredMatches(database);
-  assert.deepEqual(matches.map(match => match.id), ['newer', 'older']);
-  assert.equal(matches.filter(match => match.syncStatus === 'pending').length, 2);
+  assert.deepEqual(
+    matches.map((match) => match.id),
+    ['newer', 'older'],
+  );
+  assert.equal(matches.filter((match) => match.syncStatus === 'pending').length, 2);
   assert.deepEqual(matches[0].state, second);
   assert.deepEqual(matches[1].state, first);
   assert.deepEqual(await loadStoredMatch(database), current);
-  for (const archive of matches) assert.deepEqual(await storedValue(database, CLOSED_STORE, archive.id), archive);
+  for (const archive of matches)
+    assert.deepEqual(await storedValue(database, CLOSED_STORE, archive.id), archive);
 });
 
-test('one unreadable archive remains visible and does not prevent reading healthy matches', async t => {
+test('one unreadable archive remains visible and does not prevent reading healthy matches', async (t) => {
   const database = await openMatchDatabase(new IDBFactory());
   t.after(() => database.close());
   const state = closedSet();
@@ -294,18 +326,24 @@ test('one unreadable archive remains visible and does not prevent reading health
   const records = [
     { id: 'unsupported', formatVersion: 2, syncStatus: 'pending', state },
     { id: 'invalid', formatVersion: 1, closedAt: new Date().toISOString(), state: {} },
-    { id: 'incomplete', formatVersion: 1, closedAt: new Date().toISOString(), state: createMatch() },
+    {
+      id: 'incomplete',
+      formatVersion: 1,
+      closedAt: new Date().toISOString(),
+      state: createMatch(),
+    },
   ];
   const transaction = database.transaction(CLOSED_STORE, 'readwrite');
-  records.forEach(record => transaction.objectStore(CLOSED_STORE).put(record));
+  records.forEach((record) => transaction.objectStore(CLOSED_STORE).put(record));
   const matches = await listStoredMatches(database);
   assert.equal(matches.length, 4);
   assert.deepEqual(matches[0].state, state);
-  assert.equal(matches.filter(match => match.unavailable).length, 3);
-  for (const record of records) assert.deepEqual(await storedValue(database, CLOSED_STORE, record.id), record);
+  assert.equal(matches.filter((match) => match.unavailable).length, 3);
+  for (const record of records)
+    assert.deepEqual(await storedValue(database, CLOSED_STORE, record.id), record);
 });
 
-test('history read failures reject and a later read can retry without data loss', async t => {
+test('history read failures reject and a later read can retry without data loss', async (t) => {
   const database = await openMatchDatabase(new IDBFactory());
   t.after(() => database.close());
   const state = closedSet();

@@ -12,8 +12,10 @@ export const playerPositions = [
   { id: 'LB', label: 'Libero' },
 ];
 
-export function sexLabel(sex) { return playerSexes.find(item => item.id === sex)?.label ?? 'Not specified'; }
+export function sexLabel(sex) {
+  return playerSexes.find((item) => item.id === sex)?.label ?? 'Not specified';
+}
 export function positionLabel(code) {
-  const position = playerPositions.find(item => item.id === code);
+  const position = playerPositions.find((item) => item.id === code);
   return position ? `${position.label} (${position.id})` : code;
 }

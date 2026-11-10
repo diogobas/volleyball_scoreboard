@@ -4,7 +4,7 @@ Branch: `feat/groups-player-rosters`.
 
 ## Preparação
 
-1. Execute `npm ci`, `npm test` e `npm run dev` e use o endereço anterior. Não limpe dados nem desinstale o aplicativo.
+1. Execute `pnpm install --frozen-lockfile`, `pnpm test` e `pnpm run dev` e use o endereço anterior. Não limpe dados nem desinstale o aplicativo.
 2. Use uma partida associada aos jogadores cadastrados na 2.1. Caso ainda não tenha cadastro, abra **Teams & players**, registre os participantes e selecione 12 pessoas diferentes. A lista vazia agora explica que é preciso cadastrar primeiro.
 3. Para testes sem alterar dados reais, prefira outro perfil do navegador. Cadastre também uma 13ª pessoa para testar entrada de alguém de fora.
 
@@ -49,7 +49,7 @@ Branch: `feat/groups-player-rosters`.
 2. Consulte **Statistics**, incluindo o histórico de sets. Nenhuma operação deve exigir internet.
 3. Recarregue a versão web após reativar a conexão com o Vite. No aplicativo nativo, pode encerrar e reabrir ainda offline.
 4. Confira escalação atual, pontos individuais e autores dos pontos; teste Undo depois da reabertura.
-5. Repita no Android/iOS após `npm run android:sync` ou `npm run ios:sync`, mantendo a instalação existente. Valide os seletores e resumos em retrato e paisagem.
+5. Repita no Android/iOS após `pnpm run android:sync` ou `pnpm run ios:sync`, mantendo a instalação existente. Valide os seletores e resumos em retrato e paisagem.
 
 ## Resultado esperado e limites
 

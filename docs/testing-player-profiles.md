@@ -32,8 +32,8 @@ The global directory and player table remain inaccessible to anonymous readers. 
 
 ## Validation
 
-- `npm test`: PostgreSQL execution of registration/versioning/authorization, legacy compatibility, defaults, invalid fields, community reuse, historical/live statistics, training/team changes, same-day attendance, pagination, filters, unpublished matches and removed profiles; route/client validation.
-- `npm run test:admin:browser`: saving and reopening sex and multiple positions, including distinct Outside Hitter (O) and Opposite Hitter (OH) selections, in the shared registration form.
-- `npm run test:public:browser`: player table links, individual pages, profile metadata, match pagination/reload, year/period filters, empty periods, returning to the group, and mobile/desktop layouts.
-- `npm run test:communities:browser`: community player reuse retains profile data and group-only admins cannot browse the community catalog.
-- Build both app and public site. After migration/deployment, `COMMUNITY_REF=C-1 npm run verify:remote` also checks player points against group statistics without writes.
+- `pnpm test`: PostgreSQL execution of registration/versioning/authorization, legacy compatibility, defaults, invalid fields, community reuse, historical/live statistics, training/team changes, same-day attendance, pagination, filters, unpublished matches and removed profiles; route/client validation.
+- `pnpm run test:admin:browser`: saving and reopening sex and multiple positions, including distinct Outside Hitter (O) and Opposite Hitter (OH) selections, in the shared registration form.
+- `pnpm run test:public:browser`: player table links, individual pages, profile metadata, match pagination/reload, year/period filters, empty periods, returning to the group, and mobile/desktop layouts.
+- `pnpm run test:communities:browser`: community player reuse retains profile data and group-only admins cannot browse the community catalog.
+- Build both app and public site. After migration/deployment, `COMMUNITY_REF=C-1 pnpm run verify:remote` also checks player points against group statistics without writes.

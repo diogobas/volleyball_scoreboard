@@ -4,9 +4,13 @@ import { canCloseMatch, matchPlayerStats } from './match.js';
 export function groupDate(timestamp, timeZone) {
   const date = new Date(timestamp);
   if (!Number.isFinite(date.getTime())) throw new Error('Invalid match date');
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
-    .formatToParts(date);
-  const value = type => parts.find(part => part.type === type).value;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const value = (type) => parts.find((part) => part.type === type).value;
   return `${value('year')}-${value('month')}-${value('day')}`;
 }
 
@@ -21,28 +25,60 @@ export function availableSeasons(matches, group, now = new Date().toISOString())
 }
 
 export function seasonStatistics(matches, group, players, season) {
-  const rows = new Map(players.filter(player => player.groupId === group.id).map(player => [player.id, {
-    personId: player.id, name: player.name, points: 0, matches: 0, wins: 0, dates: new Set(),
-  }]));
+  const rows = new Map(
+    players
+      .filter((player) => player.groupId === group.id)
+      .map((player) => [
+        player.id,
+        {
+          personId: player.id,
+          name: player.name,
+          points: 0,
+          matches: 0,
+          wins: 0,
+          dates: new Set(),
+        },
+      ]),
+  );
   let includedMatches = 0;
   let fallbackDates = 0;
   let unassociatedMatches = 0;
   let unavailableMatches = 0;
   for (const match of matches) {
-    if (match.unavailable) { unavailableMatches++; continue; }
+    if (match.unavailable) {
+      unavailableMatches++;
+      continue;
+    }
     const state = match.state;
-    if (!state.groupId) { unassociatedMatches++; continue; }
+    if (!state.groupId) {
+      unassociatedMatches++;
+      continue;
+    }
     if (state.groupId !== group.id || !canCloseMatch(state)) continue;
     const date = groupDate(state.startedAt ?? match.closedAt, group.timeZone);
     if (date.slice(0, 4) !== String(season)) continue;
     includedMatches++;
     if (!state.startedAt) fallbackDates++;
-    const { winner, decidedAt } = matchResult(state.log.filter(entry => entry.type === 'set'));
-    const decidedIndex = state.log.findIndex(entry => entry.type === 'set' && entry.setNumber === decidedAt);
-    const competitivePlayers = new Map(winner ? matchPlayerStats({ ...state, log: state.log.slice(0, decidedIndex + 1) }).map(p => [p.personId, p.teamIds]) : []);
+    const { winner, decidedAt } = matchResult(state.log.filter((entry) => entry.type === 'set'));
+    const decidedIndex = state.log.findIndex(
+      (entry) => entry.type === 'set' && entry.setNumber === decidedAt,
+    );
+    const competitivePlayers = new Map(
+      winner
+        ? matchPlayerStats({ ...state, log: state.log.slice(0, decidedIndex + 1) }).map((p) => [
+            p.personId,
+            p.teamIds,
+          ])
+        : [],
+    );
     for (const player of matchPlayerStats(state)) {
       const row = rows.get(player.personId) ?? {
-        personId: player.personId, name: player.name, points: 0, matches: 0, wins: 0, dates: new Set(),
+        personId: player.personId,
+        name: player.name,
+        points: 0,
+        matches: 0,
+        wins: 0,
+        dates: new Set(),
       };
       row.points += player.matchPoints;
       row.matches++;
@@ -53,8 +89,18 @@ export function seasonStatistics(matches, group, players, season) {
     }
   }
   return {
-    includedMatches, fallbackDates, unassociatedMatches, unavailableMatches,
-    rows: [...rows.values()].map(({ dates, ...row }) => ({ ...row, days: dates.size }))
-      .sort((a, b) => b.points - a.points || b.wins - a.wins || a.name.localeCompare(b.name, 'pt', { sensitivity: 'base' }) || a.personId.localeCompare(b.personId)),
+    includedMatches,
+    fallbackDates,
+    unassociatedMatches,
+    unavailableMatches,
+    rows: [...rows.values()]
+      .map(({ dates, ...row }) => ({ ...row, days: dates.size }))
+      .sort(
+        (a, b) =>
+          b.points - a.points ||
+          b.wins - a.wins ||
+          a.name.localeCompare(b.name, 'pt', { sensitivity: 'base' }) ||
+          a.personId.localeCompare(b.personId),
+      ),
   };
 }

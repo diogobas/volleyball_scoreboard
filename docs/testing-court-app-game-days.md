@@ -8,9 +8,9 @@ O app volta à edição livre de nomes. Conta, cadastro, conciliação e publica
 
 1. Faça backup do banco Supabase e mantenha a versão atual do site disponível para reversão do frontend. Não limpe o armazenamento dos celulares.
 2. Aplique, depois das cinco migrações existentes, `supabase/migrations/20261107000100_game_days_and_private_review.sql` pelo fluxo SQL já utilizado no projeto. A migração inteira roda em uma transação. Ela conserva os resultados públicos existentes e cria cópias privadas para revisão futura.
-3. Execute `npm test`, `npm run build` e `npm run build:public`. As variáveis Supabase continuam sendo as mesmas de `.env.example`; nenhuma chave privilegiada entra no frontend.
-4. Publique `dist-public` no projeto Pages existente usando `npm run site:pages:check` e `npm run site:pages:deploy`. O painel fica em `https://volleyball-scoreboard-results.pages.dev/#/admin`. O script tenta renovar sessões expiradas do perfil padrão usando `cf auth whoami`; se a renovação falhar, execute `npm exec --yes --package=cf@1.0.0-beta.28 -- cf auth login` e tente publicar novamente. Perfis personalizados via `CF_AUTH_CONFIG` devem ser renovados explicitamente na CLI.
-5. Gere e instale os apps com `npm run android:sync` / `npm run ios:sync` e o procedimento nativo habitual. No Android, `cd android` e `./gradlew assembleDebug` gera `android/app/build/outputs/apk/debug/app-debug.apk`.
+3. Execute `pnpm test`, `pnpm run build` e `pnpm run build:public`. As variáveis Supabase continuam sendo as mesmas de `.env.example`; nenhuma chave privilegiada entra no frontend.
+4. Publique `dist-public` no projeto Pages existente usando `pnpm run site:pages:check` e `pnpm run site:pages:deploy`. O painel fica em `https://volleyball-scoreboard-results.pages.dev/#/admin`. O script tenta renovar sessões expiradas do perfil padrão usando `cf auth whoami`; se a renovação falhar, execute `pnpm --package=cf@1.0.0-beta.28 dlx cf auth login` e tente publicar novamente. Perfis personalizados via `CF_AUTH_CONFIG` devem ser renovados explicitamente na CLI.
+5. Gere e instale os apps com `pnpm run android:sync` / `pnpm run ios:sync` e o procedimento nativo habitual. No Android, `cd android` e `./gradlew assembleDebug` gera `android/app/build/outputs/apk/debug/app-debug.apk`.
 6. Aplique primeiro o banco, depois o site e os apps. Clientes antigos passam a receber confirmação de **recebimento privado**, mesmo que sua mensagem antiga ainda diga que o resultado está público. A confirmação já permite limpar o celular porque a submissão original está preservada no servidor.
 
 A implementação não aplica a migração, publica o site nem envia builds às lojas automaticamente. A reversão apenas do frontend não restaura publicação direta: o banco continuará exigindo revisão no site. Mantenha acesso à nova área administrativa.
@@ -59,7 +59,7 @@ Esperado: operador sem login; código limitado ao dia; recebimentos privados e d
 
 ## Verificações automatizadas e limites
 
-- `npm test` cobre as regras existentes e os novos fluxos com IndexedDB simulado e PostgreSQL via PGlite. Os testes de migração carregam os cinco scripts anteriores, criam resultados legados e só então aplicam o novo script.
+- `pnpm test` cobre as regras existentes e os novos fluxos com IndexedDB simulado e PostgreSQL via PGlite. Os testes de migração carregam os cinco scripts anteriores, criam resultados legados e só então aplicam o novo script.
 - Arquivos locais antigos com jogadores registrados preservam o contrato original de envio: uma confirmação perdida antes da atualização pode ser recuperada usando o código, sem gerar outra partida. Cadastros provisórios antigos também são recebidos para revisão, sem criar jogadores automaticamente.
 
 - Os testes incluem confirmação divergente, resposta perdida, reenvio, concorrência no celular, atualização do código, participantes por trecho, mudanças de nomes com Undo, isolamento de grupos e publicação/republicação.
@@ -70,15 +70,15 @@ Esperado: operador sem login; código limitado ao dia; recebimentos privados e d
 
 ## Teste automatizado de interface
 
-O script `scripts/check-court-flow.mjs` verifica a interface mobile com Chrome e respostas Supabase simuladas. Todas as requisições externas são interceptadas: ele não grava no projeto remoto. O PostgreSQL real é validado separadamente por `npm test`.
+O script `scripts/check-court-flow.mjs` verifica a interface mobile com Chrome e respostas Supabase simuladas. Todas as requisições externas são interceptadas: ele não grava no projeto remoto. O PostgreSQL real é validado separadamente por `pnpm test`.
 
-Com `playwright-core` disponível, inicie o Vite local e execute `BASE_URL=http://127.0.0.1:5173 npm run test:court:browser`. Se a biblioteca estiver instalada em outro diretório, informe `PLAYWRIGHT_MODULE` com o caminho absoluto de seu `index.mjs`. O teste usa a instalação local do Google Chrome e salva capturas em `artifacts/court-browser/`.
+Com `playwright-core` disponível, inicie o Vite local e execute `BASE_URL=http://127.0.0.1:5173 pnpm run test:court:browser`. Se a biblioteca estiver instalada em outro diretório, informe `PLAYWRIGHT_MODULE` com o caminho absoluto de seu `index.mjs`. O teste usa a instalação local do Google Chrome e salva capturas em `artifacts/court-browser/`.
 
-Para isolar também a configuração, inicie o Vite com `VITE_SUPABASE_URL=https://volleyball-test.supabase.co VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_test npm run dev -- --host 127.0.0.1`. O teste emula o sinal offline mantendo os arquivos locais acessíveis, como ocorre no app nativo; isso não substitui o teste em modo avião no aparelho.
+Para isolar também a configuração, inicie o Vite com `VITE_SUPABASE_URL=https://volleyball-test.supabase.co VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_test pnpm run dev --host 127.0.0.1`. O teste emula o sinal offline mantendo os arquivos locais acessíveis, como ocorre no app nativo; isso não substitui o teste em modo avião no aparelho.
 
 ## Resultado desta implementação — 7 de novembro de 2026
 
-- `npm test`: **156 testes aprovados**, nenhum erro ou teste ignorado.
+- `pnpm test`: **156 testes aprovados**, nenhum erro ou teste ignorado.
 - Builds do placar e do site público aprovados; `cap sync` concluído para Android e iOS.
 - Chrome, viewport 390 × 844, serviços externos simulados: edição livre, carregamento por código, salvamento com sinal offline, reinício, envio manual, conciliação de substituição e fechamento do dia aprovados; nenhuma exceção JavaScript ou rolagem horizontal na administração.
 - Android: `assembleDebug --offline` aprovado. APK de teste: `artifacts/android/VolleyballScoreboard-1.2.0-4-debug.apk`.
@@ -99,7 +99,7 @@ A versão **1.2.0 (4)** foi arquivada, assinada, exportada e enviada ao App Stor
 
 - Archive: `artifacts/ios/VolleyballScoreboard-1.2.0-4.xcarchive`.
 - IPA de distribuição: `artifacts/ios/TestFlight-1.2.0-4/App.ipa`.
-- Testes repetidos antes da geração: 156 aprovados; `npm run ios:sync` concluído.
+- Testes repetidos antes da geração: 156 aprovados; `pnpm run ios:sync` concluído.
 - Após o processamento, conferir App Store Connect → Volleyball Scoreboard → TestFlight e adicionar o build ao grupo existente, se necessário. Atualizar pelo TestFlight preservando a instalação; validar o roteiro offline em aparelho físico.
 
 ## Ajuste de preparação da partida — 8 de novembro de 2026
@@ -114,7 +114,7 @@ Validação: **157 testes aprovados**, build web aprovado e fluxo Chrome mobile 
 
 A página pública do grupo foi dividida em **Overview**, **Players** e **Matches**, exibindo apenas a seção selecionada. Overview mostra os totais da temporada; Players contém a tabela individual; Matches contém a lista paginada e os links para detalhes. Temporada e página são preservadas na navegação, inclusive ao voltar dos detalhes, recarregar e usar Voltar no navegador. Trocar apenas a seção reutiliza os dados carregados.
 
-Para conferir localmente, abra um grupo em `/#/groups`, navegue pelas três seções, troque a temporada, abra uma partida e use **Back to matches**. O teste automatizado fica em `npm run test:public:browser`, com as mesmas variáveis `BASE_URL` e `PLAYWRIGHT_MODULE` do teste mobile anterior. Foram aprovados os 157 testes, o build público e a navegação Chrome mobile com respostas simuladas. Esta alteração ainda não foi publicada no site.
+Para conferir localmente, abra um grupo em `/#/groups`, navegue pelas três seções, troque a temporada, abra uma partida e use **Back to matches**. O teste automatizado fica em `pnpm run test:public:browser`, com as mesmas variáveis `BASE_URL` e `PLAYWRIGHT_MODULE` do teste mobile anterior. Foram aprovados os 157 testes, o build público e a navegação Chrome mobile com respostas simuladas. Esta alteração ainda não foi publicada no site.
 
 ### Paginação de Matches
 

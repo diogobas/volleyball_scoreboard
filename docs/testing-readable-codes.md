@@ -9,10 +9,10 @@ Apply `supabase/migrations/20261108000200_readable_codes_and_references.sql` aft
 
 Verification:
 
-- `npm test`: migrations execute in PostgreSQL, testing existing UUID/reference stability, uniqueness, new registrations, code format, normalization for lookup and actual match receipt/retry, rotation/revocation, old-code compatibility and anonymous permission boundaries. Public client tests cover short-route parsing, UUID resolution and missing groups.
-- `npm run test:admin:browser`: displays short references and searches by `P-13`, alongside the existing player and game-day workflows.
-- `npm run test:public:browser`: opens `G-1` and exercises overview links, seasons, pagination, per-match scorers and details.
-- `npm run build` and `npm run build:public`.
+- `pnpm test`: migrations execute in PostgreSQL, testing existing UUID/reference stability, uniqueness, new registrations, code format, normalization for lookup and actual match receipt/retry, rotation/revocation, old-code compatibility and anonymous permission boundaries. Public client tests cover short-route parsing, UUID resolution and missing groups.
+- `pnpm run test:admin:browser`: displays short references and searches by `P-13`, alongside the existing player and game-day workflows.
+- `pnpm run test:public:browser`: opens `G-1` and exercises overview links, seasons, pagination, per-match scorers and details.
+- `pnpm run build` and `pnpm run build:public`.
 
 ## Repair when newly created days still issue long codes
 

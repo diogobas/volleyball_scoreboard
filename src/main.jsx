@@ -12,5 +12,10 @@ import Root from './Root';
 import './styles.css';
 
 createRoot(document.getElementById('root')).render(
-  <React.StrictMode><ThemeProvider theme={theme}><CssBaseline /><Root /></ThemeProvider></React.StrictMode>,
+  <React.StrictMode>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Root />
+    </ThemeProvider>
+  </React.StrictMode>,
 );

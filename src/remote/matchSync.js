@@ -1,4 +1,9 @@
-import { CLOSED_STORE, SETTINGS_STORE, listStoredMatches, transactionDone } from '../game/storage.js';
+import {
+  CLOSED_STORE,
+  SETTINGS_STORE,
+  listStoredMatches,
+  transactionDone,
+} from '../game/storage.js';
 import { cachedAdmin, registryCache } from '../game/registryCache.js';
 import { registrySession, synchronizePlayers } from './playerRegistry.js';
 import { matchPayload, samePayload } from './matchPayload.js';
@@ -16,9 +21,15 @@ export async function readClosedMatch(database, id) {
 
 // The acknowledgement covers the original submission, even after an admin revision.
 export async function removeConfirmedMatch(database, archive, submission, confirmation, guard) {
-  if (!['saved', 'already_saved'].includes(confirmation?.status) || confirmation.match_id !== archive.id ||
-      confirmation.group_id !== submission.group_id || !Number.isInteger(confirmation.version) || confirmation.version < 1 ||
-      !samePayload(confirmation.submission, submission)) throw new Error('Remote confirmation did not match this submission. Local match kept.');
+  if (
+    !['saved', 'already_saved'].includes(confirmation?.status) ||
+    confirmation.match_id !== archive.id ||
+    confirmation.group_id !== submission.group_id ||
+    !Number.isInteger(confirmation.version) ||
+    confirmation.version < 1 ||
+    !samePayload(confirmation.submission, submission)
+  )
+    throw new Error('Remote confirmation did not match this submission. Local match kept.');
   const transaction = database.transaction([CLOSED_STORE, SETTINGS_STORE], 'readwrite');
   const done = transactionDone(transaction);
   const store = transaction.objectStore(CLOSED_STORE);
@@ -28,32 +39,51 @@ export async function removeConfirmedMatch(database, archive, submission, confir
   let changed = false;
   request.onsuccess = () => {
     if (!request.result) return; // Another confirmed attempt already removed it.
-    if (guard && (guard.signal.aborted || lease.result?.owner !== guard.owner || lease.result?.state !== 'sending')) { changed = true; return; }
-    if (!samePayload(request.result, archive)) { changed = true; return; }
+    if (
+      guard &&
+      (guard.signal.aborted ||
+        lease.result?.owner !== guard.owner ||
+        lease.result?.state !== 'sending')
+    ) {
+      changed = true;
+      return;
+    }
+    if (!samePayload(request.result, archive)) {
+      changed = true;
+      return;
+    }
     store.delete(archive.id);
     settings.delete(uploadStateKey(archive.id));
   };
   await done;
-  if (changed) throw new Error('Local match changed during upload. Its data has been kept for review.');
+  if (changed)
+    throw new Error('Local match changed during upload. Its data has been kept for review.');
 }
 
 export async function uploadStoredMatch(database, id, suppliedClient) {
   let matches = running.get(database);
-  if (!matches) { matches = new Map(); running.set(database, matches); }
+  if (!matches) {
+    matches = new Map();
+    running.set(database, matches);
+  }
   if (matches.has(id)) return matches.get(id);
-  const operation = withMatchUploadAttempt(database, id, guard => upload(database, id, suppliedClient, guard)).finally(() => matches.delete(id));
+  const operation = withMatchUploadAttempt(database, id, (guard) =>
+    upload(database, id, suppliedClient, guard),
+  ).finally(() => matches.delete(id));
   matches.set(id, operation);
   return operation;
 }
 
 async function upload(database, id, suppliedClient, guard) {
-  if (globalThis.navigator?.onLine === false) throw new Error('You are offline. Reconnect and press Sync pending matches.');
+  if (globalThis.navigator?.onLine === false)
+    throw new Error('You are offline. Reconnect and press Sync pending matches.');
   const initial = await readClosedMatch(database, id);
   if (!initial) return { status: 'not_local' };
   const groupId = initial.state?.groupId;
   const before = await registryCache(database);
-  const group = before.groups.find(item => item.id === groupId);
-  if (!groupId || !group || group.localOnly) throw new Error('Link this match to an online group before uploading.');
+  const group = before.groups.find((item) => item.id === groupId);
+  if (!groupId || !group || group.localOnly)
+    throw new Error('Link this match to an online group before uploading.');
   // This only synchronizes the registry. Other pending matches are never uploaded here.
   const playersResult = await synchronizePlayers(database, groupId, suppliedClient);
   await guard.check();
@@ -61,14 +91,29 @@ async function upload(database, id, suppliedClient, guard) {
   const archive = await readClosedMatch(database, id);
   if (!archive) return { status: 'not_local' };
   const submission = matchPayload(archive);
-  if (submission.group_id !== groupId) throw new Error('Match group changed during preparation. Local match kept.');
+  if (submission.group_id !== groupId)
+    throw new Error('Match group changed during preparation. Local match kept.');
   const cache = await registryCache(database);
   const connection = await registrySession(database, suppliedClient);
   await guard.check();
-  if (!connection.session || !cachedAdmin({ ...cache, userId: connection.userId }, group)) throw new Error('Sign in as a group administrator to upload. Local match kept.');
-  const people = submission.sets.flatMap(set => Object.values(set.rosters).flat());
-  if (people.some(person => !cache.players.some(player => player.id === person.id && player.groupId === groupId && player.syncStatus === 'synced' && !player.canonicalId))) {
-    throw new Error('Resolve the participants in Players & sync before uploading. Local match kept.');
+  if (!connection.session || !cachedAdmin({ ...cache, userId: connection.userId }, group))
+    throw new Error('Sign in as a group administrator to upload. Local match kept.');
+  const people = submission.sets.flatMap((set) => Object.values(set.rosters).flat());
+  if (
+    people.some(
+      (person) =>
+        !cache.players.some(
+          (player) =>
+            player.id === person.id &&
+            player.groupId === groupId &&
+            player.syncStatus === 'synced' &&
+            !player.canonicalId,
+        ),
+    )
+  ) {
+    throw new Error(
+      'Resolve the participants in Players & sync before uploading. Local match kept.',
+    );
   }
   let request = connection.client.rpc('submit_match', { p_match: submission });
   if (request.abortSignal) request = request.abortSignal(guard.signal);
@@ -76,14 +121,15 @@ async function upload(database, id, suppliedClient, guard) {
   if (error) throw error;
   await guard.check();
   const current = await connection.client.auth.getSession();
-  if (current.error || current.data.session?.user.id !== connection.userId) throw new Error('The signed-in account changed. Local match kept.');
+  if (current.error || current.data.session?.user.id !== connection.userId)
+    throw new Error('The signed-in account changed. Local match kept.');
   await guard.check();
   await removeConfirmedMatch(database, archive, submission, data, guard);
   return { status: 'confirmed', id, version: data.version };
 }
 
 const queues = new WeakMap();
-export const isPendingSyncRunning = database => queues.has(database);
+export const isPendingSyncRunning = (database) => queues.has(database);
 
 export async function closeDatabaseWhenUploadsFinish(database) {
   const jobs = [...(running.get(database)?.values() ?? []), queues.get(database)].filter(Boolean);
@@ -95,9 +141,17 @@ export async function closeDatabaseWhenUploadsFinish(database) {
 // their own automatic attempt or the next user request. Failures never stop others.
 export async function syncPendingMatches(database, onProgress = () => {}, suppliedClient) {
   if (queues.has(database)) return queues.get(database);
-  const emit = progress => { try { onProgress(progress); } catch { /* UI observers cannot interrupt persistence. */ } };
+  const emit = (progress) => {
+    try {
+      onProgress(progress);
+    } catch {
+      /* UI observers cannot interrupt persistence. */
+    }
+  };
   const operation = (async () => {
-    const pending = (await listStoredMatches(database)).filter(match => match.syncStatus === 'pending').reverse();
+    const pending = (await listStoredMatches(database))
+      .filter((match) => match.syncStatus === 'pending')
+      .reverse();
     const summary = { total: pending.length, confirmed: 0, failed: 0, busy: 0, skipped: 0 };
     for (const [index, match] of pending.entries()) {
       emit({ id: match.id, index: index + 1, total: pending.length, phase: 'sending' });
@@ -109,7 +163,13 @@ export async function syncPendingMatches(database, onProgress = () => {}, suppli
       } catch (error) {
         const phase = error.code === 'MATCH_UPLOAD_BUSY' ? 'busy' : 'failed';
         summary[phase]++;
-        emit({ id: match.id, index: index + 1, total: pending.length, phase, error: error.message || 'Upload failed. Local data kept.' });
+        emit({
+          id: match.id,
+          index: index + 1,
+          total: pending.length,
+          phase,
+          error: error.message || 'Upload failed. Local data kept.',
+        });
       }
     }
     return summary;
