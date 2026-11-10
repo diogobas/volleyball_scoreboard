@@ -1,6 +1,12 @@
 import { competitiveTeam, historicalPlayerKey } from './historicalPlayers.js';
 
 // A match is decided once: later sets remain useful as training statistics.
+/**
+ * @template {import('./types').SetScore} T
+ * @param {T[]} sets
+ * @param {{ endedAsDraw?: boolean, interruptedSet?: number | null, rules?: string }} [options]
+ * @returns {{ setsA: number, setsB: number, winner: import('./types').TeamId | null, decidedAt: number | null, trainingSets: number, sets: (T & { training: boolean, interrupted?: boolean })[] }}
+ */
 export function matchResult(
   sets,
   { endedAsDraw = false, interruptedSet = null, rules = 'recreational' } = {},

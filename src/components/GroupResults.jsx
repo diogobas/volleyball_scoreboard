@@ -20,7 +20,7 @@ import {
   Typography,
 } from '@mui/material';
 import { publicMatchDetails } from '../remote/publicStats';
-import StatisticsView from './StatisticsView';
+import { StatisticsView } from './organisms/StatisticsView';
 import { publicMatchStatistics } from '../public/matchStatistics';
 import { publicGroupHref, publicPlayerHref } from '../public/routes';
 import { teamColors } from '../theme';

@@ -10,19 +10,28 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { listStoredMatches } from '../game/storage';
-import { bindSavedMatch } from '../game/gameDay';
-import { uploadReceivedMatch } from '../remote/gameDays';
-import { deleteSavedMatch, readMatchUploadStates } from '../remote/matchUploadState';
-import MatchSummary from './MatchSummary';
-import DayCodeDialog from './DayCodeDialog';
+import { errorMessage } from '../../../game/errors';
+import { listStoredMatches } from '../../../game/storage';
+import { bindSavedMatch } from '../../../game/gameDay';
+import { uploadReceivedMatch } from '../../../remote/gameDays';
+import { deleteSavedMatch, readMatchUploadStates } from '../../../remote/matchUploadState';
+import { MatchSummary } from '../MatchSummary';
+import { DayCodeDialog } from '../DayCodeDialog';
+import type { StoredMatch } from '../../../game/types';
+import type { MatchUploadState } from '../../../remote/types';
 
-export default function SavedMatchesDialog({ database, onChanged, onClose }) {
-  const [matches, setMatches] = useState([]);
-  const [states, setStates] = useState({});
+export interface SavedMatchesDialogProps {
+  database: IDBDatabase;
+  onChanged: () => void | Promise<void>;
+  onClose: () => void;
+}
+
+export const SavedMatchesDialog = ({ database, onChanged, onClose }: SavedMatchesDialogProps) => {
+  const [matches, setMatches] = useState<StoredMatch[]>([]);
+  const [states, setStates] = useState<Record<string, MatchUploadState>>({});
   const [attempt, setAttempt] = useState(0);
-  const [deleting, setDeleting] = useState(null);
-  const [binding, setBinding] = useState(null);
+  const [deleting, setDeleting] = useState<StoredMatch | null>(null);
+  const [binding, setBinding] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -36,13 +45,13 @@ export default function SavedMatchesDialog({ database, onChanged, onClose }) {
         }
       })
       .catch((failure) => {
-        if (active) setError(failure.message);
+        if (active) setError(errorMessage(failure));
       });
     return () => {
       active = false;
     };
   }, [database, attempt]);
-  async function run(action) {
+  const run = async (action: () => Promise<unknown>) => {
     if (busy) return;
     setBusy(true);
     setError('');
@@ -50,13 +59,13 @@ export default function SavedMatchesDialog({ database, onChanged, onClose }) {
     try {
       await action();
     } catch (failure) {
-      setError(failure.message || 'The action failed. Your local match was kept.');
+      setError(errorMessage(failure) || 'The action failed. Your local match was kept.');
     } finally {
       setBusy(false);
       setAttempt((n) => n + 1);
-      onChanged();
+      void onChanged();
     }
-  }
+  };
   return (
     <Dialog
       open
@@ -171,6 +180,7 @@ export default function SavedMatchesDialog({ database, onChanged, onClose }) {
             disabled={busy}
             onClick={() =>
               run(async () => {
+                if (!deleting) return;
                 await deleteSavedMatch(database, deleting.id);
                 setDeleting(null);
                 setMessage('Local match deleted.');
@@ -193,4 +203,4 @@ export default function SavedMatchesDialog({ database, onChanged, onClose }) {
       )}
     </Dialog>
   );
-}
+};

@@ -10,6 +10,10 @@ export const PLAYER_STORE = 'players';
 export const SETTINGS_STORE = 'settings';
 const ACTIVE_KEY = 'current';
 
+/**
+ * @param {IDBTransaction} transaction
+ * @returns {Promise<void>}
+ */
 export function transactionDone(transaction) {
   return new Promise((resolve, reject) => {
     transaction.oncomplete = () => resolve();
@@ -20,6 +24,10 @@ export function transactionDone(transaction) {
   });
 }
 
+/**
+ * @param {IDBFactory} [factory]
+ * @returns {Promise<IDBDatabase>}
+ */
 export function openMatchDatabase(factory = globalThis.indexedDB) {
   return new Promise((resolve, reject) => {
     if (!factory) return reject(new Error('IndexedDB is unavailable'));
@@ -68,6 +76,11 @@ function readIdentities(transaction, callback) {
 }
 
 // Read/create in one transaction so concurrent initializations cannot overwrite a match.
+/**
+ * @param {IDBDatabase} database
+ * @param {() => string | null} [readLegacy]
+ * @returns {Promise<import('./types').MatchState>}
+ */
 export async function loadStoredMatch(
   database,
   readLegacy = () => globalThis.localStorage.getItem(STORAGE_KEY),
@@ -112,6 +125,11 @@ export async function loadStoredMatch(
   return state;
 }
 
+/**
+ * @param {IDBDatabase} database
+ * @param {import('./types').MatchState} state
+ * @returns {Promise<import('./types').MatchState>}
+ */
 export async function saveStoredMatch(database, state) {
   const transaction = database.transaction([ACTIVE_STORE, GROUP_STORE, PLAYER_STORE], 'readwrite');
   const done = transactionDone(transaction);
@@ -134,6 +152,10 @@ export async function saveStoredMatch(database, state) {
   return canonical;
 }
 
+/**
+ * @param {IDBDatabase} database
+ * @returns {Promise<import('./types').StoredMatch[]>}
+ */
 export async function listStoredMatches(database) {
   const transaction = database.transaction(CLOSED_STORE, 'readonly');
   const done = transactionDone(transaction);
@@ -169,6 +191,12 @@ export function createLocalId() {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+/**
+ * @param {IDBDatabase} database
+ * @param {import('./types').MatchState} state
+ * @param {import('./types').CloseMatchOptions} [options]
+ * @returns {Promise<import('./types').MatchState>}
+ */
 export async function closeStoredMatch(
   database,
   state,

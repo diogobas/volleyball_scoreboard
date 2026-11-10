@@ -228,7 +228,28 @@ TypeScript usa `strict: true`, `allowJs: true` e `checkJs: false` durante a migr
 
 ESLint verifica regras de hooks no código existente. Dependências incompletas de efeitos são avisos temporários no JavaScript legado; nos arquivos migrados são erros. Arrow functions, imports de tipos, ausência de `any` explícito e variáveis não utilizadas são exigidos no TypeScript. A checagem de variáveis não utilizadas no JavaScript legado será ativada com sua conversão para TypeScript.
 
-A implementação é validada em quatro fases: ferramentas; organização e App; restante de `src`; consolidação. Ao fim de cada fase, a próxima aguarda validação explícita. Esta primeira fase aplica somente ferramentas e formatação, sem alterar regras, dados ou interface. Veja o [roteiro de validação da Fase 1](docs/testing-modernization-phase-1.md).
+A implementação é validada em quatro fases: ferramentas; organização e App; restante de `src`; consolidação. Ao fim de cada fase, a próxima aguarda validação explícita. A Fase 1 foi validada; a Fase 2 aguarda revisão pelo [roteiro do placar refatorado](docs/testing-modernization-phase-2.md). Os [resultados da Fase 1](docs/testing-modernization-phase-1.md) continuam disponíveis.
+
+### Organização do placar
+
+```text
+src/
+  App.tsx
+  pages/ScoreboardPage/
+  components/
+    atoms/
+    molecules/
+    organisms/
+  hooks/
+  game/
+  remote/
+```
+
+Páginas coordenam telas e navegação; componentes recebem dados e callbacks tipados; hooks cuidam de estado e efeitos. `game` conserva regras e persistência, e `remote` conserva acesso ao servidor. Componentes possuem pasta própria, implementação `.tsx`, interfaces de props e exportações nomeadas em `index.ts`. Use arrow functions, imports de tipos explícitos e nomes que descrevam a responsabilidade. Extraia componentes por propósito, reutilização ou complexidade; use MUI diretamente quando suficiente.
+
+O App e seus componentes de quadra já usam TypeScript. Os módulos de domínio e acesso remoto expõem contratos JSDoc ligados a `game/types.ts` e `remote/types.ts` durante a transição; suas implementações e as demais telas serão convertidas na Fase 3. Evite duplicar tipos ou alterar regras e formatos persistidos durante essa conversão.
+
+Os hooks do placar podem ser testados isoladamente com `pnpm run test:hooks`; esses testes também fazem parte de `pnpm test`. Eles usam React Testing Library, jsdom e IndexedDB simulado. Os testes de navegador usam `playwright-core` local e o Google Chrome instalado.
 
 ## Verificar e gerar o build
 

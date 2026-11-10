@@ -9,9 +9,34 @@ import {
   Typography,
 } from '@mui/material';
 import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
-import { teamColors } from '../theme';
+import { teamColors } from '../../../theme';
+import type { RankedPlayer, TeamId, TeamMap } from '../../../game/types';
 
-export default function StatisticsView({ topPlayers, teams, sets, showPlayerTotals = true }) {
+export interface StatisticsSet {
+  setNumber: number;
+  scoreA: number;
+  scoreB: number;
+  teamAName: string;
+  teamBName: string;
+  ranking: RankedPlayer[];
+  rosters?: TeamMap<{ name: string }[]>;
+  training?: boolean;
+  early_finish?: boolean;
+  statisticsAvailable?: boolean;
+}
+export interface StatisticsViewProps {
+  topPlayers: RankedPlayer[];
+  teams: { id: TeamId; name: string; players: { id: string; name: string; points: number }[] }[];
+  sets: StatisticsSet[];
+  showPlayerTotals?: boolean;
+}
+
+export const StatisticsView = ({
+  topPlayers,
+  teams,
+  sets,
+  showPlayerTotals = true,
+}: StatisticsViewProps) => {
   return (
     <Box className="statistics">
       {showPlayerTotals ? (
@@ -150,7 +175,7 @@ export default function StatisticsView({ topPlayers, teams, sets, showPlayerTota
                   ) : (
                     <>
                       {entry.rosters &&
-                        ['A', 'B'].map((id) => (
+                        (['A', 'B'] as const).map((id) => (
                           <Typography
                             key={id}
                             variant="body2"
@@ -158,7 +183,7 @@ export default function StatisticsView({ topPlayers, teams, sets, showPlayerTota
                             sx={{ mb: 1 }}
                           >
                             {id === 'A' ? entry.teamAName : entry.teamBName}:{' '}
-                            {entry.rosters[id].map((player) => player.name).join(', ')}
+                            {entry.rosters?.[id].map((player) => player.name).join(', ')}
                           </Typography>
                         ))}
                       <Typography component="h3" variant="subtitle2" sx={{ mb: 1 }}>
@@ -208,4 +233,4 @@ export default function StatisticsView({ topPlayers, teams, sets, showPlayerTota
       )}
     </Box>
   );
-}
+};

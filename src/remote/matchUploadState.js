@@ -9,6 +9,10 @@ export const uploadBusyError = () =>
     { code: 'MATCH_UPLOAD_BUSY' },
   );
 
+/**
+ * @param {IDBDatabase} database
+ * @returns {Promise<Record<string, import('./types').MatchUploadState>>}
+ */
 export async function readMatchUploadStates(database) {
   const transaction = database.transaction(SETTINGS_STORE, 'readonly');
   const done = transactionDone(transaction);
@@ -174,6 +178,11 @@ export function withMatchUploadAttempt(database, id, action) {
   return withMatchUploadLock(database, id, () => attempt(database, id, action));
 }
 
+/**
+ * @param {IDBDatabase} database
+ * @param {string} id
+ * @returns {Promise<void>}
+ */
 export function deleteSavedMatch(database, id) {
   return withMatchUploadLock(database, id, async () => {
     const transaction = database.transaction([CLOSED_STORE, SETTINGS_STORE], 'readwrite');

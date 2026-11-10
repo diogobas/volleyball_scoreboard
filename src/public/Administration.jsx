@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Container, Stack, TextField, Typography } from '@mui/material';
 import { getAdminClient } from '../remote/client';
-import PrivacyLink from '../components/PrivacyLink';
+import { PrivacyLink } from '../components/atoms/PrivacyLink';
 import AdministrationWorkspace from '../components/AdministrationWorkspace';
 import AdministrationAccountMenu from '../components/AdministrationAccountMenu';
 

@@ -2,6 +2,10 @@ import { canCloseMatch, matchReducer, restoreMatch, TEAM_IDS } from './match.js'
 import { matchPayload } from '../remote/matchPayload.js';
 import { CLOSED_STORE, SETTINGS_STORE, transactionDone } from './storage.js';
 
+/**
+ * @param {import('./types').MatchState} state
+ * @returns {import('./types').MatchState}
+ */
 export function startIndependentMatch(state) {
   if (state.log.some((entry) => entry.type === 'point'))
     throw new Error('Save or reset the current match before changing its setup.');
@@ -15,6 +19,11 @@ export function startIndependentMatch(state) {
   return restoreMatch(JSON.stringify(next));
 }
 
+/**
+ * @param {import('./types').MatchState} state
+ * @param {import('./types').DayContext} context
+ * @returns {import('./types').MatchState}
+ */
 export function applyDayLineup(state, context) {
   if (state.log.some((entry) => entry.type === 'point'))
     throw new Error('Save or reset the current match before loading a lineup.');
@@ -142,6 +151,12 @@ export function receivedMatchPayload(archive) {
   };
 }
 
+/**
+ * @param {IDBDatabase} database
+ * @param {string} id
+ * @param {import('./types').DayContext} context
+ * @returns {Promise<void>}
+ */
 export async function bindSavedMatch(database, id, context) {
   const tx = database.transaction([CLOSED_STORE, SETTINGS_STORE], 'readwrite');
   const done = transactionDone(tx);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   Button,
@@ -8,21 +8,28 @@ import {
   DialogContentText,
   DialogTitle,
 } from '@mui/material';
-import DayCodeDialog from './DayCodeDialog';
-import MatchSummary from './MatchSummary';
+import { useOnlineStatus } from '../../../hooks/useOnlineStatus';
+import { DayCodeDialog } from '../DayCodeDialog';
+import { MatchSummary } from '../MatchSummary';
+import type { DayContext, MatchState } from '../../../game/types';
 
-export default function CloseMatchDialog({ state, saving, error, onClose, onConfirm }) {
+export interface CloseMatchDialogProps {
+  state: MatchState;
+  saving: boolean;
+  error: string;
+  onClose: () => void;
+  onConfirm: (sync?: boolean, context?: DayContext | null) => Promise<void>;
+}
+
+export const CloseMatchDialog = ({
+  state,
+  saving,
+  error,
+  onClose,
+  onConfirm,
+}: CloseMatchDialogProps) => {
   const [linking, setLinking] = useState(false);
-  const [online, setOnline] = useState(navigator.onLine !== false);
-  useEffect(() => {
-    const update = () => setOnline(navigator.onLine !== false);
-    window.addEventListener('online', update);
-    window.addEventListener('offline', update);
-    return () => {
-      window.removeEventListener('online', update);
-      window.removeEventListener('offline', update);
-    };
-  }, []);
+  const online = useOnlineStatus();
   return (
     <Dialog
       open
@@ -85,4 +92,4 @@ export default function CloseMatchDialog({ state, saving, error, onClose, onConf
       )}
     </Dialog>
   );
-}
+};

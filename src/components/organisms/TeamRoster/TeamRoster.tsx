@@ -1,30 +1,19 @@
-import { Box, ButtonBase, Chip, Typography } from '@mui/material';
-import { teamColors } from '../theme';
-import { teamScore } from '../game/match';
+import { Box, ButtonBase, Chip } from '@mui/material';
+import { teamColors } from '../../../theme';
+import type { Team, TeamId } from '../../../game/types';
 
 const playerNames = new Intl.Collator('pt', { sensitivity: 'base', numeric: true });
-
-export function ScorePanel({ id, team }) {
-  const score = teamScore(team);
-  return (
-    <Box className="score-panel" sx={{ bgcolor: teamColors[id] }}>
-      <Typography
-        component="p"
-        className="score"
-        aria-label={`Score for ${team.name}`}
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        {score}
-      </Typography>
-    </Box>
-  );
+export interface TeamRosterProps {
+  id: TeamId;
+  team: Team;
+  onPoint: (team: TeamId, playerId: string) => void;
 }
 
-export function Roster({ id, team, onPoint }) {
+export const TeamRoster = ({ id, team, onPoint }: TeamRosterProps) => {
   const players = [...team.players].sort(
     (a, b) => Number(a.isError) - Number(b.isError) || playerNames.compare(a.name, b.name),
   );
+
   return (
     <Box
       className="roster"
@@ -46,4 +35,4 @@ export function Roster({ id, team, onPoint }) {
       </Box>
     </Box>
   );
-}
+};

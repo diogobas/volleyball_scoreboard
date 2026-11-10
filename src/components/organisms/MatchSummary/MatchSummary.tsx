@@ -1,8 +1,13 @@
-import { matchResult } from '../game/matchResult';
 import { Box, Stack, Typography } from '@mui/material';
-import { teamMatchPlayers, TEAM_IDS } from '../game/match';
+import { matchResult } from '../../../game/matchResult';
+import { teamMatchPlayers, TEAM_IDS } from '../../../game/match';
+import type { MatchState } from '../../../game/types';
 
-export default function MatchSummary({ state }) {
+export interface MatchSummaryProps {
+  state: MatchState;
+}
+
+export const MatchSummary = ({ state }: MatchSummaryProps) => {
   const sets = state.log.filter((entry) => entry.type === 'set');
   const { A, B } = state.teams;
   const result = matchResult(sets);
@@ -34,7 +39,7 @@ export default function MatchSummary({ state }) {
                 sx={{ display: 'block', overflowWrap: 'anywhere' }}
               >
                 {id === 'A' ? set.teamAName : set.teamBName}:{' '}
-                {set.rosters[id].map((player) => player.name).join(', ')}
+                {set.rosters?.[id].map((player) => player.name).join(', ')}
               </Typography>
             ))}
         </Box>
@@ -61,4 +66,4 @@ export default function MatchSummary({ state }) {
       ))}
     </>
   );
-}
+};
