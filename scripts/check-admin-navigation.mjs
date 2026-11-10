@@ -247,22 +247,40 @@ try {
   await page.getByRole('button', { name: 'Create game day', exact: true }).click();
   await page.getByRole('button', { name: 'Create day & code', exact: true }).waitFor();
   const slot = (team, position) => page.getByRole('combobox', { name: `Team ${team} · Player ${position}`, exact: true });
-  const hasOption = async (team, position, value) => (await slot(team, position).locator('option').evaluateAll(options => options.map(option => option.value))).includes(value);
-  await slot('A', 1).selectOption('player-0');
-  assert.equal(await slot('A', 1).inputValue(), 'player-0');
-  assert.equal(await hasOption('A', 1, 'player-0'), true);
+  const selectSlot = async (team, position, id) => {
+    if (!id) {
+      await slot(team, position).focus();
+      await slot(team, position).press('Escape');
+      await page.locator('.MuiAutocomplete-root').filter({ has: slot(team, position) }).getByRole('button', { name: 'Clear', exact: true }).click({ force: true });
+      return;
+    }
+    const player = registryPlayers.find(player => player.id === id);
+    await slot(team, position).fill(player.name);
+    await page.getByRole('option').filter({ hasText: player.name }).click();
+  };
+  const isAvailable = async (team, position, id) => {
+    const player = registryPlayers.find(player => player.id === id);
+    await slot(team, position).fill(player.name);
+    const available = await page.getByRole('option').filter({ hasText: player.name }).getAttribute('aria-disabled') !== 'true';
+    await slot(team, position).press('Escape');
+    await slot(team, position).blur();
+    return available;
+  };
+  await selectSlot('A', 1, 'player-0');
+  assert.equal(await slot('A', 1).inputValue(), 'Anderson · Fixed');
+  assert.equal(await isAvailable('A', 1, 'player-0'), true);
   for (const team of ['A', 'B']) for (let position = 1; position <= 6; position++) {
-    if (team !== 'A' || position !== 1) assert.equal(await hasOption(team, position, 'player-0'), false, 'Selected player must be unavailable in every other slot');
+    if (team !== 'A' || position !== 1) assert.equal(await isAvailable(team, position, 'player-0'), false, 'Assigned players show as disabled in every other slot');
   }
-  await slot('B', 1).selectOption('player-1');
-  assert.equal(await hasOption('A', 2, 'player-1'), false);
-  await slot('A', 1).selectOption('player-2');
-  assert.equal(await hasOption('B', 2, 'player-0'), true, 'Replacing a player releases their previous selection');
-  assert.equal(await hasOption('B', 2, 'player-2'), false);
-  await slot('A', 1).selectOption('');
-  assert.equal(await hasOption('B', 2, 'player-2'), true, 'Clearing a slot releases the player');
-  await slot('B', 2).selectOption('player-0');
-  assert.equal(await hasOption('A', 1, 'player-0'), false, 'Exclusivity works when selecting from Team 2');
+  await selectSlot('B', 1, 'player-1');
+  assert.equal(await isAvailable('A', 2, 'player-1'), false);
+  await selectSlot('A', 1, 'player-2');
+  assert.equal(await isAvailable('B', 2, 'player-0'), true, 'Replacing a player releases their previous selection');
+  assert.equal(await isAvailable('B', 2, 'player-2'), false);
+  await selectSlot('A', 1, '');
+  assert.equal(await isAvailable('B', 2, 'player-2'), true, 'Clearing a slot releases the player');
+  await selectSlot('B', 2, 'player-0');
+  assert.equal(await isAvailable('A', 1, 'player-0'), false, 'Exclusivity works when selecting from Team 2');
   await page.getByRole('button', { name: 'Cancel creation', exact: true }).click();
   await page.getByRole('textbox', { name: 'Search game days' }).fill('2026-11-08');
   assert.equal(await page.getByRole('button', { name: 'Open day', exact: true }).count(), 1);
@@ -273,7 +291,7 @@ try {
   await page.getByRole('combobox', { name: 'Day status' }).selectOption('all');
   await page.getByRole('button', { name: 'Create game day', exact: true }).click();
   await page.locator('input[type="date"]:visible').fill('2026-11-15');
-  for (const [teamIndex, team] of ['A', 'B'].entries()) for (let position = 1; position <= 6; position++) await slot(team, position).selectOption(`player-${teamIndex*6+position-1}`);
+  for (const [teamIndex, team] of ['A', 'B'].entries()) for (let position = 1; position <= 6; position++) await selectSlot(team, position, `player-${teamIndex*6+position-1}`);
   await page.getByRole('button', { name: 'Create day & code', exact: true }).click();
   await page.getByRole('textbox', { name: 'Game-day code', exact: true }).waitFor();
   assert.equal(await page.getByRole('textbox', { name: 'Game-day code', exact: true }).inputValue(), 'AB7K9');
@@ -288,13 +306,28 @@ try {
   await page.getByRole('button', { name: 'Save game day', exact: true }).click();
   await page.getByText('Game day updated.', { exact: true }).waitFor();
   await dayNav.getByRole('tab', { name: 'Lineup', exact: true }).click();
-  assert.equal(await slot('A', 1).inputValue(), 'player-0');
+  assert.equal(await slot('A', 1).inputValue(), 'Anderson · Fixed');
   await page.getByRole('textbox', { name: 'Team A name', exact: true }).fill('Red team');
-  await slot('A', 1).selectOption('player-12');
+  await selectSlot('A', 1, 'player-12');
+  await slot('B', 5).fill('Mejdi');
+  await page.getByRole('option', { name: '＋ Add player…', exact: true }).click();
+  let lineupAdd = page.getByRole('dialog', { name: 'Add player', exact: true });
+  await lineupAdd.getByRole('textbox', { name: 'Player name', exact: true }).fill('Mejdi');
+  await lineupAdd.getByRole('button', { name: 'Cancel', exact: true }).click();
+  assert.equal(await slot('B', 5).inputValue(), 'Omer · Fixed', 'Cancel preserves the occupied slot');
+  await slot('B', 5).fill('Mejdi');
+  await page.getByRole('option', { name: '＋ Add player…', exact: true }).click();
+  lineupAdd = page.getByRole('dialog', { name: 'Add player', exact: true });
+  await lineupAdd.getByRole('textbox', { name: 'Player name', exact: true }).fill('Mejdi');
+  await lineupAdd.getByRole('button', { name: 'Save player', exact: true }).click();
+  await lineupAdd.waitFor({ state: 'hidden' });
+  assert.equal(await slot('B', 5).inputValue(), 'Mejdi · Sub');
   await page.getByRole('textbox', { name: 'Reason for day change', exact: true }).fill('Adjust lineup');
   await page.getByRole('button', { name: 'Save lineup version', exact: true }).click();
-  await page.getByText('Changes saved.', { exact: true }).waitFor();
-  assert.equal(await slot('A', 1).inputValue(), 'player-12');
+  await page.getByText(/^Lineup saved\. The game-day code stays the same/).waitFor();
+  assert.equal(await slot('A', 1).inputValue(), 'Dimitri · Fixed');
+  assert.equal(await slot('B', 5).inputValue(), 'Mejdi · Sub', 'The substitute survives saving and refreshing the lineup');
+  await page.screenshot({ path: 'artifacts/admin-navigation/lineup-replacement-mobile.png', fullPage: true });
   await page.getByRole('button', { name: 'Back to game days', exact: true }).click();
   await page.getByRole('textbox', { name: 'Search game days' }).fill('Red team');
   assert.equal(await page.getByRole('button', { name: 'Open day', exact: true }).count(), 1);
