@@ -103,4 +103,35 @@ test('sync finalizes results atomically; administrators can search, edit and del
   assert.equal((await summary()).match_count,count-1);
   assert.ok((await q('select submission from private.day_receipts where id=$1',[sent.id])).rows[0].submission);
  });
+ await t.test('replacing a withdrawn player preserves the code and sync uses each device lineup snapshot', async () => {
+  const phillip = { id: randomUUID(), name: 'Phillip' }, mejdi = { id: randomUUID(), name: 'Mejdi' };
+  for (const player of [phillip, mejdi]) await rpc('save_group_player', [group.id, player.id, player.name, player === mejdi ? 'sub' : 'fixed', null]);
+  const registry = (await rpc('get_group_registry', [group.id])).players;
+  const initial = structuredClone(lineup);
+  for (const team of ['A', 'B']) initial[team].players = initial[team].players.map(player => ({ id: player.id, name: registry.find(p => p.id === player.id).name }));
+  initial.B.players[4] = phillip;
+  const created = await rpc('create_game_day', [group.id, '2026-11-10', initial]);
+  const redeem = () => rpc('redeem_day_code', [created.code], null, 'anon');
+  const oldContext = { ...await redeem(), code: created.code };
+  const updated = structuredClone(initial); updated.B.players[4] = mejdi;
+  await rpc('change_game_day', [created.day.id, created.day.version, 'lineup', updated, 'Phillip withdrew; Mejdi replaces him']);
+  const currentContext = { ...await redeem(), code: created.code };
+  assert.equal(currentContext.lineup_version, 2);
+  assert.deepEqual(currentContext.lineup.B.players[4], mejdi);
+  assert.deepEqual(oldContext.lineup.B.players[4], phillip);
+  const before = (await rpc('get_group_registry', [group.id])).players.length;
+  for (const [context, participant] of [[oldContext, phillip], [currentContext, mejdi]]) {
+   let state = applyDayLineup(enableCourtMode(createMatch()), context);
+   state = matchReducer(state, { type: 'point', team: 'B', playerId: 'p5' });
+   state = matchReducer(state, { type: 'closeSet' });
+   const source = receivedMatchPayload({ id: randomUUID(), formatVersion: 1, closedAt: '2026-11-11T01:00:00Z', state });
+   assert.equal((await rpc('receive_day_match', [created.code, source], null, 'anon')).published, true);
+   const saved = (await load(source.id)).payload;
+   assert.equal(saved.sets[0].points[0].player_id, participant.id);
+   assert.ok(saved.sets[0].rosters.B.some(player => player.id === participant.id));
+   assert.ok(!saved.sets[0].rosters.B.some(player => player.id === (participant === mejdi ? phillip.id : mejdi.id)));
+  }
+  assert.equal((await rpc('get_group_registry', [group.id])).players.length, before, 'Sync reuses the registered Sub identity');
+ });
+
 });

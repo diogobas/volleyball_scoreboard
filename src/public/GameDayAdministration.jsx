@@ -4,6 +4,7 @@ import MatchManager from '../components/MatchManager';
 import GameDayList from '../components/GameDayList';
 import PlayerRegistry from '../components/PlayerRegistry';
 import SectionNavigation from '../components/SectionNavigation';
+import DayLineupEditor from '../components/DayLineupEditor';
 import { dayRpc } from '../remote/gameDays';
 
 const emptyLineup = () => ({ A: { name: 'Team 1', players: Array(6).fill(null) }, B: { name: 'Team 2', players: Array(6).fill(null) } });
@@ -38,7 +39,7 @@ export default function GameDayAdministration({ client, group, view = 'days', on
     await run(async () => {
       const result = await rpc('change_game_day', { p_day_id: context.day.id, p_expected_version: context.day.version, p_action: action, p_lineup: action === 'lineup' ? lineup : null, p_reason: reason });
       setCode(result.code ?? ''); setReason(''); await refresh(context.day.id);
-      onRegistryChanged?.(); setMessage(action === 'close' ? 'Day closed.' : 'Changes saved.');
+      onRegistryChanged?.(); setMessage(action === 'close' ? 'Day closed.' : action === 'lineup' ? 'Lineup saved. The game-day code stays the same. Load it again on the scoreboard before starting a new match to use this lineup.' : 'Changes saved.');
     });
   }
   function openDay(day, section) {
@@ -84,7 +85,8 @@ export default function GameDayAdministration({ client, group, view = 'days', on
       <TextField type="date" label="Date" value={date} disabled={busy} onChange={e => setDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} /></>}
     </>}
     {((!context && creating) || (context && dayView === 'lineup')) && <>
-      <LineupEditor lineup={lineup} players={players} disabled={busy || context?.day.state === 'closed'} onChange={setLineup} />
+      <DayLineupEditor lineup={lineup} players={players} client={client} groupId={group.id} disabled={busy || context?.day.state === 'closed'} onChange={setLineup}
+        onPlayerAdded={player => { setPlayers(previous => [...previous.filter(p => p.id !== player.id), player]); onRegistryChanged?.(); }} />
       {!context && <Button variant="contained" disabled={busy} onClick={() => run(async () => {
         const result = await rpc('create_game_day', { p_group_id: group.id, p_date: date, p_lineup: lineup }); setCode(result.code); setCreating(false); setDayView('publish'); await refresh(result.day.id);
       })}>Create day &amp; code</Button>}
@@ -134,16 +136,4 @@ export default function GameDayAdministration({ client, group, view = 'days', on
         })}>Delete day</Button></DialogActions>
     </Dialog>
   </Stack></Box>;
-}
-
-function LineupEditor({ lineup, players, disabled, onChange }) {
-  const selectedIds = new Set(['A', 'B'].flatMap(team => lineup[team].players.map(player => player?.id).filter(Boolean)));
-  return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>{['A','B'].map(team => <Stack key={team} spacing={1}>
-    <TextField label={`Team ${team} name`} value={lineup[team].name} disabled={disabled} onChange={e => onChange({ ...lineup, [team]: { ...lineup[team], name: e.target.value } })} slotProps={{ htmlInput: { maxLength: 16 } }} />
-    {lineup[team].players.map((person, position) => <TextField key={position} select label={`Team ${team} · Player ${position+1}`} value={person?.id ?? ''} disabled={disabled} slotProps={{ select: { native: true }, inputLabel: { shrink: true } }} onChange={e => {
-      const selected = players.find(p => p.id === e.target.value);
-      if (selected && selected.id !== person?.id && selectedIds.has(selected.id)) return;
-      onChange({ ...lineup, [team]: { ...lineup[team], players: lineup[team].players.map((p, i) => i === position ? selected ? { id: selected.id, name: selected.name } : null : p) } });
-    }}><option value="">Select player</option>{players.filter(p => p.id === person?.id || !selectedIds.has(p.id)).map(p => <option key={p.id} value={p.id}>{p.name}{p.category === 'fixed' ? ' · Fixed' : ' · Sub'}</option>)}</TextField>)}
-  </Stack>)}</Box>;
 }
