@@ -224,13 +224,15 @@ pnpm run format
 
 O último comando aplica a formatação. Prettier cobre `src`, configurações de ferramentas e o workflow CI; arquivos nativos, artefatos, scripts operacionais e documentação histórica ficam fora desse comando.
 
-TypeScript usa `strict: true`, `allowJs: true` e `checkJs: false` durante a migração: todo o código de `src` já é TypeScript e passa pela checagem estrita. O suporte temporário a JavaScript será removido na consolidação da Fase 4. `vite.config.ts` já é checado, e `src/vite-env.d.ts` declara as variáveis públicas do Vite. Ambos os builds executam `typecheck` antes de compilar.
+TypeScript usa `strict: true`, `allowJs: false` e `noEmit: true`. Todo o código de `src` usa `.ts`/`.tsx`; ESLint rejeita arquivos `.js`/`.jsx` nessa pasta. `vite.config.ts` também passa pela checagem de tipos. Configurações, scripts operacionais e testes SQL fora de `src` podem continuar em JavaScript. Ambos os builds executam `typecheck` antes de compilar.
 
 ESLint exige regras de hooks e dependências de efeitos completas em todo `src`, arrow functions, imports de tipos explícitos, ausência de `any` explícito e variáveis não utilizadas.
 
-A implementação é validada em quatro fases: ferramentas; organização e App; restante de `src`; consolidação. As Fases 1 e 2 foram validadas. A Fase 3 aguarda revisão pelo [roteiro das páginas, domínio e acesso remoto](docs/testing-modernization-phase-3.md). A Fase 4 só começa após aprovação explícita. Consulte também os resultados das [Fases 1](docs/testing-modernization-phase-1.md) e [2](docs/testing-modernization-phase-2.md).
+As Fases 1, 2 e 3 foram validadas e integradas a `feat/code-modernization`. A Fase 4 está entregue para [validação final da consolidação](docs/testing-modernization-phase-4.md). O merge da etapa na feature branch e a decisão sobre integrar a modernização em `master` aguardam aprovação explícita; não há publicação automática. Consulte também os resultados das [Fases 1](docs/testing-modernization-phase-1.md), [2](docs/testing-modernization-phase-2.md) e [3](docs/testing-modernization-phase-3.md).
 
 ### Organização do código
+
+As [convenções de componentes, hooks, tipos e testes](docs/code-conventions.md) orientam novas alterações.
 
 ```text
 src/
@@ -246,6 +248,8 @@ src/
   hooks/
   game/
   remote/
+  public/
+  routes/
 ```
 
 Páginas coordenam telas e navegação; componentes recebem dados e callbacks tipados; hooks cuidam de estado e efeitos. `game` conserva regras e persistência, e `remote` conserva acesso ao servidor. Componentes possuem pasta própria, implementação `.tsx`, interfaces de props e exportações nomeadas em `index.ts`. Use arrow functions, imports de tipos explícitos e nomes que descrevam a responsabilidade. Extraia componentes por propósito, reutilização ou complexidade; use MUI diretamente quando suficiente.
@@ -256,7 +260,7 @@ Páginas coordenam telas e navegação; componentes recebem dados e callbacks ti
 
 As regras e a persistência ficam em `game/*.ts`, com contratos em `game/types.ts` e `registryTypes.ts`. `remote/models.ts` descreve dados das RPCs; `remote/transport.ts` concentra a tipagem do transporte e dos resultados por endpoint. A validação dos dados e confirmações continua nos serviços, incluindo transações e bloqueios de uploads. `public` reúne rotas e projeções de apresentação. Testes de `src` usam `.test.ts`/`.test.tsx` e continuam em `node:test`, executados com `tsx`; testes SQL e scripts operacionais externos a `src` podem permanecer JavaScript.
 
-Os hooks podem ser testados isoladamente com `pnpm run test:hooks`; esses testes também fazem parte de `pnpm test`. Eles usam React Testing Library, jsdom e IndexedDB simulado. Os testes de navegador usam `playwright-core` local e o Google Chrome instalado.
+Os hooks podem ser testados isoladamente com `pnpm run test:hooks`; esses testes também fazem parte de `pnpm test`. Eles usam React Testing Library, jsdom e IndexedDB simulado. Os testes de navegador usam `playwright-core` local e o Google Chrome instalado. `pnpm run test:build:browser` verifica também as entradas dos builds normal/público, carregamento de páginas e recuperação após falha de um chunk; use os dois previews conforme o [roteiro da Fase 4](docs/testing-modernization-phase-4.md).
 
 ## Verificar e gerar o build
 
