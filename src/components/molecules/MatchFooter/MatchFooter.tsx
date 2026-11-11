@@ -1,5 +1,5 @@
-import { Box, Button, Typography } from '@mui/material';
 import RestartAltRounded from '@mui/icons-material/RestartAltRounded';
+import { Box, Button, Typography } from '@mui/material';
 import { PrivacyLink } from '../../atoms/PrivacyLink';
 
 export interface MatchFooterProps {

@@ -1,11 +1,11 @@
 import { Box, Chip, Stack, Typography } from '@mui/material';
-import { matchResult } from '../../../game/matchResult';
-import { ScorePanel } from '../../molecules/ScorePanel';
-import { TeamRoster } from '../TeamRoster';
-import { MatchStatistics } from '../MatchStatistics';
 import type { RefObject } from 'react';
+import { matchResult } from '../../../game/matchResult';
 import type { MatchAction, MatchState, TeamId } from '../../../game/types';
 import type { MatchView } from '../../molecules/MatchViewTabs';
+import { ScorePanel } from '../../molecules/ScorePanel';
+import { MatchStatistics } from '../MatchStatistics';
+import { TeamRoster } from '../TeamRoster';
 
 export interface ScoreboardCourtProps {
   state: MatchState;

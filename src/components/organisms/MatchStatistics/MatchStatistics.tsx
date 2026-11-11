@@ -1,7 +1,7 @@
-import { matchResult } from '../../../game/matchResult';
 import { matchPlayerStats, setRanking, teamMatchPlayers } from '../../../game/match';
-import { StatisticsView } from '../StatisticsView';
+import { matchResult } from '../../../game/matchResult';
 import type { MatchState, TeamId } from '../../../game/types';
+import { StatisticsView } from '../StatisticsView';
 
 export interface MatchStatisticsProps {
   state: MatchState;

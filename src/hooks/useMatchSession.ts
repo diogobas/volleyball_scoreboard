@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { enableCourtMode } from '../game/match';
 import { loadStoredMatch, openMatchDatabase } from '../game/storage';
-import { closeDayDatabaseWhenUploadsFinish } from '../remote/gameDays';
 import type { MatchState } from '../game/types';
+import { closeDayDatabaseWhenUploadsFinish } from '../remote/gameDays';
 
 export interface MatchSessionServices {
   open: () => Promise<IDBDatabase>;

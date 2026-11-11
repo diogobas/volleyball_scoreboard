@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   Alert,
   Button,
@@ -8,10 +7,11 @@ import {
   DialogContentText,
   DialogTitle,
 } from '@mui/material';
+import { useState } from 'react';
+import type { DayContext, MatchState } from '../../../game/types';
 import { useOnlineStatus } from '../../../hooks/useOnlineStatus';
 import { DayCodeDialog } from '../DayCodeDialog';
 import { MatchSummary } from '../MatchSummary';
-import type { DayContext, MatchState } from '../../../game/types';
 
 export interface CloseMatchDialogProps {
   state: MatchState;

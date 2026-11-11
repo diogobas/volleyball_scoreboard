@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { createMatch, enableCourtMode, matchReducer } from '../src/game/match.js';
-import { applyDayLineup, receivedMatchPayload } from '../src/game/gameDay.js';
+import { createMatch, enableCourtMode, matchReducer } from '../src/game/match';
+import { applyDayLineup, receivedMatchPayload } from '../src/game/gameDay';
 
 test('season periods filter complete statistics and finalized results cannot be removed', async t => {
   const db = new PGlite(); t.after(() => db.close());

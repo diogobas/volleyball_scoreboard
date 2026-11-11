@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { listStoredMatches } from '../game/storage';
-import { uploadReceivedMatch } from '../remote/gameDays';
 import { errorMessage } from '../game/errors';
+import { listStoredMatches } from '../game/storage';
 import type { StoredMatch } from '../game/types';
+import { uploadReceivedMatch } from '../remote/gameDays';
 import type { MatchUploadReceipt } from '../remote/types';
 
 export interface SavedMatchesServices {

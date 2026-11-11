@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { createMatch, enableCourtMode, matchReducer, restoreMatch } from '../src/game/match.js';
-import { applyDayLineup, receivedMatchPayload } from '../src/game/gameDay.js';
-import { reconcileSubmission } from '../src/public/reconciliation.js';
+import { createMatch, enableCourtMode, matchReducer, restoreMatch } from '../src/game/match';
+import { applyDayLineup, receivedMatchPayload } from '../src/game/gameDay';
+import { reconcileSubmission } from '../src/public/reconciliation';
 
 test('game-day receipts, private reviews, atomic publication and legacy migration', async t => {
   const db = new PGlite(); t.after(() => db.close());

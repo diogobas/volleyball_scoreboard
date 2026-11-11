@@ -1,32 +1,34 @@
-import { useRef, useState } from 'react';
-import type { SyntheticEvent } from 'react';
 import { Box } from '@mui/material';
-import { TEAM_IDS } from '../../game/match';
-import { errorMessage } from '../../game/errors';
-import type { DayContext, MatchState, TeamId } from '../../game/types';
-import { useMatchController } from '../../hooks/useMatchController';
-import { useSavedMatches } from '../../hooks/useSavedMatches';
-import { MatchNotices } from '../../components/molecules/MatchNotices';
-import { MatchSetup } from '../../components/molecules/MatchSetup';
-import { MatchFooter } from '../../components/molecules/MatchFooter';
-import { MatchViewTabs } from '../../components/molecules/MatchViewTabs';
-import type { MatchView } from '../../components/molecules/MatchViewTabs';
-import { MatchConfirmationDialog } from '../../components/molecules/MatchConfirmationDialog';
+import type { SyntheticEvent } from 'react';
+import { useRef, useState } from 'react';
 import type { MatchConfirmation } from '../../components/molecules/MatchConfirmationDialog';
-import { ScoreboardCourt } from '../../components/organisms/ScoreboardCourt';
+import { MatchConfirmationDialog } from '../../components/molecules/MatchConfirmationDialog';
+import { MatchFooter } from '../../components/molecules/MatchFooter';
+import { MatchNotices } from '../../components/molecules/MatchNotices';
+import { MatchSessionStatus } from '../../components/molecules/MatchSessionStatus';
+import { MatchSetup } from '../../components/molecules/MatchSetup';
+import type { MatchView } from '../../components/molecules/MatchViewTabs';
+import { MatchViewTabs } from '../../components/molecules/MatchViewTabs';
+import { CloseMatchDialog } from '../../components/organisms/CloseMatchDialog';
+import { DayCodeDialog } from '../../components/organisms/DayCodeDialog';
+import { EditTeamsDialog } from '../../components/organisms/EditTeamsDialog';
 import { MatchActions } from '../../components/organisms/MatchActions';
 import { MatchHistory } from '../../components/organisms/MatchHistory';
-import { EditTeamsDialog } from '../../components/organisms/EditTeamsDialog';
-import { DayCodeDialog } from '../../components/organisms/DayCodeDialog';
 import { SavedMatchesDialog } from '../../components/organisms/SavedMatchesDialog';
-import { CloseMatchDialog } from '../../components/organisms/CloseMatchDialog';
+import { ScoreboardCourt } from '../../components/organisms/ScoreboardCourt';
+import { errorMessage } from '../../game/errors';
+import { TEAM_IDS } from '../../game/match';
+import type { DayContext, MatchState, TeamId } from '../../game/types';
+import { useMatchController } from '../../hooks/useMatchController';
+import { useMatchSession } from '../../hooks/useMatchSession';
+import { useSavedMatches } from '../../hooks/useSavedMatches';
 
-export interface ScoreboardPageProps {
+interface ScoreboardContentProps {
   database: IDBDatabase;
   initialState: MatchState;
 }
 
-export const ScoreboardPage = ({ database, initialState }: ScoreboardPageProps) => {
+const ScoreboardContent = ({ database, initialState }: ScoreboardContentProps) => {
   const match = useMatchController(database, initialState);
   const savedMatches = useSavedMatches(database);
   const courtRef = useRef<HTMLDivElement>(null);
@@ -169,4 +171,10 @@ export const ScoreboardPage = ({ database, initialState }: ScoreboardPageProps) 
       />
     </Box>
   );
+};
+
+export const ScoreboardPage = () => {
+  const { session, error, retry } = useMatchSession();
+  if (error || !session) return <MatchSessionStatus error={error} onRetry={retry} />;
+  return <ScoreboardContent database={session.database} initialState={session.state} />;
 };
