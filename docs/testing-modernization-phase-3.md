@@ -28,7 +28,7 @@ pnpm run build:public
 - 262 testes aprovados, sem falhas ou testes ignorados: 257 existentes e cinco novos testes de hooks de sessão/navegação/resultados.
 - Tipos, lint e formatação aprovados; os quatro avisos de hooks antes existentes foram resolvidos sem desativar regras.
 - Builds do app e público aprovados. Permanece o aviso já existente de chunk acima de 500 kB. Com imports convencionais nos serviços, o código do SDK Supabase passa a compor o pacote inicial; a criação dos clientes continua sob demanda.
-- Os quatro fluxos de navegador passaram no Google Chrome: quadra, resultados públicos, administração e comunidades, com todas as chamadas externas simuladas.
+- Os quatro fluxos de navegador passaram no Google Chrome: quadra, resultados públicos, administração e comunidades, com todas as chamadas externas simuladas. O fluxo de quadra também verifica título, mensagem e botões durante toda a animação ao cancelar, pressionar Escape ou confirmar Close set; os cancelamentos preservam o placar.
 - Não foram executados deploys, migrações remotas ou merges. Validação nativa/Android e em aparelhos pertence à Fase 4.
 
 Os novos testes verificam restauração/assinatura de sessão, troca de conta, limpeza após desmontagem, mensagens de falha, navegação por hash, respostas obsoletas e repetição de consultas preservando os últimos dados recebidos. A suíte existente continua cobrindo regras, IndexedDB e falhas de transações, concorrência de uploads, contratos Supabase e permissões SQL.

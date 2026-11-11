@@ -6,6 +6,7 @@ import {
   DialogContentText,
   DialogTitle,
 } from '@mui/material';
+import { useState } from 'react';
 import { teamScore } from '../../../game/match';
 import type { MatchState, TeamId } from '../../../game/types';
 
@@ -25,10 +26,25 @@ export const MatchConfirmationDialog = ({
   onCancel,
   onConfirm,
 }: MatchConfirmationDialogProps) => {
-  const closing = confirmation === 'closeSet';
-  const [leftTeam, rightTeam] = teamOrder.map((id) => state.teams[id]);
-  const scoreA = teamScore(state.teams.A);
-  const scoreB = teamScore(state.teams.B);
+  const [display, setDisplay] = useState({
+    confirmation: confirmation ?? 'closeSet',
+    state,
+    teamOrder,
+  });
+  // Keep the last open content while MUI animates the dialog out. Update during
+  // render so a newly opened confirmation displays the right content immediately.
+  if (
+    confirmation !== null &&
+    (display.confirmation !== confirmation ||
+      display.state !== state ||
+      display.teamOrder !== teamOrder)
+  ) {
+    setDisplay({ confirmation, state, teamOrder });
+  }
+  const closing = display.confirmation === 'closeSet';
+  const [leftTeam, rightTeam] = display.teamOrder.map((id) => display.state.teams[id]);
+  const scoreA = teamScore(display.state.teams.A);
+  const scoreB = teamScore(display.state.teams.B);
   return (
     <Dialog
       open={confirmation === 'closeSet' || confirmation === 'reset'}
@@ -37,7 +53,7 @@ export const MatchConfirmationDialog = ({
       aria-describedby="confirm-message"
     >
       <DialogTitle id="confirm-title">
-        {closing ? `Close set ${state.currentSet}?` : 'Reset match?'}
+        {closing ? `Close set ${display.state.currentSet}?` : 'Reset match?'}
       </DialogTitle>
       <DialogContent>
         <DialogContentText id="confirm-message">
