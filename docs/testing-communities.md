@@ -31,8 +31,8 @@ These pages are public to anyone with the corresponding community or group refer
 
 ## Validation
 
-- `npm test` executes real PostgreSQL semantics through PGlite. Community coverage includes migration preservation, owner bootstrap, inherited permissions, sibling/cross-community denials, player import/retry/restore/conflict/rollback, revocation, confirmed accounts, direct-table RLS and public-only publication filters.
-- `npm run test:communities:browser` verifies the private-directory landing, public community/group navigation, community group creation, adding an existing player and the group-only administrator experience with fixtures.
+- `pnpm test` executes real PostgreSQL semantics through PGlite. Community coverage includes migration preservation, owner bootstrap, inherited permissions, sibling/cross-community denials, player import/retry/restore/conflict/rollback, revocation, confirmed accounts, direct-table RLS and public-only publication filters.
+- `pnpm run test:communities:browser` verifies the private-directory landing, public community/group navigation, community group creation, adding an existing player and the group-only administrator experience with fixtures.
 - Existing admin, public and court browser checks cover the shared components and offline/sync flow.
-- Build both `npm run build` and `npm run build:public`.
-- After deployment, `COMMUNITY_REF=C-1 npm run verify:remote` checks the scoped public RPCs and rejects global anonymous table reads. It performs no writes.
+- Build both `pnpm run build` and `pnpm run build:public`.
+- After deployment, `COMMUNITY_REF=C-1 pnpm run verify:remote` checks the scoped public RPCs and rejects global anonymous table reads. It performs no writes.

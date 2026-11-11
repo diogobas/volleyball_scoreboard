@@ -1,0 +1,1 @@
+export { ScoreboardPage } from './ScoreboardPage';

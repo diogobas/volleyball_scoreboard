@@ -15,8 +15,8 @@ The remote migration has not been applied from this workspace; only a public Sup
 
 ## Verification
 
-- `npm test`: 177 tests passed, including PostgreSQL integration coverage for access permissions, cross-group rejection, duplicate dates, invalid input, stale versions, preserved code/lineup/statistics on date edits, deletion of an actual published day, public-total removal, old-code rejection, deletion retry, retained player registry/other day and private deletion metadata permissions.
-- `npm run test:admin:browser`: mocked creation with twelve distinct players, five-character code display, date/team search, status filters, duplicate-date feedback, date editing, lineup changes, search retention after return, deletion cancellation/confirmation and mobile layout. No real group/account changes.
-- `npm run build` and `npm run build:public`.
+- `pnpm test`: 177 tests passed, including PostgreSQL integration coverage for access permissions, cross-group rejection, duplicate dates, invalid input, stale versions, preserved code/lineup/statistics on date edits, deletion of an actual published day, public-total removal, old-code rejection, deletion retry, retained player registry/other day and private deletion metadata permissions.
+- `pnpm run test:admin:browser`: mocked creation with twelve distinct players, five-character code display, date/team search, status filters, duplicate-date feedback, date editing, lineup changes, search retention after return, deletion cancellation/confirmation and mobile layout. No real group/account changes.
+- `pnpm run build` and `pnpm run build:public`.
 
 Browser tests use `BASE_URL` and `PLAYWRIGHT_MODULE`. The game-day list screenshot is in ignored `artifacts/admin-navigation/game-days-mobile.png`.

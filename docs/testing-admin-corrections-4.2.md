@@ -5,7 +5,7 @@ Branch: `feat/public-stats-admin`. As correções ficam na página web, dentro d
 ## Preparação
 
 1. No projeto Supabase existente, abra **SQL Editor → New query** e execute todo o arquivo [20261106000500_administrative_corrections.sql](../supabase/migrations/20261106000500_administrative_corrections.sql). Resultado esperado: sucesso sem linhas retornadas. As quatro migrações anteriores precisam estar aplicadas. Não as execute novamente.
-2. Na branch indicada, execute `npm ci` e `npm run dev`, mantendo o `.env.local` já configurado. Abra a página pública em `/#/groups`, escolha seu grupo e use **View match** em uma partida de teste.
+2. Na branch indicada, execute `pnpm install --frozen-lockfile` e `pnpm run dev`, mantendo o `.env.local` já configurado. Abra a página pública em `/#/groups`, escolha seu grupo e use **View match** em uma partida de teste.
 3. Use uma conta já cadastrada e autorizada como administradora desse grupo. A página tem seu próprio login administrativo, usando as mesmas contas e permissões do Supabase; entrar/sair dessas ferramentas não encerra a conta do placar. A consulta pública continua anônima e não recebe a sessão administrativa.
 
 Não há configuração de credenciais administrativas no código, publicação ou novo banco local nesta entrega. O SQL preserva a assinatura de envio usada pelas versões anteriores do aplicativo, compartilhando a validação do conteúdo com as correções.

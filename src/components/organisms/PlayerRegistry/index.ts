@@ -1,0 +1,1 @@
+export { PlayerRegistry } from './PlayerRegistry';

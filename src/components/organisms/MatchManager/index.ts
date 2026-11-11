@@ -1,0 +1,1 @@
+export { MatchManager } from './MatchManager';

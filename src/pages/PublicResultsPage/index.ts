@@ -1,0 +1,1 @@
+export { PublicResultsPage } from './PublicResultsPage';

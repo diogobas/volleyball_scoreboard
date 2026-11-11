@@ -4,7 +4,7 @@ Branch: `feat/groups-player-rosters`.
 
 ## Preparação
 
-1. Execute `npm ci`, `npm test` e `npm run dev`.
+1. Execute `pnpm install --frozen-lockfile`, `pnpm test` e `pnpm run dev`.
 2. Use o mesmo navegador/endereço/porta das versões anteriores. Não limpe dados nem desinstale o app.
 3. Abra **History**: o resumo **Season statistics** deve aparecer acima da lista, com grupo, fuso, seletor de ano e colunas **Player, Points, Matches, Wins, Days**.
 4. Use um perfil separado se quiser conferir os números abaixo partindo de zero. Cadastre 12 pessoas e associe a escalação em **Teams & players**; cadastre uma 13ª pessoa para testar substituição.
@@ -56,7 +56,7 @@ Branch: `feat/groups-player-rosters`.
 2. Troque de aba e volte; os números devem permanecer iguais, sem somar a mesma partida novamente.
 3. Reative a conexão para recarregar a versão web servida pelo Vite. No aplicativo nativo, encerre e reabra ainda offline. A tabela deve manter os mesmos totais.
 4. Em telas estreitas, deslize a tabela horizontalmente para conferir todas as colunas; a página inteira não deve ficar mais larga que a tela.
-5. Para Android/iOS, execute `npm run android:sync` ou `npm run ios:sync` e compile mantendo a instalação existente. Repita consulta, fechamento offline e reabertura.
+5. Para Android/iOS, execute `pnpm run android:sync` ou `pnpm run ios:sync` e compile mantendo a instalação existente. Repita consulta, fechamento offline e reabertura.
 
 ## Critério de aprovação
 

@@ -21,7 +21,7 @@ config = json.loads(probe.stdout) if not probe.returncode else None
 if config and config.get('source', {}).get('branch') != 'gh-pages':
     raise SystemExit('Pages already uses another source; check its configuration before switching.')
 
-run('npm', 'run', 'build:public')
+run('pnpm', 'run', 'build:public')
 with tempfile.TemporaryDirectory(prefix='volleyball-pages-') as directory:
     target = pathlib.Path(directory)
     run('git', 'init', '-b', 'gh-pages', cwd=target)

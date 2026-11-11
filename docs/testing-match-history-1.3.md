@@ -4,7 +4,7 @@ Branch: `feat/local-match-history`.
 
 ## Preparação
 
-1. Execute `npm ci`, `npm test` e `npm run dev`.
+1. Execute `pnpm install --frozen-lockfile`, `pnpm test` e `pnpm run dev`.
 2. Abra no mesmo navegador, endereço e porta das subfases anteriores para consultar as partidas já salvas.
 3. Não limpe os dados nem desinstale o aplicativo. Para testar a lista vazia ou simular falhas, use outro perfil do navegador.
 
@@ -53,7 +53,7 @@ IDBDatabase.prototype.transaction = function (...args) {
 
 ## Android e iOS
 
-1. Execute `npm run android:sync` ou `npm run ios:sync` e compile/instale mantendo a instalação e o identificador existentes.
+1. Execute `pnpm run android:sync` ou `pnpm run ios:sync` e compile/instale mantendo a instalação e o identificador existentes.
 2. Repita a consulta de partidas antigas, o fechamento de duas partidas offline, a abertura de detalhes e a reabertura do aplicativo.
 3. Confira o uso em retrato e paisagem, com nomes longos, sem cortes que impeçam consultar os dados.
 
