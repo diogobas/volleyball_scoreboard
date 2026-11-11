@@ -1,8 +1,8 @@
-import { Box, Button, Typography } from '@mui/material';
-import UndoRounded from '@mui/icons-material/UndoRounded';
-import EditOutlined from '@mui/icons-material/EditOutlined';
 import CheckRounded from '@mui/icons-material/CheckRounded';
+import EditOutlined from '@mui/icons-material/EditOutlined';
 import SwapHorizRounded from '@mui/icons-material/SwapHorizRounded';
+import UndoRounded from '@mui/icons-material/UndoRounded';
+import { Box, Button, Typography } from '@mui/material';
 import { canCloseMatch, teamScore } from '../../../game/match';
 import type { MatchAction, MatchState } from '../../../game/types';
 import type { MatchView } from '../../molecules/MatchViewTabs';

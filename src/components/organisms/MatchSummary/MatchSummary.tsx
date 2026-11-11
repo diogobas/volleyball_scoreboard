@@ -1,6 +1,6 @@
 import { Box, Stack, Typography } from '@mui/material';
+import { TEAM_IDS, teamMatchPlayers } from '../../../game/match';
 import { matchResult } from '../../../game/matchResult';
-import { teamMatchPlayers, TEAM_IDS } from '../../../game/match';
 import type { MatchState } from '../../../game/types';
 
 export interface MatchSummaryProps {

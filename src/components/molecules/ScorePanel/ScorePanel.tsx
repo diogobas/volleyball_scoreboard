@@ -1,7 +1,7 @@
 import { Box, Typography } from '@mui/material';
-import { teamColors } from '../../../theme';
 import { teamScore } from '../../../game/match';
 import type { Team, TeamId } from '../../../game/types';
+import { teamColors } from '../../../theme';
 
 export interface ScorePanelProps {
   id: TeamId;

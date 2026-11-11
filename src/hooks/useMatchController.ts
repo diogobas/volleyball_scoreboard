@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { matchReducer } from '../game/match';
-import { applyDayLineup, startIndependentMatch } from '../game/gameDay';
-import { closeStoredMatch, createLocalId, saveStoredMatch } from '../game/storage';
 import { errorMessage } from '../game/errors';
+import { applyDayLineup, startIndependentMatch } from '../game/gameDay';
+import { matchReducer } from '../game/match';
+import { closeStoredMatch, createLocalId, saveStoredMatch } from '../game/storage';
 import type {
   CloseMatchOptions,
   DayContext,

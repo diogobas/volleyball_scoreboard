@@ -1,8 +1,7 @@
-import './testEnvironment';
-import assert from 'node:assert/strict';
-import { afterEach, test } from 'node:test';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { IDBFactory } from 'fake-indexeddb';
+import assert from 'node:assert/strict';
+import { afterEach, test } from 'node:test';
 import { createMatch, enableCourtMode, matchReducer } from '../game/match';
 import {
   closeStoredMatch,
@@ -11,15 +10,16 @@ import {
   openMatchDatabase,
   saveStoredMatch,
 } from '../game/storage';
-import { closeDayDatabaseWhenUploadsFinish } from '../remote/gameDays';
-import { useMatchSession } from './useMatchSession';
-import type { MatchSessionServices } from './useMatchSession';
-import { useMatchController } from './useMatchController';
-import type { MatchControllerServices } from './useMatchController';
-import { useSavedMatches } from './useSavedMatches';
-import type { SavedMatchesServices } from './useSavedMatches';
-import { useOnlineStatus } from './useOnlineStatus';
 import type { DayContext, MatchState, StoredMatch } from '../game/types';
+import { closeDayDatabaseWhenUploadsFinish } from '../remote/gameDays';
+import './testEnvironment';
+import type { MatchControllerServices } from './useMatchController';
+import { useMatchController } from './useMatchController';
+import type { MatchSessionServices } from './useMatchSession';
+import { useMatchSession } from './useMatchSession';
+import { useOnlineStatus } from './useOnlineStatus';
+import type { SavedMatchesServices } from './useSavedMatches';
+import { useSavedMatches } from './useSavedMatches';
 
 const connections: IDBDatabase[] = [];
 afterEach(() => {

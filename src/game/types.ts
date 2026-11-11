@@ -101,10 +101,10 @@ export interface RankedPlayer {
 }
 
 export interface SetScore {
-  scoreA?: number;
-  scoreB?: number;
-  score_a?: number;
-  score_b?: number;
+  scoreA?: number | string;
+  scoreB?: number | string;
+  score_a?: number | string;
+  score_b?: number | string;
   early_finish?: boolean;
 }
 
@@ -132,3 +132,5 @@ export interface CloseMatchOptions {
   closedAt?: string;
   dayContext?: DayContext | null;
 }
+
+export type MatchSnapshot = Omit<MatchArchive, 'syncStatus' | 'unavailable'>;

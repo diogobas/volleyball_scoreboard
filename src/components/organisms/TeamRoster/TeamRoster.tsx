@@ -1,6 +1,6 @@
 import { Box, ButtonBase, Chip } from '@mui/material';
-import { teamColors } from '../../../theme';
 import type { Team, TeamId } from '../../../game/types';
+import { teamColors } from '../../../theme';
 
 const playerNames = new Intl.Collator('pt', { sensitivity: 'base', numeric: true });
 export interface TeamRosterProps {

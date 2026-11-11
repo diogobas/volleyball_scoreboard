@@ -7,4 +7,5 @@ export interface MatchUploadReceipt {
 export interface MatchUploadState {
   state: 'sending' | 'failed' | 'interrupted';
   error?: string;
+  attemptedAt?: string;
 }

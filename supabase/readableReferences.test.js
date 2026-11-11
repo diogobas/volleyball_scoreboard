@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { createMatch, enableCourtMode, matchReducer } from '../src/game/match.js';
-import { applyDayLineup, receivedMatchPayload } from '../src/game/gameDay.js';
+import { createMatch, enableCourtMode, matchReducer } from '../src/game/match';
+import { applyDayLineup, receivedMatchPayload } from '../src/game/gameDay';
 
 const migration = '20261108000200_readable_codes_and_references.sql';
 test('readable references and short game-day codes preserve existing identities and capabilities', async t => {

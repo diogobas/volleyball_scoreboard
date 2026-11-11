@@ -1,3 +1,4 @@
+import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
 import {
   Accordion,
   AccordionDetails,
@@ -8,9 +9,8 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
-import { teamColors } from '../../../theme';
 import type { RankedPlayer, TeamId, TeamMap } from '../../../game/types';
+import { teamColors } from '../../../theme';
 
 export interface StatisticsSet {
   setNumber: number;

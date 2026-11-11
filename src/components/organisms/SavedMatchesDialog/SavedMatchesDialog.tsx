@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import {
   Alert,
   Button,
@@ -10,15 +9,16 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import { useEffect, useState } from 'react';
 import { errorMessage } from '../../../game/errors';
-import { listStoredMatches } from '../../../game/storage';
 import { bindSavedMatch } from '../../../game/gameDay';
+import { listStoredMatches } from '../../../game/storage';
+import type { StoredMatch } from '../../../game/types';
 import { uploadReceivedMatch } from '../../../remote/gameDays';
 import { deleteSavedMatch, readMatchUploadStates } from '../../../remote/matchUploadState';
-import { MatchSummary } from '../MatchSummary';
-import { DayCodeDialog } from '../DayCodeDialog';
-import type { StoredMatch } from '../../../game/types';
 import type { MatchUploadState } from '../../../remote/types';
+import { DayCodeDialog } from '../DayCodeDialog';
+import { MatchSummary } from '../MatchSummary';
 
 export interface SavedMatchesDialogProps {
   database: IDBDatabase;

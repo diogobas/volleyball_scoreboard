@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   Alert,
   Button,
@@ -10,11 +9,12 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { TEAM_IDS } from '../../../game/match';
-import { errorMessage } from '../../../game/errors';
-import { redeemDayCode } from '../../../remote/gameDays';
 import type { SubmitEvent } from 'react';
+import { useState } from 'react';
+import { errorMessage } from '../../../game/errors';
+import { TEAM_IDS } from '../../../game/match';
 import type { DayContext } from '../../../game/types';
+import { redeemDayCode } from '../../../remote/gameDays';
 
 export interface DayCodeDialogProps {
   onClose: () => void;

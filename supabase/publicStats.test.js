@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { createMatch, matchReducer, matchRoster } from '../src/game/match.js';
-import { assignMatchPlayers } from '../src/game/registry.js';
-import { seasonStatistics } from '../src/game/seasons.js';
-import { matchPayload } from '../src/remote/matchPayload.js';
+import { createMatch, matchReducer, matchRoster } from '../src/game/match';
+import { assignMatchPlayers } from '../src/game/registry';
+import { seasonStatistics } from '../src/game/seasons';
+import { matchPayload } from '../src/remote/matchPayload';
 
 test('anonymous public statistics use confirmed relational data and match the approved rules', async t => {
   const database = new PGlite(); t.after(() => database.close());

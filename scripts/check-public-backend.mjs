@@ -1,5 +1,5 @@
 import { loadEnv } from 'vite';
-import { readSupabaseConfig } from '../src/remote/config.js';
+import { readSupabaseConfig } from '../src/remote/config';
 
 const config = readSupabaseConfig(loadEnv('production', process.cwd(), 'VITE_SUPABASE_'));
 if (!config.configured) throw new Error('Configure the Supabase public URL/key before checking the release.');

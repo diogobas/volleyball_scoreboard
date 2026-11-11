@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { editPoint, removeEmptySet, removePoint, replaceParticipant, splitSet } from '../src/public/corrections.js';
+import { editPoint, removeEmptySet, removePoint, replaceParticipant, splitSet } from '../src/public/corrections';
 
 test('administrative corrections are atomic, versioned, audited and isolated from immutable uploads', async t => {
   const db = new PGlite(); t.after(() => db.close());

@@ -224,18 +224,21 @@ pnpm run format
 
 O último comando aplica a formatação. Prettier cobre `src`, configurações de ferramentas e o workflow CI; arquivos nativos, artefatos, scripts operacionais e documentação histórica ficam fora desse comando.
 
-TypeScript usa `strict: true`, `allowJs: true` e `checkJs: false` durante a migração: os arquivos TypeScript são checados estritamente; o JavaScript legado ainda não passa por checagem de tipos. `vite.config.ts` já é checado, e `src/vite-env.d.ts` declara as variáveis públicas do Vite. Ambos os builds executam `typecheck` antes de compilar.
+TypeScript usa `strict: true`, `allowJs: true` e `checkJs: false` durante a migração: todo o código de `src` já é TypeScript e passa pela checagem estrita. O suporte temporário a JavaScript será removido na consolidação da Fase 4. `vite.config.ts` já é checado, e `src/vite-env.d.ts` declara as variáveis públicas do Vite. Ambos os builds executam `typecheck` antes de compilar.
 
-ESLint verifica regras de hooks no código existente. Dependências incompletas de efeitos são avisos temporários no JavaScript legado; nos arquivos migrados são erros. Arrow functions, imports de tipos, ausência de `any` explícito e variáveis não utilizadas são exigidos no TypeScript. A checagem de variáveis não utilizadas no JavaScript legado será ativada com sua conversão para TypeScript.
+ESLint exige regras de hooks e dependências de efeitos completas em todo `src`, arrow functions, imports de tipos explícitos, ausência de `any` explícito e variáveis não utilizadas.
 
-A implementação é validada em quatro fases: ferramentas; organização e App; restante de `src`; consolidação. Ao fim de cada fase, a próxima aguarda validação explícita. A Fase 1 foi validada; a Fase 2 aguarda revisão pelo [roteiro do placar refatorado](docs/testing-modernization-phase-2.md). Os [resultados da Fase 1](docs/testing-modernization-phase-1.md) continuam disponíveis.
+A implementação é validada em quatro fases: ferramentas; organização e App; restante de `src`; consolidação. As Fases 1 e 2 foram validadas. A Fase 3 aguarda revisão pelo [roteiro das páginas, domínio e acesso remoto](docs/testing-modernization-phase-3.md). A Fase 4 só começa após aprovação explícita. Consulte também os resultados das [Fases 1](docs/testing-modernization-phase-1.md) e [2](docs/testing-modernization-phase-2.md).
 
-### Organização do placar
+### Organização do código
 
 ```text
 src/
   App.tsx
-  pages/ScoreboardPage/
+  pages/
+    ScoreboardPage/
+    PublicResultsPage/
+    AdministrationPage/
   components/
     atoms/
     molecules/
@@ -247,9 +250,13 @@ src/
 
 Páginas coordenam telas e navegação; componentes recebem dados e callbacks tipados; hooks cuidam de estado e efeitos. `game` conserva regras e persistência, e `remote` conserva acesso ao servidor. Componentes possuem pasta própria, implementação `.tsx`, interfaces de props e exportações nomeadas em `index.ts`. Use arrow functions, imports de tipos explícitos e nomes que descrevam a responsabilidade. Extraia componentes por propósito, reutilização ou complexidade; use MUI diretamente quando suficiente.
 
-O App e seus componentes de quadra já usam TypeScript. Os módulos de domínio e acesso remoto expõem contratos JSDoc ligados a `game/types.ts` e `remote/types.ts` durante a transição; suas implementações e as demais telas serão convertidas na Fase 3. Evite duplicar tipos ou alterar regras e formatos persistidos durante essa conversão.
+`App.tsx` resolve a navegação por hash e carrega as páginas públicas e administrativas sob demanda. `ScoreboardPage` inicializa a sessão local apenas quando o placar é aberto. `PublicResultsPage` coordena resultados de comunidades, grupos, partidas e jogadores. `AdministrationPage` coordena autenticação e o workspace administrativo; painéis e diálogos ficam em `organisms`.
 
-Os hooks do placar podem ser testados isoladamente com `pnpm run test:hooks`; esses testes também fazem parte de `pnpm test`. Eles usam React Testing Library, jsdom e IndexedDB simulado. Os testes de navegador usam `playwright-core` local e o Google Chrome instalado.
+`useHashRoute` acompanha a URL, `useAdminSession` compartilha restauração/assinatura de sessão e `usePublicResults` trata carregamento, repetição e descarte de respostas antigas. Os hooks do placar continuam responsáveis por sessão, controle/persistência e partidas salvas. Estado local de formulários permanece nos componentes quando não há reutilização ou responsabilidade separada.
+
+As regras e a persistência ficam em `game/*.ts`, com contratos em `game/types.ts` e `registryTypes.ts`. `remote/models.ts` descreve dados das RPCs; `remote/transport.ts` concentra a tipagem do transporte e dos resultados por endpoint. A validação dos dados e confirmações continua nos serviços, incluindo transações e bloqueios de uploads. `public` reúne rotas e projeções de apresentação. Testes de `src` usam `.test.ts`/`.test.tsx` e continuam em `node:test`, executados com `tsx`; testes SQL e scripts operacionais externos a `src` podem permanecer JavaScript.
+
+Os hooks podem ser testados isoladamente com `pnpm run test:hooks`; esses testes também fazem parte de `pnpm test`. Eles usam React Testing Library, jsdom e IndexedDB simulado. Os testes de navegador usam `playwright-core` local e o Google Chrome instalado.
 
 ## Verificar e gerar o build
 
@@ -274,19 +281,6 @@ O manifesto `ios/App/CapApp-SPM/Package.swift` é gerado pelo Capacitor e não r
 Alertas e correções automáticas de segurança devem permanecer ativados em **Settings > Advanced Security > Dependabot**. Correções de segurança não aguardam a agenda mensal. Para dependências Gradle, alertas de segurança exigem envio do grafo de dependências pela Dependency Submission API; a configuração atual cobre suas atualizações de versão.
 
 Referências: [opções do Dependabot](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference) e [ecossistemas suportados](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories).
-
-## Organização
-
-```text
-src/
-  components/       # Placar, jogadores, edição e estatísticas
-  game/match.js     # Estado, regras da partida e recuperação local
-  game/match.test.js
-  App.jsx           # Fluxo da aplicação e persistência
-  main.jsx          # Entrada React, tema e fontes
-  styles.css        # Layout responsivo
-  theme.js          # Tema Material UI
-```
 
 ## Android e APK
 

@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { createMatch, enableCourtMode, matchReducer } from '../src/game/match.js';
-import { applyDayLineup, receivedMatchPayload } from '../src/game/gameDay.js';
-import { editPoint } from '../src/public/corrections.js';
+import { createMatch, enableCourtMode, matchReducer } from '../src/game/match';
+import { applyDayLineup, receivedMatchPayload } from '../src/game/gameDay';
+import { editPoint } from '../src/public/corrections';
 
 const latest='20261108000700_completed_match_sync_and_management.sql';
 test('sync finalizes results atomically; administrators can search, edit and delete without day publication',async t=>{

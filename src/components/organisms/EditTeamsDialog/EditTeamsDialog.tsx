@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -10,12 +10,12 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { Alert } from '@mui/material';
+import { useState } from 'react';
 import { errorMessage } from '../../../game/errors';
-import { DayCodeDialog } from '../DayCodeDialog';
 import { applyDayLineup } from '../../../game/gameDay';
 import { TEAM_IDS } from '../../../game/match';
 import type { DayContext, MatchState, Team, TeamId, TeamMap } from '../../../game/types';
+import { DayCodeDialog } from '../DayCodeDialog';
 
 export interface EditTeamsDialogProps {
   state: MatchState;
