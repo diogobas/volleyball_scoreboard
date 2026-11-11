@@ -1,7 +1,8 @@
+import { getPublicClient } from './client';
 import type { RpcClient } from './transport';
 import { requestRpc } from './transport';
 const clientFor = async (supplied?: RpcClient | null) => {
-  const client = supplied ?? (await import('./client')).getPublicClient();
+  const client = supplied ?? getPublicClient();
   if (!client) throw new Error('Public results are not configured for this build.');
   return client;
 };

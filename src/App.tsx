@@ -1,33 +1,9 @@
-import { Alert, Box, Button, Typography } from '@mui/material';
-import { lazy, Suspense } from 'react';
+import { Typography } from '@mui/material';
+import { Suspense } from 'react';
 import { useHashRoute } from './hooks/useHashRoute';
 import { ScoreboardPage } from './pages/ScoreboardPage';
 import type { PublicRoute } from './public/routeTypes';
-
-const PublicLoadFailure = () => (
-  <Box sx={{ p: 3 }}>
-    <Alert severity="warning">
-      Public results could not be loaded. Reconnect and reload this page.
-    </Alert>
-    <Button onClick={() => location.reload()}>Reload</Button>
-    {import.meta.env.VITE_DEFAULT_VIEW !== 'public' && (
-      <Button component="a" href="#/app">
-        Open scoreboard
-      </Button>
-    )}
-  </Box>
-);
-
-const AdministrationPage = lazy(() =>
-  import('./pages/AdministrationPage').then((module) => ({ default: module.AdministrationPage })),
-);
-const PublicResultsPage = lazy(() =>
-  import('./pages/PublicResultsPage')
-    .then((module) => ({ default: module.PublicResultsPage }))
-    .catch(() => ({
-      default: PublicLoadFailure,
-    })),
-);
+import { AdministrationPage, PublicResultsPage } from './routes/lazyPages';
 
 const publicRouteKey = (route: PublicRoute) =>
   [

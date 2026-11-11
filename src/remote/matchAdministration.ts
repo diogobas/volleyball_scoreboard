@@ -1,10 +1,11 @@
+import { getAdminClient } from './client';
 import type * as Models from './models';
 import type { RegistryClient, RpcResults } from './transport';
 import { requestRpc } from './transport';
 const connection = async (supplied?: RegistryClient | null) => {
   if (globalThis.navigator?.onLine === false)
     throw new Error('Corrections require an internet connection. Your draft has been kept.');
-  const client = supplied ?? (await import('./client')).getAdminClient();
+  const client = supplied ?? getAdminClient();
   if (!client) throw new Error('Online administration is not configured.');
   const { data, error } = await client.auth.getSession();
   if (error) throw error;

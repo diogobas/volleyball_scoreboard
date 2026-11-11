@@ -5,7 +5,7 @@ Entrega em `feat/modernization-phase-3-typescript`, baseada em `feat/code-modern
 ## O que mudou
 
 - Todo o código de `src`, incluindo testes, regras, persistência, acesso remoto e tema, usa TypeScript estrito. Não existem arquivos `.js` ou `.jsx` em `src`. `allowJs` permanece temporariamente na configuração até a consolidação.
-- `main.tsx` carrega `App.tsx`, que coordena a navegação por hash. O antigo `Root.jsx` foi incorporado ao App. URLs, entradas padrão e carregamento sob demanda continuam iguais.
+- `main.tsx` carrega `App.tsx`, que coordena a navegação por hash. O antigo `Root.jsx` foi incorporado ao App. URLs, entradas padrão e carregamento sob demanda continuam iguais. `routes/lazyPages.ts` concentra os dois imports dinâmicos das páginas; App e serviços remotos usam imports convencionais. Clientes Supabase continuam sendo criados apenas ao chamar suas funções de acesso.
 - `pages/ScoreboardPage` inicializa e encerra a sessão IndexedDB do placar. Abrir resultados ou administração não inicializa esse banco.
 - `pages/PublicResultsPage` coordena comunidades, grupos, partidas e perfis públicos. `pages/AdministrationPage` coordena autenticação e o workspace. Painéis e diálogos administrativos são organisms, pois compõem essas páginas.
 - Componentes possuem pasta própria, `.tsx`, props tipadas e `index.ts`. Navegação, filtros, paginação e seleção são molecules; cadastros, escalações, estatísticas e correções são organisms. Correção de partidas foi separada em `CorrectionEditor`, `SetEditor`, `SnapshotComparison` e `RevisionHistory`. Resultados compartilham `GroupSeason`, `MatchCard`, `MatchDetails` e `MatchTopScorers`.
@@ -27,7 +27,7 @@ pnpm run build:public
 
 - 262 testes aprovados, sem falhas ou testes ignorados: 257 existentes e cinco novos testes de hooks de sessão/navegação/resultados.
 - Tipos, lint e formatação aprovados; os quatro avisos de hooks antes existentes foram resolvidos sem desativar regras.
-- Builds do app e público aprovados. Permanece o aviso já existente de chunk acima de 500 kB.
+- Builds do app e público aprovados. Permanece o aviso já existente de chunk acima de 500 kB. Com imports convencionais nos serviços, o código do SDK Supabase passa a compor o pacote inicial; a criação dos clientes continua sob demanda.
 - Os quatro fluxos de navegador passaram no Google Chrome: quadra, resultados públicos, administração e comunidades, com todas as chamadas externas simuladas.
 - Não foram executados deploys, migrações remotas ou merges. Validação nativa/Android e em aparelhos pertence à Fase 4.
 

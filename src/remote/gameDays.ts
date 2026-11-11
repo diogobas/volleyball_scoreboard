@@ -1,6 +1,7 @@
 import { receivedMatchPayload } from '../game/gameDay';
 import { CLOSED_STORE, SETTINGS_STORE, transactionDone } from '../game/storage';
 import type { DayContext } from '../game/types';
+import { getPublicClient } from './client';
 import { samePayload } from './matchPayload';
 import { readClosedMatch } from './matchSync';
 import { uploadStateKey, withMatchUploadAttempt } from './matchUploadState';
@@ -14,7 +15,7 @@ export const dayRpc = async <K extends keyof RpcResults & string>(
   supplied?: RpcClient | null,
   signal?: AbortSignal,
 ): Promise<RpcResults[K]> => {
-  const client = supplied ?? (await import('./client')).getPublicClient();
+  const client = supplied ?? getPublicClient();
   if (!client) throw new Error('Online service is not configured for this build.');
   let request = requestRpc(client, name, args);
   if (signal && request.abortSignal) request = request.abortSignal(signal);

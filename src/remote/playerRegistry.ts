@@ -9,6 +9,7 @@ import {
   registryCache,
   setRegistryIdentity,
 } from '../game/registryCache';
+import { getRemoteClient } from './client';
 import type { RegistryClient, RegistryConnection, RpcResults } from './transport';
 import { requestRpc } from './transport';
 interface PlayerSyncSummary {
@@ -30,9 +31,9 @@ export const registrySession = async (
   let client = suppliedClient;
   if (!client) {
     try {
-      client = (await import('./client')).getRemoteClient();
+      client = getRemoteClient();
     } catch {
-      /* offline module or missing config */
+      /* Keep cached access available if client configuration cannot be read. */
     }
   }
   if (!client) return { client: null, userId: cache.userId, session: null };
