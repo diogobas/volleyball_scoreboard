@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { createMatch, enableCourtMode, matchReducer } from '../src/game/match.js';
-import { applyDayLineup, receivedMatchPayload } from '../src/game/gameDay.js';
+import { createMatch, enableCourtMode, matchReducer } from '../src/game/match';
+import { applyDayLineup, receivedMatchPayload } from '../src/game/gameDay';
 
 test('standalone code repair fixes original creation/rotation without intermediate migrations or data loss', async t => {
   const db=new PGlite(); t.after(()=>db.close());

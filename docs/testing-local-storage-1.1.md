@@ -4,7 +4,7 @@ Branch: `feat/local-match-history`.
 
 ## Preparação
 
-1. Execute `npm ci`, `npm test` e `npm run dev`.
+1. Execute `pnpm install --frozen-lockfile`, `pnpm test` e `pnpm run dev`.
 2. Abra o endereço informado pelo Vite. Para migrar dados que já existem, use o mesmo navegador, endereço e porta da versão anterior. `localhost` e `127.0.0.1` têm armazenamentos diferentes.
 3. Não limpe os dados do site nem desinstale o aplicativo. Se possível, anote ou capture o placar, os nomes, os lados e as estatísticas antes de atualizar.
 
@@ -53,7 +53,7 @@ Faça este teste somente em outro perfil, que não contenha sua partida.
 
 ## Android e iOS
 
-1. Atualize o aplicativo mantendo a instalação e o identificador existentes: `npm run android:sync` ou `npm run ios:sync`, depois compile/execute pela ferramenta nativa.
+1. Atualize o aplicativo mantendo a instalação e o identificador existentes: `pnpm run android:sync` ou `pnpm run ios:sync`, depois compile/execute pela ferramenta nativa.
 2. Repita os testes de pontuação, edição, troca de lados, fechamento de set e Undo.
 3. Aguarde **Saved on this device**, encerre o app e abra novamente, inclusive em modo avião. A partida deve permanecer disponível.
 

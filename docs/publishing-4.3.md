@@ -13,14 +13,14 @@ Publicado em Cloudflare Pages por Direct Upload na conta Cloudflare existente, p
 Para atualizar após revisar alterações:
 
 ```sh
-npm test
-npm run verify:remote
-npm run build:public
-npm run site:pages:check
-npm run site:pages:deploy
+pnpm test
+pnpm run verify:remote
+pnpm run build:public
+pnpm run site:pages:check
+pnpm run site:pages:deploy
 ```
 
-Caso a sessão expire, execute `npm exec --yes --package=cf@1.0.0-beta.28 -- cf auth login` e autorize no navegador. O upload usa a API oficial do Pages, com a sessão OAuth da CLI cf apenas em memória. No Mac, o script lê o perfil padrão local do cf; em outro ambiente use `CF_AUTH_CONFIG` com o caminho do perfil, ou `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` definidos localmente. Nenhuma credencial é gravada no projeto. O comando de check apenas lista o total de arquivos, sem requisições remotas. O comando de deploy usa o build já preparado em `dist-public`, sem recompilá-lo. Não há integração Git automática neste projeto Direct Upload. Não foi configurado domínio próprio. O endereço anterior em Workers continua disponível: https://volleyball-scoreboard-results.diogovvb.workers.dev/ Os comandos `site:prepare`, `site:check` e `site:deploy` continuam específicos dessa publicação antiga. O site GitHub Pages abaixo também continua disponível como alternativa.
+Caso a sessão expire, execute `pnpm --package=cf@1.0.0-beta.28 dlx cf auth login` e autorize no navegador. O upload usa a API oficial do Pages, com a sessão OAuth da CLI cf apenas em memória. No Mac, o script lê o perfil padrão local do cf; em outro ambiente use `CF_AUTH_CONFIG` com o caminho do perfil, ou `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` definidos localmente. Nenhuma credencial é gravada no projeto. O comando de check apenas lista o total de arquivos, sem requisições remotas. O comando de deploy usa o build já preparado em `dist-public`, sem recompilá-lo. Não há integração Git automática neste projeto Direct Upload. Não foi configurado domínio próprio. O endereço anterior em Workers continua disponível: https://volleyball-scoreboard-results.diogovvb.workers.dev/ Os comandos `site:prepare`, `site:check` e `site:deploy` continuam específicos dessa publicação antiga. O site GitHub Pages abaixo também continua disponível como alternativa.
 
 ### Publicação alternativa no GitHub Pages
 
@@ -33,10 +33,10 @@ A raiz orienta o visitante a abrir um link de comunidade ou grupo, sem listar to
 Para atualizar, na branch revisada, configure `.env.local` com a URL e chave **publishable** do Supabase conforme `docs/testing-supabase-admin-3.1.md`, autentique `gh auth login` e execute:
 
 ```sh
-npm ci
-npm test
-npm run verify:remote
-npm run site:publish:github
+pnpm install --frozen-lockfile
+pnpm test
+pnpm run verify:remote
+pnpm run site:publish:github
 ```
 
 O script compila `dist-public`, publica apenas os arquivos estáticos e `.nojekyll`, preserva o histórico da branch de publicação e habilita Pages quando ainda não configurado. Acompanhe o workflow de Pages em Actions; atualização não é instantânea. Não edite `gh-pages` manualmente nem faça merge dela na master. GitHub Pages não interpreta `public/_headers`; esse arquivo é interpretado na publicação Cloudflare Pages.
@@ -59,7 +59,7 @@ Identificador: `ca.itelligent.volleyballscoreboard`. Versão **1.2.0**, build **
 4. No iPhone, abra o TestFlight com a conta convidada e instale/atualize o aplicativo. Execute o roteiro 4.3 antes de ampliar o grupo.
 5. Para pessoas que não pertencem à equipe App Store Connect, use **External Testing**; o primeiro build externo depende da Beta App Review. Preencha as informações de teste solicitadas pela Apple e selecione os testadores.
 
-Para novos builds, aumente CURRENT_PROJECT_VERSION nas duas configurações do Xcode, execute `npm run ios:sync`, gere Archive e envie pelo Organizer. Há opções de exportação em `release/ios/`. Não reenvie o mesmo número de build. O IPA desta entrega está em `artifacts/ios/TestFlight-1.2.0-5/App.ipa`.
+Para novos builds, aumente CURRENT_PROJECT_VERSION nas duas configurações do Xcode, execute `pnpm run ios:sync`, gere Archive e envie pelo Organizer. Há opções de exportação em `release/ios/`. Não reenvie o mesmo número de build. O IPA desta entrega está em `artifacts/ios/TestFlight-1.2.0-5/App.ipa`.
 
 Referência: [testadores internos](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-internal-testers), [TestFlight externo](https://developer.apple.com/testflight/).
 
@@ -81,7 +81,7 @@ Identificador: `com.diogobastos.volleyballscoreboard`. Versão **1.2.0**, versio
 
 **Backup obrigatório para continuidade das atualizações:** guarde em local privado `artifacts/android/signing/volleyball-upload.jks` **e** `android/keystore.properties` (contém as senhas). Ambos estão ignorados pelo Git. Não os envie para o repositório nem para testadores. `scripts/create-android-upload-key.py` cria a configuração local inicial; não substitua a chave existente ao atualizar este app.
 
-Para novos bundles: aumente versionCode, mantenha a chave existente, execute `npm run android:bundle`. O resultado fica em `android/app/build/outputs/bundle/release/app-release.aab`. O build release falha com instrução explícita quando a assinatura local não está configurada.
+Para novos bundles: aumente versionCode, mantenha a chave existente, execute `pnpm run android:bundle`. O resultado fica em `android/app/build/outputs/bundle/release/app-release.aab`. O build release falha com instrução explícita quando a assinatura local não está configurada.
 
 Uma instalação antiga feita pelo APK debug pode ter assinatura diferente da Play Store. Antes de qualquer desinstalação exigida para trocar de assinatura, envie todas as partidas pendentes e confira os resultados no site; desinstalar apaga dados locais. Para a publicação no Google Play, use o AAB assinado indicado acima.
 

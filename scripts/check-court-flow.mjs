@@ -102,7 +102,40 @@ try {
   assert.equal(await page.getByRole('button',{name:'Play independently',exact:true}).count(),0);
   await page.getByRole('button',{name:'Edit names',exact:true}).click();assert.equal(await edit.getByRole('button',{name:'Load lineup',exact:true}).isDisabled(),true);await edit.getByLabel('Player 1',{exact:true}).first().fill('Substitute');await edit.getByRole('button',{name:'Save',exact:true}).click();await saved();
   await page.getByRole('button',{name:'Add point to Substitute — Home',exact:true}).click();await saved();
-  await page.getByRole('button',{name:'Close set',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Close set',exact:true}).click();await saved();
+  // Inspect every DOM update through the exit animation, not just the closed state.
+  const scoresBeforeCancel = await page.locator('.score-panels').innerText();
+  for (const dismissal of ['Cancel', 'Escape', 'Confirm']) {
+    await page.getByRole('button', { name: 'Close set', exact: true }).click();
+    const confirmation = page.getByRole('dialog', { name: 'Close set 1?', exact: true });
+    await confirmation.waitFor();
+    const probe = await page.evaluateHandle(() => {
+      const frames = [];
+      const record = () => {
+        const title = document.getElementById('confirm-title');
+        if (title) frames.push({
+          title: title.textContent,
+          message: document.getElementById('confirm-message')?.textContent,
+          buttons: [...title.closest('[role="dialog"]').querySelectorAll('button')].map(button => button.textContent),
+        });
+      };
+      const observer = new MutationObserver(record);
+      observer.observe(document.body, { subtree: true, childList: true, characterData: true });
+      record();
+      return { frames, observer };
+    });
+    if (dismissal === 'Cancel') await confirmation.getByRole('button', { name: 'Cancel', exact: true }).click();
+    else if (dismissal === 'Escape') await page.keyboard.press('Escape');
+    else await confirmation.getByRole('button', { name: 'Close set', exact: true }).click();
+    await page.locator('#confirm-title').waitFor({ state: 'detached' });
+    const frames = await probe.evaluate(({ frames, observer }) => { observer.disconnect(); return frames; });
+    await probe.dispose();
+    assert.ok(frames.length > 0);
+    assert.ok(frames.every(frame => frame.title === 'Close set 1?'), `${dismissal} changed the dialog title: ${JSON.stringify(frames)}`);
+    assert.ok(frames.every(frame => frame.message === frames[0].message), `${dismissal} changed the dialog message`);
+    assert.ok(frames.every(frame => JSON.stringify(frame.buttons) === JSON.stringify(['Cancel', 'Close set'])), `${dismissal} changed the confirmation action`);
+    if (dismissal !== 'Confirm') assert.equal(await page.locator('.score-panels').innerText(), scoresBeforeCancel);
+    else await saved();
+  }
   await page.getByRole('tab',{name:'Statistics',exact:true}).click();
   assert.equal(await page.getByRole('progressbar',{name:'Points for Substitute — Home',exact:true}).getAttribute('aria-valuetext'),'2 points');
   assert.equal(await page.getByRole('list',{name:'Top 3 players',exact:true}).getByRole('listitem').count(),1);

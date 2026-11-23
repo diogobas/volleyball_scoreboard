@@ -1,0 +1,1 @@
+export { MatchTopScorers } from './MatchTopScorers';

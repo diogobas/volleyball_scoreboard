@@ -1,0 +1,1 @@
+export { PrivacyLink } from './PrivacyLink';

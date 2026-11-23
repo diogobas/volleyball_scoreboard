@@ -31,7 +31,7 @@ Historical saves are transactional and versioned, with private revision history.
 - JavaScript tests cover first-to-three, training points, undo/replay, unfinished matches, official deuce/tie-break endings and season wins.
 - Admin browser scenario enters the six-set historical example, catches a mismatched total, saves, checks the training/per-set-data notice, edits totals and deletes the record using fixtures.
 - App/public browser scenarios verify existing save/sync/navigation/statistics flows.
-- `npm run build` and `npm run build:public`.
+- `pnpm run build` and `pnpm run build:public`.
 
 ## Score-only entry and the 03/11 import
 

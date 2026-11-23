@@ -13,8 +13,8 @@ Administration page headers share the same title typography and spacing. Back ac
 Run the browser checks against a local dev server with Supabase configuration present:
 
 ```sh
-BASE_URL=http://127.0.0.1:5197 PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs npm run test:admin:browser
-BASE_URL=http://127.0.0.1:5197 PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs npm run test:public:browser
+BASE_URL=http://127.0.0.1:5197 PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs pnpm run test:admin:browser
+BASE_URL=http://127.0.0.1:5197 PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs pnpm run test:public:browser
 ```
 
 All external requests are intercepted with fixtures; browser checks do not modify real groups or accounts. The admin check covers sign-in, isolated sections, overview shortcuts, match pagination and return, season retention, shared statistics, player creation/editing/deletion, Fixed/Sub categories, duplicate-name feedback, search/filter, registry/statistics navigation, access controls, game-day pagination, day sections, preserved lineup drafts, explicit creation/cancellation and mobile overflow. Existing public checks cover scorer calculation/error exclusion/retry, responsive cards, pagination and match statistics.

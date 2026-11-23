@@ -17,9 +17,9 @@ The group, administrators, accounts and other groups are preserved. The transact
 
 ## Verification
 
-- `npm test`: PostgreSQL tests execute all migrations and the actual maintenance script against fixtures, including permissions, duplicate/invalid names, category defaults, version conflicts, retries, historical snapshot preservation, old UUID rejection, group isolation, all reset totals and repeat protection. Offline cache tests verify categories, renames and tombstone removal.
-- `npm run test:admin:browser`: mocked server checks create/edit/category changes, duplicate-name feedback without losing the form, search/filter, delete/cancel, the 13-name roster, separate registry/statistics and existing administration flows. No real account or group mutations.
-- `npm run test:public:browser`: existing public navigation, statistics, top scorers and pagination.
-- `npm run build` and `npm run build:public`.
+- `pnpm test`: PostgreSQL tests execute all migrations and the actual maintenance script against fixtures, including permissions, duplicate/invalid names, category defaults, version conflicts, retries, historical snapshot preservation, old UUID rejection, group isolation, all reset totals and repeat protection. Offline cache tests verify categories, renames and tombstone removal.
+- `pnpm run test:admin:browser`: mocked server checks create/edit/category changes, duplicate-name feedback without losing the form, search/filter, delete/cancel, the 13-name roster, separate registry/statistics and existing administration flows. No real account or group mutations.
+- `pnpm run test:public:browser`: existing public navigation, statistics, top scorers and pagination.
+- `pnpm run build` and `pnpm run build:public`.
 
 Browser scripts accept `BASE_URL` and `PLAYWRIGHT_MODULE`. Screenshots are saved in ignored `artifacts/admin-navigation/`.

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile,readdir } from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
 import {PGlite} from '@electric-sql/pglite';
-import {matchResult} from '../src/game/matchResult.js';
+import {matchResult} from '../src/game/matchResult';
 
 test('historical totals preserve the source photo and first-to-three outcomes, without invented per-set points',async t=>{
  const db=new PGlite();t.after(()=>db.close());

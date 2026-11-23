@@ -1,0 +1,1 @@
+export { MatchFooter } from './MatchFooter';

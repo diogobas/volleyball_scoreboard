@@ -4,7 +4,7 @@ Branch: `feat/groups-player-rosters`, criada sobre a fase 1 aprovada.
 
 ## Preparação e atualização
 
-1. Execute `npm ci`, `npm test` e `npm run dev`.
+1. Execute `pnpm install --frozen-lockfile`, `pnpm test` e `pnpm run dev`.
 2. Use o mesmo navegador, endereço e porta das versões anteriores. Não limpe dados nem desinstale o app.
 3. Feche outras abas do app se a atualização do banco pedir. O banco sobe para versão 2 mantendo a partida atual e todo o histórico.
 4. Confira nomes, lados, placares e **History**. Nenhuma pessoa deve ter sido cadastrada ou vinculada automaticamente.
@@ -74,7 +74,7 @@ No Chrome, abra DevTools → Application → IndexedDB → `volleyball-scoreboar
 
 ## Android e iOS
 
-Execute `npm run android:sync` ou `npm run ios:sync` e compile mantendo a instalação existente. Repita o cadastro offline, seleção, pontuação/Undo, associação de uma partida antiga e reabertura do app. Confira também os seletores em retrato e paisagem.
+Execute `pnpm run android:sync` ou `pnpm run ios:sync` e compile mantendo a instalação existente. Repita o cadastro offline, seleção, pontuação/Undo, associação de uma partida antiga e reabertura do app. Confira também os seletores em retrato e paisagem.
 
 ## Aprovação
 

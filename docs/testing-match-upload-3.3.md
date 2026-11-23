@@ -5,7 +5,7 @@ Branch: `feat/supabase-sync`. Fechar uma partida de um grupo online salva primei
 ## Preparação
 
 1. No projeto Supabase já usado nas etapas anteriores, abra **SQL Editor → New query**. Execute todo o arquivo [20261106000300_atomic_match_submission.sql](../supabase/migrations/20261106000300_atomic_match_submission.sql). Resultado esperado: sucesso sem linhas retornadas. Execute somente esta nova migração, uma vez; as migrações 3.1 e 3.2 já devem estar aplicadas.
-2. Na branch indicada, execute `npm ci` e `npm run dev`. Abra o mesmo endereço/porta que já contém os dados. Feche outras abas antigas e recarregue. Não é necessário recriar o projeto, contas ou grupos; `.env.local` permanece válido. O banco local continua na versão 3.
+2. Na branch indicada, execute `pnpm install --frozen-lockfile` e `pnpm run dev`. Abra o mesmo endereço/porta que já contém os dados. Feche outras abas antigas e recarregue. Não é necessário recriar o projeto, contas ou grupos; `.env.local` permanece válido. O banco local continua na versão 3.
 3. Em **Account & groups**, entre como administrador. Em **Players & sync**, atualize o grupo e sincronize os jogadores. Resolva qualquer conflito que envolva os participantes da partida. Cadastros de pessoas sem relação com essa partida não impedem o envio se estiverem em conflito.
 4. Em **Teams & players**, confira se a partida usa o grupo online correto, com seis pessoas diferentes por time. Partidas do Development group ou ainda sem associação continuam somente locais. Se necessário, faça a ligação explícita dos dados de desenvolvimento conforme o roteiro da 3.2.
 
@@ -39,8 +39,8 @@ No aparelho, uma confirmação com UUID, grupo, versão ou conteúdo divergente 
 
 ## Verificações e limites
 
-- `npm test`: migrações em PostgreSQL embarcado com RLS e permissões reais, gravação completa, rejeição/rollback de dados inválidos no meio do envio, UUID idempotente e correção preservada; testes em IndexedDB simulado para resposta perdida, conta trocada, confirmação divergente, arquivo alterado, falha na limpeza e preservação da próxima partida e das demais pendências.
-- `npm run build`: build web.
+- `pnpm test`: migrações em PostgreSQL embarcado com RLS e permissões reais, gravação completa, rejeição/rollback de dados inválidos no meio do envio, UUID idempotente e correção preservada; testes em IndexedDB simulado para resposta perdida, conta trocada, confirmação divergente, arquivo alterado, falha na limpeza e preservação da próxima partida e das demais pendências.
+- `pnpm run build`: build web.
 - Chrome em viewport de celular com SDK Supabase real e API simulada: fechamento offline, nenhuma drenagem automática da fila antiga, envio com confirmação atrasada, pontos na próxima partida durante o envio, confirmação divergente preservada, reenvio do UUID e recuperação após recarregar.
 
 A nova migração não foi aplicada automaticamente no seu projeto. O teste com o Supabase hospedado e Android/iOS físicos aguarda sua validação. A página de consulta remota entra na fase 4; até lá, confira os dados enviados pelo Table Editor. O resumo local de temporada considera somente partidas ainda no aparelho e diminui quando um arquivo é confirmado/removido; ele não representa o total remoto. A consulta de temporada continua destinada à página pública, conforme sua preferência.

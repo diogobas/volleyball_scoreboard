@@ -1,0 +1,103 @@
+import { Alert, Box, Button, Stack, Typography } from '@mui/material';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { useEffect, useState } from 'react';
+import { errorMessage } from '../../../game/errors';
+import { currentPeriod } from '../../../game/seasonPeriods';
+import { readRoute } from '../../../public/routes';
+import type { GroupRoute } from '../../../public/routeTypes';
+import type * as Models from '../../../remote/models';
+import { publicGroupSummary } from '../../../remote/publicStats';
+import { GroupSeason } from '../GroupSeason';
+import { MatchManager } from '../MatchManager';
+export type AdminGroupResultsProps = {
+  client: SupabaseClient;
+  group: Models.Group;
+  view: string;
+  onViewChange: (view: string) => void;
+  refreshKey?: number;
+};
+
+export const AdminGroupResults = ({
+  client,
+  group,
+  view,
+  onViewChange,
+  refreshKey,
+}: AdminGroupResultsProps) => {
+  const [route, setRoute] = useState<GroupRoute>({
+    kind: 'group',
+    matchId: null,
+    view: 'overview',
+    groupId: group.id,
+    season: null,
+    period: currentPeriod(),
+    page: 1,
+    pageSize: 5,
+  });
+  const [data, setData] = useState<Models.PublicGroupSummary | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
+  const refresh = () => setAttempt((value) => value + 1);
+  useEffect(() => {
+    if (!['overview', 'players'].includes(view)) return;
+    let active = true;
+    setLoading(true);
+    setError('');
+    publicGroupSummary(group.id, route.season, 1, client, 25, route.period)
+      .then((result) => {
+        if (active) setData(result);
+      })
+      .catch((failure) => {
+        if (active) setError(errorMessage(failure));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [client, group.id, route.season, route.period, view, attempt, refreshKey]);
+  const navigate = (href: string) => {
+    const next = readRoute(href);
+    if (!('groupId' in next)) return;
+    next.season ??= data?.season ?? null;
+    setRoute(next);
+    onViewChange(next.view);
+  };
+  return (
+    <Stack spacing={2}>
+      <Box hidden={view === 'matches'}>
+        {error && (
+          <Alert severity="warning" action={<Button onClick={refresh}>Retry</Button>}>
+            {error}
+          </Alert>
+        )}
+        {loading && <Typography role="status">Loading results…</Typography>}
+        {data && ['overview', 'players'].includes(view) && (
+          <GroupSeason
+            data={data}
+            route={{ ...route, view }}
+            loading={loading}
+            refresh={refresh}
+            client={client}
+            hideNavigation
+            onNavigate={navigate}
+          />
+        )}
+      </Box>
+      <Box hidden={view !== 'matches'}>
+        <MatchManager
+          client={client}
+          group={group}
+          active={view === 'matches'}
+          season={route.season}
+          period={route.period}
+          onPeriodChange={(period) => setRoute((previous) => ({ ...previous, period }))}
+          onSeasonChange={(season) => setRoute((previous) => ({ ...previous, season }))}
+          refreshKey={refreshKey}
+        />
+      </Box>
+    </Stack>
+  );
+};

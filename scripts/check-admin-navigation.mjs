@@ -1,5 +1,5 @@
-import { matchResult } from '../src/game/matchResult.js';
-import { currentPeriod, periodTitle } from '../src/game/seasonPeriods.js';
+import { matchResult } from '../src/game/matchResult';
+import { currentPeriod, periodTitle } from '../src/game/seasonPeriods';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright-core');

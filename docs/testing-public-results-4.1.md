@@ -7,7 +7,7 @@ O histórico de partidas confirmadas e a tabela de temporada ficam somente na p�
 ## Preparação
 
 1. No projeto Supabase existente, abra **SQL Editor → New query** e execute todo o arquivo [20261106000400_public_statistics.sql](../supabase/migrations/20261106000400_public_statistics.sql). Resultado esperado: sucesso sem linhas retornadas. As três migrações anteriores precisam estar aplicadas; não as execute novamente.
-2. Na branch indicada, execute `npm ci` e `npm run dev`. Use a configuração atual de `.env.local` e o mesmo endereço/porta que guarda seus dados. O IndexedDB continua na versão 3. Não limpe dados do site nem desinstale o aplicativo.
+2. Na branch indicada, execute `pnpm install --frozen-lockfile` e `pnpm run dev`. Use a configuração atual de `.env.local` e o mesmo endereço/porta que guarda seus dados. O IndexedDB continua na versão 3. Não limpe dados do site nem desinstale o aplicativo.
 3. A página roda no mesmo projeto web, por navegação hash. No endereço exibido pelo Vite, acrescente `/#/groups`, por exemplo `http://localhost:5173/#/groups`. O link **Public results** no app abre diretamente o grupo da partida, quando já associado, ou a lista de grupos.
 
 Esta entrega prepara e testa a página localmente. A publicação/hospedagem continua na 4.3. Um link com `localhost` só abre no próprio computador; para outro aparelho durante os testes, use o endereço de rede do servidor conforme o README.

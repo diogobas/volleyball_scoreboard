@@ -5,7 +5,7 @@ Branch: `feat/supabase-sync`. **History → Sync pending matches** envia as part
 ## Preparação
 
 1. Use o mesmo projeto Supabase das etapas anteriores, com as três migrações já aplicadas. Esta subfase **não exige SQL novo**. Se ainda não aplicou a migração da 3.3, siga [o roteiro do envio imediato](testing-match-upload-3.3.md).
-2. Na branch indicada, execute `npm ci` e `npm run dev`. Abra o mesmo endereço/porta de antes, sem limpar dados ou desinstalar o aplicativo. O IndexedDB continua na versão 3; erros e tentativas usam `settings`, separados dos pontos e arquivos das partidas.
+2. Na branch indicada, execute `pnpm install --frozen-lockfile` e `pnpm run dev`. Abra o mesmo endereço/porta de antes, sem limpar dados ou desinstalar o aplicativo. O IndexedDB continua na versão 3; erros e tentativas usam `settings`, separados dos pontos e arquivos das partidas.
 3. Entre como administrador do grupo em **Account & groups**. Em **Players & sync**, atualize o grupo e confira os jogadores. Partidas ainda sem associação precisam de **History → Associate players**; arquivos do Development group precisam da ligação explícita a um grupo online.
 
 ## Fila offline, reinício e envio pelo botão

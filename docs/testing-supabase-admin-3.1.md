@@ -28,7 +28,7 @@ O [guia de tabelas do Supabase](https://supabase.com/docs/guides/database/tables
 1. No diretório do projeto:
 
    ```sh
-   npm ci
+   pnpm install --frozen-lockfile
    cp .env.example .env.local
    ```
 
@@ -43,8 +43,8 @@ O [guia de tabelas do Supabase](https://supabase.com/docs/guides/database/tables
 4. `.env.local` fica ignorado pelo Git. Depois de mudar as variáveis, reinicie o servidor:
 
    ```sh
-   npm test
-   npm run dev
+   pnpm test
+   pnpm run dev
    ```
 
 5. Abra no endereço e porta usados anteriormente para preservar seus dados locais. Sem essas variáveis, **Account & groups** deve informar que as contas online não estão configuradas, permitindo continuar jogando normalmente.
@@ -92,13 +92,13 @@ Se qualquer tentativa sem autorização gravar dados ou listar administradores, 
 
 1. Anote um placar em andamento. Entre, crie grupo, autorize alguém e saia da conta. A partida e o cadastro local devem continuar iguais.
 2. Fique offline: o jogo, Undo, fechamento e History devem continuar funcionando. A administração online depende de conexão e deve mostrar falha recuperável, sem apagar dados.
-3. Para compilar Android/iOS, configure primeiro `.env.local`, execute `npm run android:sync` ou `npm run ios:sync` e compile mantendo a instalação existente. As variáveis entram no build web copiado para o aplicativo.
+3. Para compilar Android/iOS, configure primeiro `.env.local`, execute `pnpm run android:sync` ou `pnpm run ios:sync` e compile mantendo a instalação existente. As variáveis entram no build web copiado para o aplicativo.
 4. Confirme a conta pelo e-mail no navegador e faça login por senha no app nativo; esta subfase não exige um fluxo de retorno por link para o aplicativo.
 5. Confira os formulários em retrato e paisagem, a persistência da sessão e a preservação das partidas ao sair da conta.
 
 ## Testes e limites desta entrega
 
-- `npm test` inclui as regras locais, o contrato das RPCs e uma execução da migração em PostgreSQL embarcado (PGlite). Os testes de banco usam contas de teste e uma implementação mínima de `auth.uid()`; não simulam as políticas SQL, que são executadas pelo PostgreSQL.
+- `pnpm test` inclui as regras locais, o contrato das RPCs e uma execução da migração em PostgreSQL embarcado (PGlite). Os testes de banco usam contas de teste e uma implementação mínima de `auth.uid()`; não simulam as políticas SQL, que são executadas pelo PostgreSQL.
 - Os testes no Chrome usam o SDK oficial com respostas de Auth/Data API simuladas. Não enviam e-mails nem criam contas reais. O fluxo hospedado de e-mail, JWT e Data API ainda precisa ser aprovado no projeto criado por você.
 - A estrutura de partidas, sets, escalações, pontos, autoria privada e revisões já existe no servidor. Escrita direta de partidas não é permitida ao cliente: a gravação transacional por RPC será implementada na 3.3.
 - A administração de grupos é online, mas os elencos locais continuam no **Development group**. Cadastro sincronizado, conciliação e ligação aos grupos reais entram na 3.2. As partidas locais não são enviadas nem apagadas nesta subfase.

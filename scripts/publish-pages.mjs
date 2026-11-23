@@ -40,12 +40,12 @@ if (!token) {
     try {
       // Let the official CLI rotate and persist its own OAuth credentials.
       // Suppress CLI output: the uploader never prints authentication details.
-      execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm',
-        ['exec','--yes','--package=cf@1.0.0-beta.28','--','cf','auth','whoami'],
+      execFileSync(process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm',
+        ['--package=cf@1.0.0-beta.28','dlx','cf','auth','whoami'],
         { stdio: 'ignore', timeout: 60_000 });
       config = JSON.parse(await readFile(configFile,'utf8'));
     } catch {
-      throw new Error('Cloudflare session could not be refreshed. Run npm exec --yes --package=cf@1.0.0-beta.28 -- cf auth login, then retry site:pages:deploy.');
+      throw new Error('Cloudflare session could not be refreshed. Run pnpm --package=cf@1.0.0-beta.28 dlx cf auth login, then retry site:pages:deploy.');
     }
   }
   if (!Number.isFinite(Date.parse(config.expiration_time)) || Date.parse(config.expiration_time) <= Date.now()) {
