@@ -34,7 +34,8 @@
     "lint": "eslint src vite.config.ts eslint.config.js",
     "format": "prettier --write src vite.config.ts eslint.config.js tsconfig.json package.json .prettierrc.json .github/workflows/ci.yml",
     "format:check": "prettier --check src vite.config.ts eslint.config.js tsconfig.json package.json .prettierrc.json .github/workflows/ci.yml",
-    "test:hooks": "node --import=tsx --test src/hooks/*.test.tsx"
+    "test:hooks": "node --import=tsx --test src/hooks/*.test.tsx",
+    "test:build:browser": "node scripts/check-build-entrypoints.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",
