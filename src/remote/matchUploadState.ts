@@ -20,7 +20,7 @@ interface UploadLease {
 const PREFIX = 'matchUpload:';
 const LEASE_MS = 90_000;
 export const uploadStateKey = (id: string) => `${PREFIX}${id}`;
-export const uploadBusyError = () =>
+const uploadBusyError = () =>
   Object.assign(
     new Error('This match is already uploading. Wait for it to finish, then refresh.'),
     { code: 'MATCH_UPLOAD_BUSY' },

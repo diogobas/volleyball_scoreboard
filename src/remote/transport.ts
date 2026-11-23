@@ -13,13 +13,13 @@ export interface RpcResponse<T = unknown> {
 export interface TypedRpcRequest<T> extends PromiseLike<{ data: T; error?: unknown }> {
   abortSignal?: (signal: AbortSignal) => TypedRpcRequest<T>;
 }
-export interface RpcRequest extends PromiseLike<RpcResponse> {
+interface RpcRequest extends PromiseLike<RpcResponse> {
   abortSignal?: (signal: AbortSignal) => RpcRequest;
 }
 export interface RpcClient {
   rpc(name: string, args?: Record<string, unknown>): RpcRequest;
 }
-export interface RegistrySession {
+interface RegistrySession {
   user: { id: string; email?: string };
 }
 export interface RegistryClient extends RpcClient {

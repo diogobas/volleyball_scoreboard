@@ -7,7 +7,7 @@ export interface GroupHrefOptions {
   period?: string;
 }
 
-export interface GroupRouteBase {
+interface GroupRouteBase {
   groupId: string;
   season: number | null;
   page: number;

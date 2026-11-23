@@ -32,10 +32,11 @@
     "test:communities:browser": "node --import=tsx scripts/check-communities.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src vite.config.ts eslint.config.js",
-    "format": "prettier --write src vite.config.ts eslint.config.js tsconfig.json package.json .prettierrc.json .github/workflows/ci.yml",
-    "format:check": "prettier --check src vite.config.ts eslint.config.js tsconfig.json package.json .prettierrc.json .github/workflows/ci.yml",
+    "format": "prettier --write src vite.config.ts eslint.config.js tsconfig.json package.json knip.json .prettierrc.json .github/workflows/ci.yml",
+    "format:check": "prettier --check src vite.config.ts eslint.config.js tsconfig.json package.json knip.json .prettierrc.json .github/workflows/ci.yml",
     "test:hooks": "node --import=tsx --test src/hooks/*.test.tsx",
-    "test:build:browser": "node scripts/check-build-entrypoints.mjs"
+    "test:build:browser": "node scripts/check-build-entrypoints.mjs",
+    "knip": "knip"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",
@@ -68,6 +69,7 @@
     "fake-indexeddb": "^6.2.7",
     "globals": "^16.5.0",
     "jsdom": "^26.1.0",
+    "knip": "^6.48.0",
     "playwright-core": "^1.65.0",
     "prettier": "^3.9.10",
     "tsx": "^4.23.15",

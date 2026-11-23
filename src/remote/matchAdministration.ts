@@ -195,22 +195,3 @@ export const listGroupMatches = async (
     throw new Error('Matches could not be loaded. Refresh and try again.');
   return data;
 };
-
-export const deleteFinalMatch = async (
-  groupId: string,
-  match: Pick<Models.PublicMatch, 'id' | 'version'>,
-  reason: string,
-  supplied?: RegistryClient | null,
-) => {
-  if (!reason.trim()) throw new Error('Provide a reason for deleting the match.');
-  await rpc(
-    'delete_final_match',
-    {
-      p_group_id: groupId,
-      p_match_id: match.id,
-      p_expected_version: match.version,
-      p_reason: reason.trim(),
-    },
-    supplied,
-  );
-};

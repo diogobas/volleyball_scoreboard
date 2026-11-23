@@ -1,2 +1,2 @@
 export { MatchConfirmationDialog } from './MatchConfirmationDialog';
-export type { MatchConfirmation, MatchConfirmationDialogProps } from './MatchConfirmationDialog';
+export type { MatchConfirmation } from './MatchConfirmationDialog';

@@ -1,2 +1,2 @@
 export { MatchViewTabs } from './MatchViewTabs';
-export type { MatchView, MatchViewTabsProps } from './MatchViewTabs';
+export type { MatchView } from './MatchViewTabs';

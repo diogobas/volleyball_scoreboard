@@ -7,7 +7,6 @@ import {
   createLocalId,
   GROUP_STORE,
   PLAYER_STORE,
-  SETTINGS_STORE,
   transactionDone,
 } from './storage';
 import type { MatchState, Team, TeamMap } from './types';
@@ -48,28 +47,6 @@ export const listPlayers = async (
   return request.result
     .filter((player) => !player.canonicalId)
     .sort((a, b) => a.name.localeCompare(b.name, 'pt', { sensitivity: 'base' }));
-};
-
-export const loadSelectedGroup = async (
-  database: IDBDatabase,
-  requestedId?: string,
-): Promise<LocalGroup> => {
-  const development = await loadDevelopmentGroup(database);
-  const transaction = database.transaction([GROUP_STORE, SETTINGS_STORE], 'readonly');
-  const done = transactionDone(transaction);
-  const groups = transaction.objectStore(GROUP_STORE).getAll() as IDBRequest<LocalGroup[]>;
-  const selected = transaction.objectStore(SETTINGS_STORE).get('selectedGroup');
-  await done;
-  let group =
-    groups.result.find((item) => item.id === (requestedId ?? selected.result)) ?? development;
-  const seen = new Set();
-  while (group.linkedTo) {
-    if (seen.has(group.id)) throw new Error('Invalid group link');
-    seen.add(group.id);
-    group = groups.result.find((item) => item.id === group.linkedTo)!;
-    if (!group) throw new Error('Linked group is unavailable');
-  }
-  return group;
 };
 
 export const registerPlayer = async (

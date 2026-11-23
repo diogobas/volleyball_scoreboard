@@ -79,7 +79,7 @@ export const refreshRegistryGroups = async (
   return rows;
 };
 
-export const refreshRegistryGroup = async (
+const refreshRegistryGroup = async (
   database: IDBDatabase,
   groupId: string,
   connection: RegistryConnection,

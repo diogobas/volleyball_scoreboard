@@ -7,7 +7,7 @@ export interface RosterPlayer {
   personId?: string;
 }
 
-export interface Player extends RosterPlayer {
+interface Player extends RosterPlayer {
   isError: boolean;
   setPoints: number;
   matchPoints: number;
@@ -118,7 +118,7 @@ export interface MatchArchive {
   unavailable?: false;
 }
 
-export interface UnavailableMatch {
+interface UnavailableMatch {
   id: string;
   syncStatus?: string;
   unavailable: true;

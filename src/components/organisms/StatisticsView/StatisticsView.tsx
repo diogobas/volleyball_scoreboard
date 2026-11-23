@@ -12,7 +12,7 @@ import {
 import type { RankedPlayer, TeamId, TeamMap } from '../../../game/types';
 import { teamColors } from '../../../theme';
 
-export interface StatisticsSet {
+interface StatisticsSet {
   setNumber: number;
   scoreA: number;
   scoreB: number;

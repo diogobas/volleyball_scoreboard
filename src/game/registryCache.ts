@@ -40,13 +40,6 @@ export const setRegistryIdentity = async (database: IDBDatabase, userId: string 
   await done;
 };
 
-export const selectRegistryGroup = async (database: IDBDatabase, id: string) => {
-  const transaction = database.transaction(SETTINGS_STORE, 'readwrite');
-  const done = transactionDone(transaction);
-  transaction.objectStore(SETTINGS_STORE).put(id, 'selectedGroup');
-  await done;
-};
-
 export const forgetRegistryAccess = async (
   database: IDBDatabase,
   userId: string | null,
@@ -101,7 +94,7 @@ export const cacheAuthorizedGroups = async (
 
 export const cachedAdmin = (cache: Pick<RegistryCache, 'userId'>, group?: LocalGroup) =>
   group?.localOnly || Boolean(cache.userId && group?.adminUserIds?.includes(cache.userId));
-export const fromRemotePlayer = (row: RegisteredPlayer): LocalPlayer => ({
+const fromRemotePlayer = (row: RegisteredPlayer): LocalPlayer => ({
   id: row.id,
   groupId: row.group_id,
   name: row.name,

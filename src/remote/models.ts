@@ -114,7 +114,7 @@ export interface HistoricalPlayer {
   result_team?: TeamId | null;
   points: number | string;
 }
-export interface HistoricalSet {
+interface HistoricalSet {
   score_a: number | string;
   score_b: number | string;
   early_finish?: boolean;
@@ -139,14 +139,14 @@ export interface Administrator {
   user_id: string;
   email: string;
 }
-export interface PlayerStatistics {
+interface PlayerStatistics {
   points: number;
   wins: number;
   matches: number;
   days: number;
   attendance_day_count: number;
 }
-export interface PublicPlayer extends RegisteredPlayer, PlayerStatistics {
+interface PublicPlayer extends RegisteredPlayer, PlayerStatistics {
   preferred_positions: string[];
   removed?: boolean;
 }
@@ -249,7 +249,7 @@ export interface MatchList {
   page_size: number;
   period?: string;
 }
-export interface Revision {
+interface Revision {
   id: string;
   version: number;
   author_email?: string;
@@ -267,7 +267,7 @@ export interface RevisionHistory {
   revisions: Revision[];
   total: number;
 }
-export interface DayLineupTeam {
+interface DayLineupTeam {
   name: string;
   players: (Participant | null)[];
 }
