@@ -18,7 +18,8 @@ try {
   page.setDefaultTimeout(10000);
   const errors = []; page.on('pageerror', error => { errors.push(error.message); console.log('PAGE ERROR', error.message); });
   const user = { id: '33333333-3333-4333-8333-333333333333', email: 'admin@example.test', aud: 'authenticated', role: 'authenticated' };
-  let registryPlayers = ['Anderson','Carlos','Chicó','Diogo','Diego','Geraldo','Jota','KJ','Gaëtan','Phillip','Omer','Kaue','Dimitri'].map((name, index) => ({ id: `player-${index}`, group_id: group.id, name, display_id: `P-${index+1}`, category: 'fixed', version: 1 }));
+  const preferredPositions = [['S', 'O'], ['S'], ['OH'], ['MB'], ['MB'], ['O'], ['S'], ['MB'], ['MB'], ['O'], ['O'], [], []];
+  let registryPlayers = ['Anderson','Carlos','Chicó','Diogo','Diego','Geraldo','Jota','KJ','Gaëtan','Phillip','Omer','Kaue','Dimitri'].map((name, index) => ({ id: `player-${index}`, group_id: group.id, name, display_id: `P-${index+1}`, category: 'fixed', preferred_positions: preferredPositions[index], version: 1 }));
   const days = Array.from({ length: 7 }, (_, i) => ({ id: `day-${i}`, play_date: `2026-11-${String(8-i).padStart(2, '0')}`, state: i === 6 ? 'closed' : 'open', pending: 0, version: 1, lineup_version: 1, match_count: i === 5 ? 1 : 0, published_count: i === 5 ? 1 : 0, team_a_name: 'Home', team_b_name: 'Away' }));
   const dayLineups = new Map(); const matchDrafts = new Map(); const historicalMatches = new Map();
   await page.context().route('**/*', async route => {
@@ -162,9 +163,11 @@ try {
   assert.equal(await playerForm.getByRole('combobox', { name: 'Player category' }).inputValue(), 'sub');
   await playerForm.getByRole('combobox', { name: 'Sex', exact: true }).selectOption('female');
   await playerForm.getByRole('checkbox', { name: 'Setter (S)', exact: true }).check();
-  await playerForm.getByRole('checkbox', { name: 'Outside Hitter (O)', exact: true }).check();
+  await playerForm.getByRole('checkbox', { name: 'Outside Hitter (OH)', exact: true }).check();
   await playerForm.getByRole('button', { name: 'Save player', exact: true }).click();
   await page.getByRole('textbox', { name: 'Search players' }).fill('Visitor');
+  await page.getByText('Female · Setter (S) · Outside Hitter (OH)', { exact: true }).waitFor();
+  assert.deepEqual(registryPlayers.find(player => player.name === 'Visitor').preferred_positions, ['S', 'O']);
   assert.equal(await page.getByRole('button', { name: /^Edit / }).count(), 0);
   const profileHref = await page.getByRole('link', { name: 'View profile for Visitor', exact: true }).getAttribute('href');
   const profilePage = await page.context().newPage();
@@ -173,13 +176,13 @@ try {
   const editForm = profilePage.getByRole('dialog', { name: 'Edit player', exact: true });
   assert.equal(await editForm.getByRole('combobox', { name: 'Sex', exact: true }).inputValue(), 'female');
   assert.equal(await editForm.getByRole('checkbox', { name: 'Setter (S)', exact: true }).isChecked(), true);
-  assert.equal(await editForm.getByRole('checkbox', { name: 'Outside Hitter (O)', exact: true }).isChecked(), true);
-  assert.equal(await editForm.getByRole('checkbox', { name: 'Opposite Hitter (OH)', exact: true }).isChecked(), false);
+  assert.equal(await editForm.getByRole('checkbox', { name: 'Outside Hitter (OH)', exact: true }).isChecked(), true);
+  assert.equal(await editForm.getByRole('checkbox', { name: 'Opposite Hitter (O)', exact: true }).isChecked(), false);
   await editForm.getByRole('textbox', { name: 'Player name' }).fill('Anderson');
   await editForm.getByRole('button', { name: 'Save player', exact: true }).click();
   await editForm.getByText('A player with this name already exists in this group.').waitFor();
   await editForm.getByRole('textbox', { name: 'Player name' }).fill('Visitor Updated');
-  await editForm.getByRole('combobox', { name: 'Player category' }).selectOption('fixed');
+  await editForm.getByRole('combobox', { name: 'Player category' }).selectOption({ label: 'Regular' });
   await editForm.getByRole('button', { name: 'Save player', exact: true }).click();
   await profilePage.getByRole('heading', { name: 'Visitor Updated', exact: true }).waitFor();
   await profilePage.close();
@@ -187,7 +190,7 @@ try {
   await page.getByText('Players refreshed.', { exact: true }).waitFor();
   await page.getByRole('combobox', { name: 'Category', exact: true }).selectOption('sub');
   await page.getByText('No players match this search.', { exact: true }).waitFor();
-  await page.getByRole('combobox', { name: 'Category', exact: true }).selectOption('fixed');
+  await page.getByRole('combobox', { name: 'Category', exact: true }).selectOption({ label: 'Regular' });
   await page.getByRole('button', { name: 'Delete Visitor Updated', exact: true }).click();
   await page.getByRole('dialog', { name: 'Delete Visitor Updated?', exact: true }).getByRole('button', { name: 'Cancel' }).click();
   await page.getByRole('button', { name: 'Delete Visitor Updated', exact: true }).click();
@@ -205,9 +208,9 @@ try {
   await page.getByRole('cell',{name:'50%',exact:true}).waitFor();
   await page.getByRole('cell',{name:'2 / 3 · 66.7%',exact:true}).waitFor();
   const statsTable = page.getByRole('table');
-  const fixedColor = await statsTable.getByText('Fixed', { exact: true }).evaluate(element => getComputedStyle(element.closest('.MuiChip-root')).backgroundColor);
+  const regularColor = await statsTable.getByText('Regular', { exact: true }).evaluate(element => getComputedStyle(element.closest('.MuiChip-root')).backgroundColor);
   const subColor = await statsTable.getByText('Sub', { exact: true }).evaluate(element => getComputedStyle(element.closest('.MuiChip-root')).backgroundColor);
-  assert.notEqual(fixedColor, subColor);
+  assert.notEqual(regularColor, subColor);
   await page.getByRole('combobox', { name: 'Season', exact: true }).selectOption('summer');
   await page.getByRole('table', { name: 'Player statistics for season Summer 2025' }).waitFor();
   await tab('Matches');
@@ -247,11 +250,15 @@ try {
   await page.getByRole('button', { name: 'Create game day', exact: true }).click();
   await page.getByRole('button', { name: 'Create day & code', exact: true }).waitFor();
   const slot = (team, position) => page.getByRole('combobox', { name: `Team ${team} · Player ${position}`, exact: true });
+  const role = (team, position) => page.getByRole('combobox', { name: `Team ${team} · Role for player ${position}`, exact: true });
+  const coverage = team => page.getByRole('group', { name: `Team ${team} role coverage` });
   const selectSlot = async (team, position, id) => {
     if (!id) {
+      await slot(team, position).evaluate(element => element.scrollIntoView({ block: 'center' }));
       await slot(team, position).focus();
       await slot(team, position).press('Escape');
-      await page.locator('.MuiAutocomplete-root').filter({ has: slot(team, position) }).getByRole('button', { name: 'Clear', exact: true }).click({ force: true });
+      await page.locator('.MuiAutocomplete-root').filter({ has: slot(team, position) }).getByRole('button', { name: 'Clear', exact: true }).click();
+      assert.equal(await slot(team, position).inputValue(), '');
       return;
     }
     const player = registryPlayers.find(player => player.id === id);
@@ -266,8 +273,25 @@ try {
     await slot(team, position).blur();
     return available;
   };
-  await selectSlot('A', 1, 'player-0');
-  assert.equal(await slot('A', 1).inputValue(), 'Anderson · Fixed');
+  await slot('A', 1).press('ArrowDown');
+  const options = page.getByRole('option');
+  const flexiblePlayer = options.filter({ hasText: 'Anderson' });
+  await flexiblePlayer.getByText('S', { exact: true }).waitFor();
+  await flexiblePlayer.getByText('OH', { exact: true }).waitFor();
+  await options.filter({ hasText: 'Chicó' }).getByText('O', { exact: true }).waitFor();
+  const optionLabels = await options.allTextContents();
+  assert.ok(optionLabels.findIndex(label => label.includes('Geraldo')) < optionLabels.findIndex(label => label.includes('Dimitri')), 'Available role matches precede alphabetical fallback options');
+  await flexiblePlayer.click();
+  assert.equal(await slot('A', 1).inputValue(), 'Anderson · Regular');
+  await coverage('A').getByText('S 1/1', { exact: true }).waitFor();
+  await selectSlot('A', 2, 'player-1');
+  await coverage('A').getByText('OH 1/2', { exact: true }).waitFor();
+  assert.equal(await role('A', 1).locator('option:checked').textContent(), 'Auto · OH');
+  await role('A', 1).selectOption('S');
+  await coverage('A').getByText('OH 0/2', { exact: true }).waitFor();
+  await role('A', 1).selectOption('');
+  await coverage('A').getByText('OH 1/2', { exact: true }).waitFor();
+  await selectSlot('A', 2, '');
   assert.equal(await isAvailable('A', 1, 'player-0'), true);
   for (const team of ['A', 'B']) for (let position = 1; position <= 6; position++) {
     if (team !== 'A' || position !== 1) assert.equal(await isAvailable(team, position, 'player-0'), false, 'Assigned players show as disabled in every other slot');
@@ -292,6 +316,8 @@ try {
   await page.getByRole('button', { name: 'Create game day', exact: true }).click();
   await page.locator('input[type="date"]:visible').fill('2026-11-15');
   for (const [teamIndex, team] of ['A', 'B'].entries()) for (let position = 1; position <= 6; position++) await selectSlot(team, position, `player-${teamIndex*6+position-1}`);
+  for (const count of ['S 1/1', 'MB 2/2', 'OH 2/2', 'O 1/1']) await coverage('A').getByText(count, { exact: true }).waitFor();
+  await coverage('B').getByText('O 0/1', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Create day & code', exact: true }).click();
   await page.getByRole('textbox', { name: 'Game-day code', exact: true }).waitFor();
   assert.equal(await page.getByRole('textbox', { name: 'Game-day code', exact: true }).inputValue(), 'AB7K9');
@@ -306,15 +332,16 @@ try {
   await page.getByRole('button', { name: 'Save game day', exact: true }).click();
   await page.getByText('Game day updated.', { exact: true }).waitFor();
   await dayNav.getByRole('tab', { name: 'Lineup', exact: true }).click();
-  assert.equal(await slot('A', 1).inputValue(), 'Anderson · Fixed');
+  assert.equal(await slot('A', 1).inputValue(), 'Anderson · Regular');
   await page.getByRole('textbox', { name: 'Team A name', exact: true }).fill('Red team');
   await selectSlot('A', 1, 'player-12');
+  await role('A', 1).selectOption('OH');
   await slot('B', 5).fill('Mejdi');
   await page.getByRole('option', { name: '＋ Add player…', exact: true }).click();
   let lineupAdd = page.getByRole('dialog', { name: 'Add player', exact: true });
   await lineupAdd.getByRole('textbox', { name: 'Player name', exact: true }).fill('Mejdi');
   await lineupAdd.getByRole('button', { name: 'Cancel', exact: true }).click();
-  assert.equal(await slot('B', 5).inputValue(), 'Omer · Fixed', 'Cancel preserves the occupied slot');
+  assert.equal(await slot('B', 5).inputValue(), 'Omer · Regular', 'Cancel preserves the occupied slot');
   await slot('B', 5).fill('Mejdi');
   await page.getByRole('option', { name: '＋ Add player…', exact: true }).click();
   lineupAdd = page.getByRole('dialog', { name: 'Add player', exact: true });
@@ -325,7 +352,9 @@ try {
   await page.getByRole('textbox', { name: 'Reason for day change', exact: true }).fill('Adjust lineup');
   await page.getByRole('button', { name: 'Save lineup version', exact: true }).click();
   await page.getByText(/^Lineup saved\. The game-day code stays the same/).waitFor();
-  assert.equal(await slot('A', 1).inputValue(), 'Dimitri · Fixed');
+  assert.equal(await slot('A', 1).inputValue(), 'Dimitri · Regular');
+  assert.equal(await role('A', 1).inputValue(), 'OH');
+  assert.equal(dayLineups.get('created-day').A.players[0].role, 'OH');
   assert.equal(await slot('B', 5).inputValue(), 'Mejdi · Sub', 'The substitute survives saving and refreshing the lineup');
   await page.screenshot({ path: 'artifacts/admin-navigation/lineup-replacement-mobile.png', fullPage: true });
   await page.getByRole('button', { name: 'Back to game days', exact: true }).click();

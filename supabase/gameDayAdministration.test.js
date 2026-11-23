@@ -26,8 +26,9 @@ test('game-day editing, searchable list and deletion enforce ownership, versions
   const players=Array.from({length:12},(_,i)=>({id:randomUUID(),name:`Person ${i+1}`}));
   for(const person of players) await rpc('sync_group_player',[group.id,person.id,person.name]);
   const lineup={A:{name:'Home',players:players.slice(0,6)},B:{name:'Away',players:players.slice(6)}};
+  const lineupWithRole = role => ({ ...lineup, A: { ...lineup.A, players: [{ ...players[0], role }, ...players.slice(1, 6)] } });
   const day=await rpc('create_game_day',[group.id,'2026-11-08',lineup]);
-  const second=await rpc('create_game_day',[group.id,'2026-11-09',lineup]);
+  const second=await rpc('create_game_day',[group.id,'2026-11-09',lineupWithRole('OH')]);
   const load=()=>rpc('get_game_day',[day.day.id]);
 
   await t.test('list contains team names, counts and no access code or hash',async()=>{
@@ -48,6 +49,22 @@ test('game-day editing, searchable list and deletion enforce ownership, versions
     await assert.rejects(rpc('edit_game_day',[day.day.id,1,'2026-11-11','Stale']),/Day changed/);
     const current=await load(); assert.deepEqual(current.lineup,lineup); assert.equal(current.history[0].new_state.action,'edit');
     assert.equal((await rpc('redeem_day_code',[day.code],null,'anon')).play_date,'2026-11-10');
+  });
+  await t.test('optional roles survive lineup saves while the scoreboard receives court order', async () => {
+    const saved = await rpc('get_game_day', [second.day.id]);
+    assert.deepEqual(saved.lineup, lineupWithRole('OH'));
+    assert.deepEqual((await rpc('redeem_day_code', [second.code], null, 'anon')).lineup, lineup);
+
+    const current = await load();
+    for (const role of ['LB', null, ['OH']]) {
+      await assert.rejects(rpc('change_game_day', [day.day.id, current.day.version, 'lineup', lineupWithRole(role), 'Assign role']), /valid lineup role/);
+    }
+    const next = lineupWithRole('O');
+    await rpc('change_game_day', [day.day.id, current.day.version, 'lineup', next, 'Assign role']);
+    const updated = await load();
+    assert.deepEqual(updated.lineup, next);
+    assert.deepEqual(updated.lineups.map(({ lineup }) => lineup), [lineup, next]);
+    assert.deepEqual((await rpc('redeem_day_code', [day.code], null, 'anon')).lineup, lineup);
   });
   await t.test('finalized days cannot be deleted and empty days can be removed',async()=>{
     const payload={format_version:1,id:randomUUID(),group_id:group.id,started_at:'2026-11-08T23:00:00Z',closed_at:'2026-11-09T01:00:00Z',team_a_name:'Home',team_b_name:'Away',sets:[{team_a_name:'Home',team_b_name:'Away',score_a:1,score_b:0,rosters:{A:players.slice(0,6),B:players.slice(6)},points:[{team:'A',player_id:players[0].id,player_name:players[0].name,is_opponent_error:false}]}]};

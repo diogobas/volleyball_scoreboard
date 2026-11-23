@@ -110,7 +110,7 @@ export const PlayerFormDialog = ({
                 setDraft((previous) => ({ ...previous, category: event.target.value }))
               }
             >
-              <option value="fixed">Fixed</option>
+              <option value="fixed">Regular</option>
               <option value="sub">Sub</option>
             </TextField>
             <TextField
@@ -136,7 +136,7 @@ export const PlayerFormDialog = ({
                 {playerPositions.map((position) => (
                   <FormControlLabel
                     key={position.id}
-                    label={`${position.label} (${position.id})`}
+                    label={position.label}
                     control={
                       <Checkbox
                         checked={(draft.preferred_positions ?? []).includes(position.id)}

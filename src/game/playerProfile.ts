@@ -5,17 +5,17 @@ export const playerSexes = [
 ];
 
 export const playerPositions = [
-  { id: 'S', label: 'Setter' },
-  { id: 'MB', label: 'Middle Blocker' },
-  { id: 'O', label: 'Outside Hitter' },
-  { id: 'OH', label: 'Opposite Hitter' },
-  { id: 'LB', label: 'Libero' },
-];
+  { id: 'S', label: 'Setter (S)', abbreviation: 'S' },
+  { id: 'MB', label: 'Middle Blocker (MB)', abbreviation: 'MB' },
+  // Keep the stored hitter IDs so existing profiles retain their selected roles.
+  { id: 'O', label: 'Outside Hitter (OH)', abbreviation: 'OH' },
+  { id: 'OH', label: 'Opposite Hitter (O)', abbreviation: 'O' },
+  { id: 'LB', label: 'Libero (LB)', abbreviation: 'LB' },
+] as const;
 
 export const sexLabel = (sex: string | null | undefined) => {
   return playerSexes.find((item) => item.id === sex)?.label ?? 'Not specified';
 };
 export const positionLabel = (code: string) => {
-  const position = playerPositions.find((item) => item.id === code);
-  return position ? `${position.label} (${position.id})` : code;
+  return playerPositions.find((item) => item.id === code)?.label ?? code;
 };

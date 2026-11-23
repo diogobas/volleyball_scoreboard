@@ -1,3 +1,4 @@
+import type { LineupRole } from '../game/lineupRoles';
 import type { TeamId, TeamMap } from '../game/types';
 
 export interface Community {
@@ -267,9 +268,12 @@ export interface RevisionHistory {
   revisions: Revision[];
   total: number;
 }
+export interface DayLineupPlayer extends Participant {
+  role?: LineupRole;
+}
 interface DayLineupTeam {
   name: string;
-  players: (Participant | null)[];
+  players: (DayLineupPlayer | null)[];
 }
 export type DayLineup = TeamMap<DayLineupTeam>;
 export interface GameDay {
@@ -291,7 +295,7 @@ export interface GameDayDetails {
   lineups: {
     version: number;
     created_at: string;
-    lineup: TeamMap<{ name: string; players: Participant[] }>;
+    lineup: TeamMap<{ name: string; players: DayLineupPlayer[] }>;
   }[];
   history: {
     version: number;
