@@ -45,7 +45,7 @@ export const PlayerSelect = <T extends SelectablePlayer>({
       {available.map((p) => (
         <option key={p.id} value={p.id}>
           {p.name}
-          {p.category === 'fixed' ? ' · Fixed' : ' · Sub'}
+          {p.category === 'fixed' ? ' · Regular' : ' · Sub'}
         </option>
       ))}
       <option value={ADD_PLAYER}>＋ Add player…</option>

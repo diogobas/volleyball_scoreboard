@@ -207,7 +207,7 @@ export const GameDayAdministration = ({
                     ...previous[team],
                     players: previous[team].players.map((person) => {
                       const current = registry.players.find((player) => player.id === person?.id);
-                      return current ? { id: current.id, name: current.name } : null;
+                      return current ? { ...person, id: current.id, name: current.name } : null;
                     }),
                   })),
                 );

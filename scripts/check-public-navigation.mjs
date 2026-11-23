@@ -116,7 +116,7 @@ try {
   assert.equal(await page.getByRole('button', { name: 'Edit player', exact: true }).count(), 0);
   await page.getByText('Female', { exact: true }).waitFor();
   await page.getByText('Setter (S)', { exact: true }).waitFor();
-  await page.getByText('Opposite Hitter (OH)', { exact: true }).waitFor();
+  await page.getByText('Opposite Hitter (O)', { exact: true }).waitFor();
   await page.getByRole('heading', { name: `Statistics · ${periodTitle(2025, currentPeriod())}`, exact: true }).waitFor();
   await page.getByRole('heading', { name: 'Match history', exact: true }).waitFor();
   await page.getByText('2 / 3 · 66.7%', { exact: true }).waitFor();
