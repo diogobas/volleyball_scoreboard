@@ -157,7 +157,7 @@ export const PlayerRegistry = ({
           }}
         >
           <option value="all">All players</option>
-          <option value="fixed">Regular</option>
+          <option value="regular">Regular</option>
           <option value="sub">Sub</option>
         </TextField>
         <Button
@@ -172,8 +172,8 @@ export const PlayerRegistry = ({
         </Button>
       </Stack>
       <Typography variant="body2" color="text.secondary">
-        {players.filter((player) => player.category === 'fixed').length} Regular ·{' '}
-        {players.filter((player) => player.category !== 'fixed').length} Subs
+        {players.filter((player) => player.category === 'regular').length} Regular ·{' '}
+        {players.filter((player) => player.category !== 'regular').length} Subs
       </Typography>
       {loading && <Typography role="status">Loading players…</Typography>}
       {!loading && (
@@ -218,8 +218,8 @@ export const PlayerRegistry = ({
                   )}
                   <Chip
                     size="small"
-                    label={player.category === 'fixed' ? 'Regular' : 'Sub'}
-                    color={player.category === 'fixed' ? 'primary' : 'default'}
+                    label={player.category === 'regular' ? 'Regular' : 'Sub'}
+                    color={player.category === 'regular' ? 'primary' : 'default'}
                     sx={{ mt: 0.5 }}
                   />
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>

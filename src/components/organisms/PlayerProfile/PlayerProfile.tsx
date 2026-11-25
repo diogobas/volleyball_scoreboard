@@ -50,8 +50,8 @@ export const PlayerProfile = ({ data, route, loading, refresh }: PlayerProfilePr
           </Typography>
           <Chip
             size="small"
-            label={player.category === 'fixed' ? 'Regular' : 'Sub'}
-            color={player.category === 'fixed' ? 'primary' : 'warning'}
+            label={player.category === 'regular' ? 'Regular' : 'Sub'}
+            color={player.category === 'regular' ? 'primary' : 'warning'}
           />
           {player.removed && <Chip size="small" label="Removed from registry" variant="outlined" />}
         </Stack>

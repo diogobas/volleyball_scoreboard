@@ -120,7 +120,7 @@ export const CommunityPlayerDialog = ({
             onChange={(event) => setCategory(event.target.value)}
           >
             <option value="sub">Sub</option>
-            <option value="fixed">Regular</option>
+            <option value="regular">Regular</option>
           </TextField>
           {loading && <Typography role="status">Loading community players…</Typography>}
           {data && !loading && (

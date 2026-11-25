@@ -241,8 +241,8 @@ export const GroupSeason = ({
                         {player.category && (
                           <Chip
                             size="small"
-                            label={player.category === 'fixed' ? 'Regular' : 'Sub'}
-                            color={player.category === 'fixed' ? 'primary' : 'warning'}
+                            label={player.category === 'regular' ? 'Regular' : 'Sub'}
+                            color={player.category === 'regular' ? 'primary' : 'warning'}
                             sx={{ ml: 1 }}
                           />
                         )}

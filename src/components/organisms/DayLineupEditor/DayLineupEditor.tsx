@@ -38,7 +38,7 @@ const filterPlayers = createFilterOptions<SelectablePlayer>({
   stringify: (player) => `${player.name} ${player.display_id ?? ''}`,
 });
 const label = (player: SelectablePlayer) =>
-  `${player.name}${player.id === addPlayer.id ? '' : player.category === 'fixed' ? ' · Regular' : ' · Sub'}`;
+  `${player.name}${player.id === addPlayer.id ? '' : player.category === 'regular' ? ' · Regular' : ' · Sub'}`;
 const preferredPositions = (player?: SelectablePlayer) =>
   playerPositions.filter(({ id }) => player?.preferred_positions?.includes(id));
 const rolePreferences = (player?: SelectablePlayer) => {

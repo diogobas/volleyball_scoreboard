@@ -8,7 +8,7 @@ const groups = [
   { id: '22222222-2222-4222-8222-222222222222', display_id: 'G-2', name: 'Thursday Montreal', community_id: community.id, community, time_zone: 'America/Toronto' },
 ];
 const registries = new Map(groups.map(group => [group.id, []]));
-const sourcePerson = { id: '33333333-3333-4333-8333-333333333333', name: 'Alex Montreal', sex: 'male', preferred_positions: ['MB', 'O'], community_person_id: '44444444-4444-4444-8444-444444444444', category: 'fixed', version: 1 };
+const sourcePerson = { id: '33333333-3333-4333-8333-333333333333', name: 'Alex Montreal', sex: 'male', preferred_positions: ['MB', 'O'], community_person_id: '44444444-4444-4444-8444-444444444444', category: 'regular', version: 1 };
 registries.set(groups[0].id, [sourcePerson]);
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
@@ -105,7 +105,7 @@ try {
   await picker.getByRole('button', { name: 'Add selected players (1)', exact: true }).click();
   await page.getByText('Community players added.', { exact: true }).waitFor();
   await page.getByRole('link', { name: `View profile for ${sourcePerson.name}`, exact: true }).waitFor();
-  assert.equal(registries.get(groups[0].id)[0].category, 'fixed');
+  assert.equal(registries.get(groups[0].id)[0].category, 'regular');
   assert.equal(registries.get(groups.at(-1).id)[0].category, 'sub');
   assert.equal(registries.get(groups.at(-1).id)[0].sex, 'male');
   assert.deepEqual(registries.get(groups.at(-1).id)[0].preferred_positions, ['MB', 'O']);

@@ -470,7 +470,7 @@ test('registry refresh carries category and removes deleted identities without a
   const snapshot = {
     group: online,
     players: [
-      { id: oldId, group_id: online.id, name: 'Removed player', category: 'fixed' },
+      { id: oldId, group_id: online.id, name: 'Removed player', category: 'regular' },
       { id: activeId, group_id: online.id, name: 'Current player', category: 'sub' },
     ],
   };
@@ -478,15 +478,15 @@ test('registry refresh carries category and removes deleted identities without a
   assert.equal(
     required((await listPlayers(database, online.id)).find((player) => player.id === oldId))
       .category,
-    'fixed',
+    'regular',
   );
   await cacheRemoteRegistry(database, owner, {
     ...snapshot,
-    players: [{ ...snapshot.players[1], name: 'Renamed player', category: 'fixed' }],
+    players: [{ ...snapshot.players[1], name: 'Renamed player', category: 'regular' }],
     deleted_player_ids: [oldId],
   });
   const players = await listPlayers(database, online.id);
   assert.equal(players.length, 1);
   assert.equal(players[0].name, 'Renamed player');
-  assert.equal(players[0].category, 'fixed');
+  assert.equal(players[0].category, 'regular');
 });
