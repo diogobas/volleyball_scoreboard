@@ -32,7 +32,6 @@ export type GroupSeasonProps = {
   refresh: AsyncAction;
   onNavigate?: (href: string) => void;
   hideNavigation?: boolean;
-  fixedCategoryLabel?: string;
   client?: RpcClient;
 };
 export const GroupSeason = ({
@@ -42,7 +41,6 @@ export const GroupSeason = ({
   refresh,
   onNavigate,
   hideNavigation = false,
-  fixedCategoryLabel = 'Fixed',
   client,
 }: GroupSeasonProps) => {
   const navigate = (href: string) => {
@@ -243,7 +241,7 @@ export const GroupSeason = ({
                         {player.category && (
                           <Chip
                             size="small"
-                            label={player.category === 'fixed' ? fixedCategoryLabel : 'Sub'}
+                            label={player.category === 'fixed' ? 'Regular' : 'Sub'}
                             color={player.category === 'fixed' ? 'primary' : 'warning'}
                             sx={{ ml: 1 }}
                           />

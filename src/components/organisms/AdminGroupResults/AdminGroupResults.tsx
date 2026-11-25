@@ -82,7 +82,6 @@ export const AdminGroupResults = ({
             refresh={refresh}
             client={client}
             hideNavigation
-            fixedCategoryLabel="Regular"
             onNavigate={navigate}
           />
         )}
