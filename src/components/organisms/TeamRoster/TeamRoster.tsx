@@ -28,7 +28,9 @@ export const TeamRoster = ({ id, team, onPoint }: TeamRosterProps) => {
             aria-label={`Add point to ${player.name} — ${team.name}`}
             onClick={() => onPoint(id, player.id)}
           >
-            <span className="player-name">{player.name}</span>
+            <span className="player-name-space">
+              <span className="player-name">{player.name}</span>
+            </span>
             <Chip component="span" className="player-points" label={player.setPoints} />
           </ButtonBase>
         ))}
