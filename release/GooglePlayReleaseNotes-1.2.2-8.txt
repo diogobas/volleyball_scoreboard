@@ -1,0 +1,3 @@
+<en-US>
+The screen now stays on while Volleyball Scoreboard is open, so you can follow the score without changing your phone's screen timeout.
+</en-US>
