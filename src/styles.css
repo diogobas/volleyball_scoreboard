@@ -104,14 +104,14 @@ input {
   display: grid;
   grid-template-rows: repeat(7, minmax(min-content, 1fr));
   flex: 1;
-  gap: 4px;
+  gap: 2px;
 }
 .player-button.MuiButtonBase-root {
   display: flex;
   justify-content: space-between;
   gap: 6px;
   width: 100%;
-  min-height: 44px;
+  min-height: 46px;
   padding: 4px 8px;
   border: 1px solid #ffffff4d;
   border-radius: 10px;
@@ -130,17 +130,31 @@ input {
   border-style: dashed;
   background: #ffffff0a;
 }
-.player-name {
+.player-name-space {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  flex: 1;
   min-width: 0;
-  font-size: 0.875rem;
-  overflow-wrap: anywhere;
+  container-type: size;
+}
+.player-name {
+  width: 100%;
 }
 .player-button:not(.error-button) .player-name {
+  font-size: 1.375rem;
+  font-size: min(27cqi, 83cqb);
   font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .error-button .player-name {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
+  font-size: min(18cqi, 44cqb);
   font-style: italic;
+  line-height: 1.1;
   opacity: 0.9;
 }
 .player-points.MuiChip-root {
@@ -388,13 +402,9 @@ input {
     gap: 1px;
   }
   .player-button.MuiButtonBase-root {
-    min-height: 48px;
+    min-height: 50px;
     padding: 4px 6px;
     gap: 4px;
-  }
-  .error-button .player-name {
-    font-size: 0.875rem;
-    white-space: nowrap;
   }
   .player-points .MuiChip-label {
     padding: 0 6px;
