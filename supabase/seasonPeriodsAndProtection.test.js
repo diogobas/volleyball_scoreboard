@@ -28,7 +28,7 @@ test('season periods filter complete statistics and finalized results cannot be 
   }
   const group = await rpc('create_group', ['Season test', 'America/Toronto']);
   const players = Array.from({ length: 12 }, (_, i) => ({ id: randomUUID(), name: `Person ${i}` }));
-  for (const player of players) await rpc('save_group_player', [group.id, player.id, player.name, 'fixed', null]);
+  for (const player of players) await rpc('save_group_player', [group.id, player.id, player.name, 'regular', null]);
   const summary = (period, year = 2026, page = 1) => rpc('public_group_period_summary', [group.id, year, page, period], null, 'anon');
   const list = (period, year = 2026, page = 1) => rpc('list_group_period_matches', [group.id, year, null, '', page, 5, period]);
   const dates = ['2026-01-01', '2026-02-28', '2026-03-01', '2026-05-31', '2026-06-01', '2026-08-31', '2026-09-01', '2026-11-30', '2026-12-01', '2025-11-01'];

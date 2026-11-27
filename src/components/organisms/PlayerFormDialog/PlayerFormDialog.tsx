@@ -110,7 +110,7 @@ export const PlayerFormDialog = ({
                 setDraft((previous) => ({ ...previous, category: event.target.value }))
               }
             >
-              <option value="fixed">Regular</option>
+              <option value="regular">Regular</option>
               <option value="sub">Sub</option>
             </TextField>
             <TextField

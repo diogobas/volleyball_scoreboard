@@ -9,7 +9,7 @@ const allMatches = Array.from({ length: 26 }, (_, i) => ({
   started_at: '2025-11-07T23:00:00Z', closed_at: '2025-11-08T01:00:00Z',
   team_a_name: `Home ${i+1}`, team_b_name: 'Away', sets_a: 1, sets_b: 0, sets: [{ score_a: 25, score_b: 20 }],
 }));
-const players = [{ id: '33333333-3333-4333-8333-333333333333', display_id: 'P-1', name: 'Alex', points: 20, matches: 4, wins: 2, days: 2 }];
+const players = [{ id: '33333333-3333-4333-8333-333333333333', display_id: 'P-1', name: 'Alex', category: 'regular', points: 20, matches: 4, wins: 2, days: 2 }];
 let requests = 0;
 let failScorers = true;
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
@@ -34,7 +34,7 @@ try {
     if (name === 'public_player_profile') {
       assert.equal(args.p_player_ref, 'P-1');
       const matches = args.p_period === 'summer' ? [] : allMatches;
-      return route.fulfill({ headers, json: { group, player: { id: players[0].id, display_id: 'P-1', name: 'Alex', category: 'fixed', sex: 'female', preferred_positions: ['S', 'OH'], removed: false },
+      return route.fulfill({ headers, json: { group, player: { id: players[0].id, display_id: 'P-1', name: 'Alex', category: 'regular', sex: 'female', preferred_positions: ['S', 'OH'], removed: false },
         season: args.p_season ?? 2026, period: args.p_period, seasons: [2026, 2025], page: args.p_page, page_size: args.p_page_size,
         statistics: { points: matches.length ? 20 : 0, matches: matches.length, wins: matches.length ? 2 : 0, days: matches.length ? 2 : 0, attendance_day_count: matches.length ? 3 : 0 },
         match_count: matches.length, matches: matches.slice((args.p_page - 1) * args.p_page_size, args.p_page * args.p_page_size).map(match => ({ ...match, player_points: 3, player_teams: ['A'], player_result: 'win' })) } });
@@ -102,6 +102,7 @@ try {
   await nav().getByRole('tab', { name: 'Overview', exact: true }).click();
   await page.getByRole('link', { name: 'View players', exact: true }).click();
   await page.getByRole('table', { name: `Player statistics for season ${periodTitle(2026, currentPeriod())}` }).waitFor();
+  await page.getByRole('table').getByText('Regular', { exact: true }).waitFor();
   await page.getByRole('columnheader',{name:'Win rate',exact:true}).waitFor();
   await page.getByRole('cell',{name:'50%',exact:true}).waitFor();
   await page.getByRole('cell',{name:'2 / 3 · 66.7%',exact:true}).waitFor();
@@ -113,6 +114,7 @@ try {
   await page.getByRole('table', { name: `Player statistics for season ${periodTitle(2025, currentPeriod())}` }).waitFor(); await selected('Players');
   await page.getByRole('table').getByRole('link', { name: 'Alex', exact: true }).click();
   await page.getByRole('heading', { name: 'Alex', exact: true }).waitFor();
+  await page.getByText('Regular', { exact: true }).waitFor();
   assert.equal(await page.getByRole('button', { name: 'Edit player', exact: true }).count(), 0);
   await page.getByText('Female', { exact: true }).waitFor();
   await page.getByText('Setter (S)', { exact: true }).waitFor();

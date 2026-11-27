@@ -10,7 +10,7 @@ const allMatches = Array.from({ length: 26 }, (_, i) => ({
   started_at: '2025-11-07T23:00:00Z', closed_at: '2025-11-08T01:00:00Z',
   team_a_name: `Home ${i+1}`, team_b_name: 'Away', sets_a: 1, sets_b: 0, version: 1, sets: [{ score_a: 25, score_b: 20 }],
 }));
-const players = [{ id: 'player-a', name: 'Alex', category: 'fixed', points: 20, matches: 4, wins: 2, days: 2 }, { id: 'player-b', name: 'Sam', category: 'sub', points: 0, matches: 0, wins: 0, days: 0 }];
+const players = [{ id: 'player-a', name: 'Alex', category: 'regular', points: 20, matches: 4, wins: 2, days: 2 }, { id: 'player-b', name: 'Sam', category: 'sub', points: 0, matches: 0, wins: 0, days: 0 }];
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -19,7 +19,7 @@ try {
   const errors = []; page.on('pageerror', error => { errors.push(error.message); console.log('PAGE ERROR', error.message); });
   const user = { id: '33333333-3333-4333-8333-333333333333', email: 'admin@example.test', aud: 'authenticated', role: 'authenticated' };
   const preferredPositions = [['S', 'O'], ['S'], ['OH'], ['MB'], ['MB'], ['O'], ['S'], ['MB'], ['MB'], ['O'], ['O'], [], []];
-  let registryPlayers = ['Anderson','Carlos','Chicó','Diogo','Diego','Geraldo','Jota','KJ','Gaëtan','Phillip','Omer','Kaue','Dimitri'].map((name, index) => ({ id: `player-${index}`, group_id: group.id, name, display_id: `P-${index+1}`, category: 'fixed', preferred_positions: preferredPositions[index], version: 1 }));
+  let registryPlayers = ['Anderson','Carlos','Chicó','Diogo','Diego','Geraldo','Jota','KJ','Gaëtan','Phillip','Omer','Kaue','Dimitri'].map((name, index) => ({ id: `player-${index}`, group_id: group.id, name, display_id: `P-${index+1}`, category: 'regular', preferred_positions: preferredPositions[index], version: 1 }));
   const days = Array.from({ length: 7 }, (_, i) => ({ id: `day-${i}`, play_date: `2026-11-${String(8-i).padStart(2, '0')}`, state: i === 6 ? 'closed' : 'open', pending: 0, version: 1, lineup_version: 1, match_count: i === 5 ? 1 : 0, published_count: i === 5 ? 1 : 0, team_a_name: 'Home', team_b_name: 'Away' }));
   const dayLineups = new Map(); const matchDrafts = new Map(); const historicalMatches = new Map();
   await page.context().route('**/*', async route => {

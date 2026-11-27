@@ -34,7 +34,7 @@ begin
   -- Retain UUID tombstones so an old device cannot restore removed identities.
   update public.players set deleted_at=now(),version=version+1 where group_id=target and deleted_at is null;
   insert into public.players(group_id,name,category)
-    select target,name,'fixed' from unnest(array[
+    select target,name,'regular' from unnest(array[
       'Anderson','Carlos','Chicó','Diogo','Diego','Geraldo','Jota','KJ','Gaëtan','Phillip','Omer','Kaue','Dimitri'
     ]) as names(name);
   insert into private.data_resets(group_id,reset_key) values(target,'2026-11-08-fixed-roster');

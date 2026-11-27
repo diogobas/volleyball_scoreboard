@@ -15,7 +15,7 @@ test('unfinished historical matches explicitly finish as draws, preserving score
  async function as(user,action,role='authenticated'){await db.exec(`begin;set local role ${role};`);try{await q("select set_config('request.jwt.claim.sub',$1,true)",[user??'']);const r=await action();await db.exec('commit');return r;}catch(e){await db.exec('rollback');throw e;}}
  const rpc=(name,args=[],user=owner,role='authenticated')=>as(user,()=>q(`select to_jsonb(public.${name}(${args.map((_,i)=>`$${i+1}`).join(',')})) as data`,args),role).then(r=>r.rows[0]?.data);
  const group=await rpc('create_group',['Draw test','America/Toronto']);
- const players=[];for(let i=0;i<12;i++)players.push(await rpc('save_group_player',[group.id,randomUUID(),`Person ${i}`,'fixed',null]));
+ const players=[];for(let i=0;i<12;i++)players.push(await rpc('save_group_player',[group.id,randomUUID(),`Person ${i}`,'regular',null]));
  const body={format_version:3,id:randomUUID(),group_id:group.id,played_on:'2026-10-23',rules:'recreational',team_a_name:'Team 1',team_b_name:'Team 2',player_totals_recorded:true,ended_as_draw:true,
   sets:[[24,26],[25,20],[25,22],[22,21]].map(([score_a,score_b],i)=>({score_a,score_b,early_finish:i===3})),
   players:players.map((p,i)=>({team:i<6?'A':'B',player_id:p.id,name:p.name,points:i===0?15:i===6?24:0})),errors_a:81,errors_b:65};
